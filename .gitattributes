@@ -1,0 +1,6 @@
+# Keep LF line endings on every machine (macOS + Windows WSL) so scripts work inside Linux containers.
+* text=auto eol=lf
+
+# Windows-only scripts (e.g. Maven wrapper mvnw.cmd) need CRLF.
+*.cmd text eol=crlf
+*.bat text eol=crlf
