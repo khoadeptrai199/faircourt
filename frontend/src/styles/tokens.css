@@ -1,0 +1,15 @@
+/* Design tokens from blueprint sections 6 and 16, exposed as Tailwind theme colors (bg-action, text-ink, ...). */
+@theme {
+  --color-background: #f7f8f4;
+  --color-surface: #ffffff;
+  --color-ink: #10202a;
+  --color-action: #157b63;
+  --color-highlight: #ddf7e8;
+  --color-accent: #f9c94d; /* not for small body text; never the only carrier of meaning */
+  --color-error: #b64243;
+
+  /* "Inter or system sans" — system sans for now, no web font loaded. */
+  --font-sans:
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+}

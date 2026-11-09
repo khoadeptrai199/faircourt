@@ -8,7 +8,7 @@ paths:
 
 ## Part A — Frontend (§6, §7, §16)
 
-Stack: React + TypeScript + Vite, Tailwind CSS with explicit tokens and a small in-house component set (§7). Exact versions not chosen yet — propose, get approval, pin.
+Stack: React + TypeScript + Vite, Tailwind CSS with explicit tokens and a small in-house component set (§7). Pinned (owner-approved 2026-11-09): Node 24.22.2, React 19.3.1, Vite 8.3.7, Tailwind 4.3.5 (tokens live in `src/styles/tokens.css` as a Tailwind v4 `@theme`), TypeScript 7.0.2. Exact versions in `package.json`; lockfile is generated inside the Node container. New packages (e.g. a router) need owner approval.
 
 ### Structure (§16)
 

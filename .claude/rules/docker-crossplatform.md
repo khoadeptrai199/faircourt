@@ -16,7 +16,7 @@ The owner develops in parallel on:
 
 | Machine | Known facts | Still to verify |
 |---|---|---|
-| MacBook Pro | macOS 15.1, `arm64`, Docker 28.0.4, Compose v2.34 (Docker Desktop) | — |
+| MacBook Pro | macOS 15.1, `arm64`, Docker 28.0.4, Compose v2.34 (Docker Desktop), repo under `~/Desktop` | Docker Desktop must have macOS permission for the Desktop folder, otherwise bind mounts fail with `mkdir /host_mnt/...: operation not permitted` (seen 2026-11-09) |
 | Windows PC | Uses WSL | CPU arch (`uname -m`), Docker Desktop WSL integration vs Docker Engine inside WSL, Docker/Compose versions |
 
 Goal: the exact §0 commands work **unchanged** on both:

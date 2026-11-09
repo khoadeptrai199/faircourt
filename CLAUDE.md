@@ -24,13 +24,16 @@ FairCourt is a responsive web app that helps office badminton groups form fair d
 ## Open questions — ask the owner, do not resolve silently
 
 - Version label: title says v0.4, Part II header says v0.3.
-- Exact JDK / Spring Boot / Node / React / Vite / PostgreSQL versions are not chosen yet (§0 requires pinned stable versions). Propose them with evidence, get approval, then pin.
 - Architecture of the second (WSL) machine is unknown — check with `uname -m` there.
 
 ## Owner decisions (resolved)
 
 - 2026-11-09 — Seed: **8** READY member players, as in §0 (not 12 from §3/§17). Owner context: one court usually holds at most 8 people. This is **not** an app rule — do not add any attendance cap.
 - 2026-11-09 — `.gitattributes` enforcing LF approved and added.
+- 2026-11-09 — Versions pinned (owner chose Spring Boot **4.1.2** after 3.5's OSS end-of-life was flagged): Java 25 (Temurin 25.0.5_8), Spring Boot 4.1.2, PostgreSQL 18.6, Node 24.22.2, React 19.3.1, Vite 8.3.7, Tailwind 4.3.5, TypeScript 7.0.2. Full table in `README.md`. Changing a version needs owner approval.
+- 2026-11-09 — Backend tests run in Docker (`docker compose --profile test run --rm --build backend-test`) against the separate `faircourt_test` database; no host JDK required.
+- 2026-11-09 — `.DS_Store` removed from git tracking (file kept on disk) and git-ignored.
+- 2026-11-09 — Formatting is mandatory before every commit: backend via Spotless + Palantir Java Format (`docker compose run --rm --build backend-format`; `spotless:check` runs in `mvn verify`), frontend via Prettier (`docker compose run --rm --no-deps frontend npm run format`). The owner commits; Claude only stages (`git add`) unless asked otherwise.
 
 ## Unrelated existing files
 
