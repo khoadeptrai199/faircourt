@@ -1,0 +1,15 @@
+# Local secrets / config
+.env
+
+# macOS
+.DS_Store
+
+# Frontend
+node_modules/
+frontend/dist/
+
+# Backend
+backend/target/
+
+# Logs
+*.log

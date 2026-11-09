@@ -5,7 +5,7 @@ paths:
 
 # Backend and database (blueprint §7, §11, §12, §13, §15)
 
-Stack: Java + Spring Boot, REST, one deployable app; PostgreSQL + Flyway; Spring Data JPA for routine CRUD (§7). Exact versions: not chosen yet — propose, get owner approval, pin (§0).
+Stack: Java + Spring Boot, REST, one deployable app; PostgreSQL + Flyway; Spring Data JPA for routine CRUD (§7). Pinned (owner-approved 2026-11-09): Java 25, Spring Boot 4.1.2 (Spring Framework 7 / Spring Security 7 — use Boot 4 module starters such as `spring-boot-starter-webmvc`, `spring-boot-starter-flyway`), PostgreSQL 18.6. Base package `com.faircourt`. Run tests with `docker compose --profile test run --rm --build backend-test`.
 
 ## Code map (§15)
 
