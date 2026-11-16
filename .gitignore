@@ -11,5 +11,8 @@ frontend/dist/
 # Backend
 backend/target/
 
+# IDE (IntelliJ creates .idea/ in any opened folder)
+.idea/
+
 # Logs
 *.log

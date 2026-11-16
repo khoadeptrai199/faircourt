@@ -1,0 +1,32 @@
+# Opt-in backend dev mode (auto restart, no image rebuild per change). Enable per machine in .env:
+#   COMPOSE_FILE=compose.yaml:compose.backend-dev.yaml
+# Then `docker compose up -d` runs the backend with `mvn spring-boot:run` on the mounted ./backend source.
+# Spring Boot DevTools restarts the app a few seconds after backend/target/classes changes:
+#   - IntelliJ: Build > Build Project (Ctrl+F9), or
+#   - `docker compose exec backend mvn -B -q compile`
+# The default stack (compose.yaml alone) is unchanged and still runs the packaged jar.
+services:
+  backend:
+    # Separate tag so switching between dev mode and the jar image never reuses the wrong image.
+    image: faircourt-backend-dev
+    build:
+      target: dev
+    working_dir: /workspace
+    volumes:
+      - ./backend:/workspace
+      - m2cache:/root/.m2
+    environment:
+      # JAVA_TOOL_OPTIONS would also hit the Maven JVM (port clash on 5005); pass debug flags to the app JVM only.
+      JAVA_TOOL_OPTIONS: ""
+      BACKEND_DEBUG_OPTS: ${BACKEND_DEBUG_OPTS:-}
+      # DevTools polls the classpath, so it works on a Windows-drive bind mount (/mnt/d) too.
+      SPRING_DEVTOOLS_LIVERELOAD_ENABLED: "false"
+    command:
+      [
+        "sh",
+        "-c",
+        'exec mvn -B spring-boot:run -Dspring-boot.run.jvmArguments="$$BACKEND_DEBUG_OPTS"',
+      ]
+    healthcheck:
+      # First start compiles the project, so allow more time than the jar image.
+      start_period: 120s

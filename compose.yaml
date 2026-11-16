@@ -1,6 +1,6 @@
 # FairCourt local stack. Works unchanged on macOS (arm64) and Windows WSL (no `platform:` pinned).
 #   cp .env.example .env          # once
-#   docker compose up --build -d  # start  -> http://localhost:5173
+#   docker compose up --build -d  # start  -> http://localhost:9091
 #   docker compose down           # stop (keeps the database volume)
 name: faircourt
 
@@ -11,6 +11,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-9093}:5432"
     volumes:
       # PostgreSQL 18 images keep data under /var/lib/postgresql/18/docker; mount the parent.
       - pgdata:/var/lib/postgresql
@@ -34,8 +36,11 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE}
       DEMO_HOST_EMAIL: ${DEMO_HOST_EMAIL}
       DEMO_PASSWORD: ${DEMO_PASSWORD}
+      # Optional remote debugging (IntelliJ "Remote JVM Debug" -> localhost:9092; container-side port stays 5005). Empty = off.
+      JAVA_TOOL_OPTIONS: ${BACKEND_DEBUG_OPTS:-}
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:${BACKEND_PORT:-9090}:8080"
+      - "127.0.0.1:${BACKEND_DEBUG_PORT:-9092}:5005"
     depends_on:
       postgres:
         condition: service_healthy
@@ -54,8 +59,9 @@ services:
     environment:
       # Inside the container, "localhost" is the frontend itself; reach the backend by service name.
       API_PROXY_TARGET: http://backend:8080
+      VITE_USE_POLLING: ${VITE_USE_POLLING:-false}
     ports:
-      - "127.0.0.1:5173:5173"
+      - "127.0.0.1:${FRONTEND_PORT:-9091}:5173"
     volumes:
       # Source is bind-mounted for hot reload; node_modules stays inside the container
       # (Linux native packages differ from macOS ones).

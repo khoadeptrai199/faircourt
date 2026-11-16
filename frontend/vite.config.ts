@@ -10,6 +10,12 @@ export default defineConfig({
     host: true,
     port: 5173,
     strictPort: true,
+    // File-change events do not cross a Windows-drive bind mount (/mnt/d/...) into the container
+    // (observed on WSL, 2026-11-12). VITE_USE_POLLING=true in .env turns on polling there; off by default.
+    watch:
+      process.env.VITE_USE_POLLING === 'true'
+        ? { usePolling: true, interval: 300 }
+        : undefined,
     proxy: {
       '/api': {
         target: process.env.API_PROXY_TARGET ?? 'http://localhost:8080',

@@ -52,6 +52,14 @@
 			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>
 		</dependency>
+		<!-- Dev-only auto restart for `compose.backend-dev.yaml`. Version from the Spring Boot BOM.
+		     Not packaged into the runtime jar (spring-boot-maven-plugin excludes devtools by default). -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<scope>runtime</scope>
+			<optional>true</optional>
+		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

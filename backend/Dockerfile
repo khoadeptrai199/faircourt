@@ -12,6 +12,11 @@ FROM deps AS test
 COPY src ./src
 CMD ["mvn", "-B", "verify"]
 
+# Dev image (opt-in via compose.backend-dev.yaml): source is bind-mounted, `spring-boot:run` + DevTools
+# restarts the app when target/classes changes. Not used by the default stack.
+FROM deps AS dev
+CMD ["mvn", "-B", "spring-boot:run"]
+
 FROM deps AS build
 COPY src ./src
 RUN mvn -B -q -DskipTests package

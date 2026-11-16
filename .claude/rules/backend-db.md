@@ -80,4 +80,4 @@ Local-only, idempotent (restart must not duplicate): one host account `host@fair
 - PostgreSQL-backed integration test (not only in-memory DB): join → suggest → confirm → start → finish.
 - Authorization tests per `privacy-auth.md`.
 - `409` on unavailable player/court with no partial rows.
-- Health: `http://localhost:8080/actuator/health` is UP after Flyway + DB connection (§0).
+- Health: `http://localhost:9090/actuator/health` is UP after Flyway + DB connection (§0).

@@ -17,7 +17,7 @@ The owner develops in parallel on:
 | Machine | Known facts | Still to verify |
 |---|---|---|
 | MacBook Pro | macOS 15.1, `arm64`, Docker 28.0.4, Compose v2.34 (Docker Desktop), repo under `~/Desktop` | Docker Desktop must have macOS permission for the Desktop folder, otherwise bind mounts fail with `mkdir /host_mnt/...: operation not permitted` (seen 2026-11-09) |
-| Windows PC | Uses WSL | CPU arch (`uname -m`), Docker Desktop WSL integration vs Docker Engine inside WSL, Docker/Compose versions |
+| Windows PC | WSL Ubuntu 24.04, `x86_64`, Docker Engine 29.5.3 inside WSL (no Docker Desktop), Compose v5.1.4; repo on `/mnt/d` by owner choice → `VITE_USE_POLLING=true` | — |
 
 Goal: the exact §0 commands work **unchanged** on both:
 
@@ -57,8 +57,18 @@ docker compose down         # keeps the DB volume
 - Code syncs **only via git** (commit/push on one machine, pull on the other). Never commit `.env`.
 - Each machine has its own Postgres volume; data does not sync. The idempotent seed gives both the same baseline.
 - Never run `docker compose down -v` or `docker volume rm` without the owner's explicit consent — it deletes the local database.
-- Published ports `5173` and `8080` must be free on both machines; if a port conflicts, report it and ask before changing the contract ports.
+- Published host ports are `9090` (backend), `9091` (frontend), `9092` (JDWP debug) — owner decision 2026-11-12, to stay clear of the HRM project (8080, 8081, 1433, 6379, ...). They are overridable via `BACKEND_PORT` / `FRONTEND_PORT` / `BACKEND_DEBUG_PORT` in `.env`; container-internal ports stay 8080 / 5173 / 5005. Never use HRM ports; pick 9090+ if another port is needed. If a port conflicts, report it and ask.
 
 ## Definition of done for Docker-related changes
 
 A Docker/Compose change is verified only after `docker compose up --build -d`, health UP and the public page loading **on each machine**. In the handoff, state per machine: `uname -m`, `docker version`, commands run, result — or "not verified on <machine>".
+
+## Owner's Windows machine setup (for agents on the Mac)
+
+The detailed Windows guide (`docs/guides/WSL_LOCAL_DEV.md`) is **local-only** on that machine (`docs/` is in its `.git/info/exclude`), so it never reaches the Mac. What matters here:
+
+- All project work on Windows runs inside WSL Ubuntu; nothing is run with Windows tools. The repo stays on `D:\External\Personal\faircourt` (`/mnt/d/...`) by owner choice.
+- Its `.env` adds `VITE_USE_POLLING=true` (no file events across `/mnt/d`), `BACKEND_DEBUG_OPTS=...address=*:5005` and `COMPOSE_FILE=compose.yaml:compose.backend-dev.yaml` (backend dev mode with DevTools).
+- IntelliJ on Windows edits and compiles the backend (IDE-only JDK 25) and attaches to `localhost:9092` (host side of container port 5005); the app itself always runs in Docker.
+- Keep these working when changing Docker files: do not remove the `VITE_USE_POLLING` switch, the `JAVA_TOOL_OPTIONS`/debug-port wiring, the `dev` Dockerfile stage or `compose.backend-dev.yaml` without asking the owner. All of them default to off, so the Mac's plain `docker compose up --build -d` is unaffected.
+- Host port 5432 is occupied on the Windows machine; Postgres is not published to the host anyway.

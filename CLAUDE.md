@@ -24,7 +24,7 @@ FairCourt is a responsive web app that helps office badminton groups form fair d
 ## Open questions — ask the owner, do not resolve silently
 
 - Version label: title says v0.4, Part II header says v0.3.
-- Architecture of the second (WSL) machine is unknown — check with `uname -m` there.
+- (resolved 2026-11-12) WSL machine: `x86_64`, Docker Engine 29.5.3 inside WSL Ubuntu 24.04 (not Docker Desktop), Compose v5.1.4.
 
 ## Owner decisions (resolved)
 
@@ -35,9 +35,18 @@ FairCourt is a responsive web app that helps office badminton groups form fair d
 - 2026-11-09 — `.DS_Store` removed from git tracking (file kept on disk) and git-ignored.
 - 2026-11-09 — Formatting is mandatory before every commit: backend via Spotless + Palantir Java Format (`docker compose run --rm --build backend-format`; `spotless:check` runs in `mvn verify`), frontend via Prettier (`docker compose run --rm --no-deps frontend npm run format`). The owner commits; Claude only stages (`git add`) unless asked otherwise.
 
+- 2026-11-16 — **Pre-commit pipeline is mandatory and must be green**: backend `spotless:apply` → frontend `prettier --write` → backend `mvn -B clean verify` (in the `backend-test` container, includes `spotless:check`) → frontend `format:check` + `npm run build`, plus a check that `.env` and `.idea/` are not staged. Exact commands: `docs/guides/WSL_GITHUB_WORKFLOW.md` section 10 (local-only guide). Verified 2026-11-16 on WSL: `PIPELINE OK` in 31 s.
+- 2026-11-12 — Windows machine: all project work only inside WSL Ubuntu; the repo stays on `D:\External\Personal\faircourt` (`/mnt/d/...`), an intentional deviation from the "clone inside WSL" rule. Guide: `docs/guides/WSL_LOCAL_DEV.md` (local-only, `docs/` is in `.git/info/exclude`).
+- 2026-11-12 — Backend is edited and compiled in IntelliJ (Windows, with an IntelliJ-downloaded JDK 25 used only for the IDE) but always **runs in Docker in WSL**. Debugging via JDWP: `BACKEND_DEBUG_OPTS` in `.env`, host port `127.0.0.1:9092` (container port 5005).
+- 2026-11-12 — Optional backend dev mode `compose.backend-dev.yaml` (enabled per machine with `COMPOSE_FILE=compose.yaml:compose.backend-dev.yaml` in `.env`): `mvn spring-boot:run` on mounted source + `spring-boot-devtools` (runtime, optional; not in the packaged jar) → app restarts after a compile. Default stack unchanged.
+- 2026-11-12 — Vite polling is opt-in via `VITE_USE_POLLING=true` in `.env` (needed on `/mnt/d`; observed: no file-change events without it). Default `false`, so the Mac is unchanged.
+- 2026-11-12 — **Host ports moved to 9090+** (owner request, to avoid the HRM project which uses 8080, 8081, 1433, 6379, ...): backend `9090`, frontend `9091`, JDWP debug `9092`; overridable via `BACKEND_PORT` / `FRONTEND_PORT` / `BACKEND_DEBUG_PORT` in `.env`. Only the host side of the mapping changed; container-internal ports stay 8080 / 5173 / 5005. This intentionally deviates from blueprint §0 (`localhost:5173`, `:8080`). Always use 9090+ for any new published port; never HRM ports. App URL is now http://localhost:9091.
+- 2026-11-13 — PostgreSQL published to the host for DBeaver: `127.0.0.1:${POSTGRES_PORT:-9093}` -> container 5432 (loopback only, 9090+ range). Owner asked to connect DBeaver; DB admin client only, Flyway still owns the schema. Note for agents: WSL on the Windows machine idles to `Stopped` and takes Docker with it; keep a WSL window open (see `docs/guides/WSL_LOCAL_DEV.md` section 4).
+- 2026-11-12 — Home page at `/` approved: hero + "How it works" + "Got a session link?" panel + disabled "Host login · Coming soon" button; English copy. Exact copy awaits owner review.
+
 ## Unrelated existing files
 
-`README.md` (current content) and `nana/tesst.txt` pre-date this setup. Do not modify or delete them without asking.
+`nana/tesst.txt` pre-dates this setup. Do not modify or delete it without asking. `README.md` is the project README; the owner allowed keeping its run instructions and verification log up to date (2026-11-12).
 
 ## Two development machines in parallel
 

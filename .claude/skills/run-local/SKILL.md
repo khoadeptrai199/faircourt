@@ -30,8 +30,8 @@ If `compose.yaml` does not exist yet, say so and stop: the stack has not been im
 2. `docker compose up --build -d`
 3. Wait for health (poll, max ~3 minutes):
    - `docker compose ps` — all services running / healthy
-   - `curl -fsS http://localhost:8080/actuator/health` → contains `"status":"UP"`
-   - `curl -fsS -o /dev/null -w '%{http_code}' http://localhost:5173/` → `200`
+   - `curl -fsS http://localhost:9090/actuator/health` → contains `"status":"UP"`
+   - `curl -fsS -o /dev/null -w '%{http_code}' http://localhost:9091/` → `200`
 4. Print the sample public code/link as documented in `README.md` or startup logs (`docker compose logs backend | grep -i public`). Do not make one up.
 
 ### down
@@ -60,7 +60,7 @@ Only the health checks above, no start/stop.
 Machine: <os/arch>   Docker: <version>   Compose: <version>
 Commands run: <list with exit status>
 postgres: <state>  backend health: <UP/...>  frontend: <HTTP code>
-Local URL: http://localhost:5173
+Local URL: http://localhost:9091
 Sample public link: <from README/logs, or "not found">
 Not verified: <anything skipped>
 ```

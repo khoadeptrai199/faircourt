@@ -24,7 +24,18 @@ Docker with Compose v2 only. Java, Maven and Node do **not** need to be installe
 Targets macOS (Apple Silicon) and Windows WSL. Every pinned base image showed both `linux/amd64` and `linux/arm64` in `docker buildx imagetools inspect` (2026-11-09). See "Verification log" for what has actually been run on which machine.
 
 - **macOS:** Docker Desktop needs permission to read the folder that holds this repo. If it lives under `~/Desktop`, go to System Settings → Privacy & Security → Files & Folders (or Full Disk Access) → Docker, then quit and reopen Docker Desktop. Otherwise bind mounts fail with `mkdir /host_mnt/...: operation not permitted`.
-- **WSL:** clone the repo inside the Linux filesystem (for example `~/code/faircourt`), not under `/mnt/c/...`, and run `git` / `docker compose` from inside WSL.
+- **WSL:** run `git` / `docker compose` from inside WSL. Preferably clone inside the Linux filesystem (for example `~/code/faircourt`). If the repo stays on a Windows drive (`/mnt/c`, `/mnt/d`), set `VITE_USE_POLLING=true` in `.env`, otherwise Vite does not see file changes (observed 2026-11-12).
+
+### Optional: backend dev mode (auto restart, IDE debugging)
+
+Add to `.env` on the machine where you want it:
+
+```dotenv
+COMPOSE_FILE=compose.yaml:compose.backend-dev.yaml
+BACKEND_DEBUG_OPTS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+```
+
+The backend then runs `mvn spring-boot:run` on the mounted `backend/` source with Spring Boot DevTools: after the IDE compiles (`Build Project`) or `docker compose exec backend mvn -B -q compile`, the app restarts in a few seconds without rebuilding the image. Attach a debugger ("Remote JVM Debug") to `localhost:9092`. Without `COMPOSE_FILE` the default stack runs the packaged jar (DevTools is not in the jar). `BACKEND_DEBUG_OPTS` also works without dev mode.
 
 ## Start / stop
 
@@ -37,10 +48,10 @@ docker compose down             # stop; keeps the database volume
 
 | What | URL |
 |---|---|
-| App (Vite dev server) | http://localhost:5173 |
-| Backend health | http://localhost:8080/actuator/health |
+| App (Vite dev server) | http://localhost:9091 |
+| Backend health | http://localhost:9090/actuator/health |
 
-Ports are bound to `127.0.0.1` only. PostgreSQL is not published to the host; use `docker compose exec postgres psql -U faircourt faircourt`.
+Ports are bound to `127.0.0.1` only. PostgreSQL is published on `127.0.0.1:9093` (`POSTGRES_PORT`) for a DB client such as DBeaver (database `faircourt`, user/password from `.env`); you can also use `docker compose exec postgres psql -U faircourt faircourt`. The backend reaches it internally as `postgres:5432`.
 
 After changing `frontend/package.json`, run `docker compose up --build -d -V` so the container gets fresh `node_modules`.
 
@@ -122,14 +133,20 @@ The next `up` recreates the schema, the `faircourt_test` database and the seed.
 | 2026-11-09 | Mac | `docker compose --profile test run --rm --build backend-test` | `BUILD SUCCESS`: 13 matcher + 1 context + 4 PostgreSQL IT tests, `spotless:check` passed |
 | 2026-11-09 | Mac | `npm run format:check && npm run build` (in frontend container) | passed |
 | 2026-11-09 | Mac, emulated `linux/amd64` | build + run frontend image; build backend runtime image and run `java -version` | `x86_64`, build OK; Java 25.0.5 starts |
-| — | Windows WSL | everything | **not verified yet** |
+| 2026-11-12 | Windows WSL: Ubuntu 24.04 `x86_64`, Docker Engine 29.5.3, Compose v5.1.4; repo on `/mnt/d` | `docker compose up --build -d` | all 3 services healthy; health `UP`; `/` 200; `/api/...` 403 (also via Vite proxy) |
+| 2026-11-12 | Windows WSL | Flyway + seed checked in `psql` | V1 applied; 9 app tables; 9 users, 1 session; `faircourt_test` exists |
+| 2026-11-12 | Windows WSL | `docker compose --profile test run --rm --build backend-test` | `BUILD SUCCESS`: 13 + 1 + 4 tests, `spotless:check` passed |
+| 2026-11-12 | Windows WSL | frontend `format:check` + `build` | passed |
+| 2026-11-12 | Windows WSL | Vite hot reload on `/mnt/d` | no file-change events without polling; works with `VITE_USE_POLLING=true` |
+| 2026-11-12 | Windows WSL | backend dev mode: `touch` a Java file + `mvn compile` in container | DevTools restart in ~7 s, health `UP`; JDWP 5005 reachable from Windows; packaged jar contains no DevTools |
+| — | Mac | changes from 2026-11-12 (debug port, dev mode, polling flag, home page) | **not verified yet** |
 | — | any | 375px / desktop visual check | **not verified yet** |
 
 ## Known limitations (slice 1)
 
 - Spring Boot logs a "generated security password" for its default in-memory user. No login mechanism is enabled and every route except health is denied, so it is unusable; it goes away when slice 2 adds the real account login.
 - The seeded session time is fixed when the seed first runs. After that evening passes, the session stays in the past until demo data is reset.
-- Phone (375px) / desktop layouts have not been checked visually yet; the page is only a placeholder.
+- Phone (375px) / desktop layouts of the home page (`/`) have not been checked visually yet.
 
 ## Implementation decisions for owner review
 
