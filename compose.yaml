@@ -3,7 +3,7 @@
 #   docker compose up --build -d  # start  -> http://localhost:9091
 #   docker compose down           # stop (keeps the database volume)
 # Backend = gateway + auth-service + player-service + playmatch-service (F18, OD-17). Only the gateway publishes
-# a host port; each service can be started, rebuilt and followed on its own (see README "Work with one service").
+# a host port; each service can be started, rebuilt and followed on its own (commands: planning/sprint01-public-read/service-split/design.md section 6).
 name: faircourt
 
 # Shared settings of the three database services (one database, one schema per service, one DB user: AD-12).

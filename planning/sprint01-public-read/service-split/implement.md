@@ -38,7 +38,15 @@ Design: [design.md](design.md) — approved by the owner 2026-11-17 ("làm hết
 | `.gitignore` | changed | `backend/target/` → `backend/**/target/` (every module has its own `target/`) |
 | `README.md` | emptied | Owner request 2026-11-17: README stays an empty file for now (CLAUDE.md "Owner decisions") |
 
-Deleted files: `compose.backend-dev.yaml` only (owner approved 2026-11-17). Everything else moved with `git mv`. Git shows `playmatch/security/SecurityConfig.java` and `playmatch/seed/LocalDemoSeeder.java` as added + deleted (not a rename) because their content was rewritten.
+Deleted files (corrected after the scope review, 2026-11-17):
+
+- `compose.backend-dev.yaml` (owner approved D-6).
+- `backend/src/main/java/com/faircourt/common/LocalDemoSeeder.java`: replaced by one seeder per service (git shows delete + add because the content was rewritten).
+- `backend/src/test/java/com/faircourt/DatabaseSchemaIT.java`: moved with `git mv` to `PlaymatchSchemaIT.java` and rewritten (git may show delete + add).
+- `README.md`: all content removed by owner request (2026-11-17). Its implementation decisions, version table and verification log were copied to `planning/sprint00-foundation/walking-skeleton/README.md` ("Records moved from README.md").
+- `external doc/PROJECT_BRIEF_TEMPLATE.md`: moved out of the repository by the owner (CLAUDE.md, 2026-11-17).
+
+Everything else moved with `git mv`; the old V1 file went to `backend/legacy/` unchanged.
 
 ## Commands executed
 
@@ -89,3 +97,18 @@ All on the Mac (macOS 15.1, `arm64`, Docker 28.0.4, Compose v2.34.0-desktop.1), 
 - **`.gitignore`** pattern widened to `backend/**/target/` (not listed in the design; needed by the module layout).
 - Flyway/Hikari property names were checked by running, not against the Spring Boot 4.1 reference: `current_schema()` is the service schema in all three ITs.
 - **README emptied** (owner request 2026-11-17, after implementation). The README text written for AC-07/AC-10/T11 (services table, RAM, debugging, one-service commands, verification log) was removed with it; the same facts are kept in this file and design §6.
+
+## Review fixes (2026-11-17)
+
+After the scope and privacy reviews ([review.md](review.md)); made on branch `feature/api-foundation` (which contains this feature's commit) and tested on the Mac:
+
+- Schema boundary: one shared `SchemaBoundary` check in `common-web` test support replaces the three copied regexes. It flags any qualified name of another schema in SQL text (migrations, resource files, Java string literals and text blocks, after unescaping), any setting or statement pointing at another schema (`schema = "…"`, `default_schema`, `currentSchema`, `hikari.schema`, `search_path`, `SET/CREATE/ALTER/DROP SCHEMA`), and the legacy `public` schema. `TestDatabase.reset` also checks at runtime that `search_path` holds only the service schema.
+- No generated default user: `common-web` registers a no-users `UserDetailsService` before Boot's auto-configuration (the live logs had shown "Using generated security password" in all four apps).
+- `backend/.dockerignore`: `**/target` (module build folders no longer enter the image context).
+- README records restored to `planning/sprint00-foundation/walking-skeleton/README.md`; stale README pointers fixed in `ReasonCode.java`, `compose.yaml`, `backend/pom.xml`, `CLAUDE.md`.
+- Deleted-files list corrected (above).
+
+| Command | Result |
+|---|---|
+| Pipeline: `backend-format` → frontend `npm run format` → `backend-test` → `format:check` → `build` | 1st run: `backend/pom.xml` unparseable (a new comment contained `--`), fixed; 2nd run: one new boundary sample failed (escaped quotes in Java literals), fixed by unescaping; 3rd run: all exit 0, `BUILD SUCCESS`, **83 tests**, 0 failures |
+| `docker compose up --build -d`; logs since restart | 6/6 healthy; 0 "generated security password" lines; seed ran in 3 services; `GET /api/v1/auth/csrf` via 9091 → 200 |

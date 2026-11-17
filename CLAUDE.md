@@ -13,7 +13,7 @@ FairCourt is a responsive web app that helps badminton groups (a host who rents 
 ## Owner's hard rules (override everything else, including blueprint §0's "make small decisions yourself")
 
 1. **No fabricated facts.** Never invent versions, library behavior, API details, test results, metrics, user research or "it works" claims. If something was not actually run or checked, say "not verified".
-2. **No unapproved additions.** Do not add features, endpoints, screens, files, dependencies, config, copy text, or scope beyond what the blueprint MVP specifies and the owner approved. Propose first, then wait for approval. Pure internal naming/structure details may be decided and recorded in `README.md`.
+2. **No unapproved additions.** Do not add features, endpoints, screens, files, dependencies, config, copy text, or scope beyond what the blueprint MVP specifies and the owner approved. Propose first, then wait for approval. Pure internal naming/structure details may be decided and recorded in the feature's `implement.md`.
 3. **No deletion without explicit consent.** This includes `rm`, overwriting existing files, `git clean`, `git reset --hard`, `git push --force`, dropping tables, editing an already-applied Flyway migration, and `docker compose down -v` / `docker volume rm` (deletes the database). Look at the target, ask, then act.
 4. **Report honestly.** In every handoff list commands actually executed, their pass/fail result, and what could not be verified (blueprint §0).
 
@@ -33,7 +33,7 @@ FairCourt is a responsive web app that helps badminton groups (a host who rents 
 
 - 2026-11-09 — Seed: **8** READY member players, as in §0 (not 12 from §3/§17). Owner context: one court usually holds at most 8 people. This is **not** an app rule — do not add any attendance cap.
 - 2026-11-09 — `.gitattributes` enforcing LF approved and added.
-- 2026-11-09 — Versions pinned (owner chose Spring Boot **4.1.2** after 3.5's OSS end-of-life was flagged): Java 25 (Temurin 25.0.5_8), Spring Boot 4.1.2, PostgreSQL 18.6, Node 24.22.2, React 19.3.1, Vite 8.3.7, Tailwind 4.3.5, TypeScript 7.0.2. Full table in `README.md`. Changing a version needs owner approval.
+- 2026-11-09 — Versions pinned (owner chose Spring Boot **4.1.2** after 3.5's OSS end-of-life was flagged): Java 25 (Temurin 25.0.5_8), Spring Boot 4.1.2, PostgreSQL 18.6, Node 24.22.2, React 19.3.1, Vite 8.3.7, Tailwind 4.3.5, TypeScript 7.0.2. Full table: `planning/sprint00-foundation/walking-skeleton/README.md` ("Records moved from README.md"); Spring Cloud 2025.1.4 added 2026-11-17. Changing a version needs owner approval.
 - 2026-11-09 — Backend tests run in Docker (`docker compose --profile test run --rm --build backend-test`) against the separate `faircourt_test` database; no host JDK required.
 - 2026-11-09 — `.DS_Store` removed from git tracking (file kept on disk) and git-ignored.
 - 2026-11-09 — Formatting is mandatory before every commit: backend via Spotless + Palantir Java Format (`docker compose run --rm --build backend-format`; `spotless:check` runs in `mvn verify`), frontend via Prettier (`docker compose run --rm --no-deps frontend npm run format`). The owner commits; Claude only stages (`git add`) unless asked otherwise.
