@@ -12,9 +12,9 @@
 
 | ID | Feature | Status |
 |---|---|---|
-| F03 | [Account login](F03-account-login/README.md) | `BACKLOG` |
-| F04 | [Guest check-in](F04-guest-check-in/README.md) | `BACKLOG` |
-| F05 | [Own attendance status + member join](F05-my-attendance-status/README.md) | `BACKLOG` |
+| F03 | [Account login](account-login/README.md) | `BACKLOG` |
+| F04 | [Guest check-in](guest-check-in/README.md) | `BACKLOG` |
+| F05 | [Own attendance status + member join](my-attendance-status/README.md) | `BACKLOG` |
 
 ## Why this order
 

@@ -12,9 +12,9 @@
 
 | ID | Feature | Status |
 |---|---|---|
-| F09 | [Match suggestions](F09-match-suggestions/README.md) | `BACKLOG` |
-| F10 | [Match confirm + tap-to-swap](F10-match-confirm/README.md) | `BACKLOG` |
-| F11 | [Match start / finish / cancel](F11-match-lifecycle/README.md) | `BACKLOG` |
+| F09 | [Match suggestions](match-suggestions/README.md) | `BACKLOG` |
+| F10 | [Match confirm + tap-to-swap](match-confirm/README.md) | `BACKLOG` |
+| F11 | [Match start / finish / cancel](match-lifecycle/README.md) | `BACKLOG` |
 
 ## Why this order
 

@@ -14,7 +14,7 @@ Read first: `.claude/rules/planning-workflow.md`, `.claude/rules/conventions.md`
 
 1. Check `planning/README.md` and `planning/ROADMAP.md`: if an existing feature or backlog item (`L-xx`) already covers the intent, say so and stop.
 2. Check scope with `/spec-lookup`. If the intent is outside the blueprint MVP, propose adding it to the later backlog instead and stop.
-3. Next ID = highest `F<nn>` on the board + 1. Folder: `planning/sprint<NN>-<name>/F<nn>-<slug>/`. If the sprint folder does not exist, create it from `planning/_templates/SPRINT.md` only after the owner confirms the new sprint.
+3. Next ID = highest `F<nn>` on the board + 1. Folder: `planning/sprint<NN>-<name>/<slug>/` (plain name, no ID; the slug must be unique across all sprints). If the sprint folder does not exist, create it from `planning/_templates/SPRINT.md` only after the owner confirms the new sprint.
 4. Copy `planning/_templates/feature/README.md`; fill goal, scope, blueprint sections, draft acceptance criteria, dependencies, open decisions. Status `BACKLOG`.
 5. Add the row to `planning/README.md` and to the sprint's `SPRINT.md`.
 6. Report the path and the open decisions. Stop.

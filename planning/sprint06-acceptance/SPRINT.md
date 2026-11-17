@@ -12,9 +12,9 @@
 
 | ID | Feature | Status |
 |---|---|---|
-| F15 | [End-to-end smoke test + acceptance check](F15-e2e-smoke-test/README.md) | `BACKLOG` |
-| F16 | [Responsive + accessibility polish](F16-responsive-a11y-polish/README.md) | `BACKLOG` |
-| F17 | [CI pipeline](F17-ci-pipeline/README.md) | `BACKLOG` |
+| F15 | [End-to-end smoke test + acceptance check](e2e-smoke-test/README.md) | `BACKLOG` |
+| F16 | [Responsive + accessibility polish](responsive-a11y-polish/README.md) | `BACKLOG` |
+| F17 | [CI pipeline](ci-pipeline/README.md) | `BACKLOG` |
 
 ## Demo at sprint end
 

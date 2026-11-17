@@ -12,9 +12,9 @@
 
 | ID | Feature | Status |
 |---|---|---|
-| F06 | [Host board](F06-host-board/README.md) | `BACKLOG` |
-| F07 | [Attendance management](F07-attendance-management/README.md) | `BACKLOG` |
-| F08 | [Create session](F08-create-session/README.md) | `BACKLOG` |
+| F06 | [Host board](host-board/README.md) | `BACKLOG` |
+| F07 | [Attendance management](attendance-management/README.md) | `BACKLOG` |
+| F08 | [Create session](create-session/README.md) | `BACKLOG` |
 
 ## Why this order
 

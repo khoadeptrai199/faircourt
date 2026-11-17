@@ -12,7 +12,7 @@
 
 | ID | Feature | Status |
 |---|---|---|
-| F00 | [Walking skeleton](F00-walking-skeleton/README.md) | `DONE` |
+| F00 | [Walking skeleton](walking-skeleton/README.md) | `DONE` |
 
 ## Gate evidence
 

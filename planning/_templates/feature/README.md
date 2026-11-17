@@ -7,7 +7,7 @@
 | Blueprint | <§ numbers> |
 | Depends on | <FNN, …> |
 | Waiting for | <OD-xx, approval, …> or — |
-| Suggested branch | `feature/FNN-<slug>` |
+| Suggested branch | `feature/<feature-name>` |
 | Last updated | <YYYY-MM-DD> |
 
 Docs: design.md · implement.md · review.md (added when each phase starts)

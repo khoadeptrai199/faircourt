@@ -132,6 +132,6 @@ src/styles/      tokens.css, globals.css
 ## Git
 
 - The owner commits; Claude only stages (`CLAUDE.md`), unless the owner asks Claude to commit/push for that piece of work.
-- Suggested branch per feature: `feature/F<nn>-<slug>`.
+- Feature folders and branches use the feature's plain kebab-case name, no ID (owner decision 2026-11-17): folder `planning/sprint<NN>-<name>/<feature-name>/`, branch `feature/<feature-name>`. The `F<nn>` ID stays only inside the planning files (board, sprint table, feature header) for cross-references; when talking to the owner use the feature name.
 - Suggested commit message: `F<nn>: <imperative summary>` + body listing blueprint § and `AC-xx` covered. No `Co-Authored-By: Claude` or other Claude attribution line: the owner must be the only author (owner decision 2026-11-17).
 - Pre-commit pipeline must be green before staging for commit (`CLAUDE.md` 2026-11-16).

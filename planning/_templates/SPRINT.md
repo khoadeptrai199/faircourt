@@ -12,7 +12,7 @@
 
 | ID | Feature | Status |
 |---|---|---|
-| FNN | [<title>](FNN-<slug>/README.md) | `BACKLOG` |
+| FNN | [<title>](<feature-name>/README.md) | `BACKLOG` |
 
 ## Demo at sprint end
 

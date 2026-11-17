@@ -25,25 +25,25 @@ Last updated: 2026-11-17
 
 | ID | Feature | Sprint | Status | Depends on | Waiting for | Docs |
 |---|---|---|---|---|---|---|
-| F00 | Walking skeleton | S00 | DONE | — | — | [README](sprint00-foundation/F00-walking-skeleton/README.md) |
-| F18 | Service split skeleton (gateway + auth/player/playmatch services, schema per service) | S01 | IN_REVIEW | F00 | Review; WSL check | [README](sprint01-public-read/F18-service-split/README.md) · [design](sprint01-public-read/F18-service-split/design.md) · [implement](sprint01-public-read/F18-service-split/implement.md) |
-| F01 | API foundation: shared error lib, gateway route table, request ID, CSRF bootstrap, test harness | S01 | WAITING_APPROVAL | F18 | Owner approval of design (D-1, D-2) + AD-04, AD-06, AD-14, AD-15, AD-18 | [README](sprint01-public-read/F01-api-foundation/README.md) · [design](sprint01-public-read/F01-api-foundation/design.md) · [implement](sprint01-public-read/F01-api-foundation/implement.md) |
-| F02 | Public session page (+ format, minimum sets, price) + frontend foundation | S01 | WAITING_APPROVAL | F01 | OD-01, OD-02, OD-13, copy approval | [README](sprint01-public-read/F02-public-session-page/README.md) · [design](sprint01-public-read/F02-public-session-page/design.md) · [implement](sprint01-public-read/F02-public-session-page/implement.md) |
-| F03 | Account login, logout, `GET /me` | S02 | BACKLOG | F01 | OD-03 | [README](sprint02-identity/F03-account-login/README.md) |
-| F04 | Guest check-in + guest cookie | S02 | BACKLOG | F02 | OD-02, OD-06 | [README](sprint02-identity/F04-guest-check-in/README.md) |
-| F05 | Own attendance status + member join | S02 | BACKLOG | F03, F04 | OD-02, OD-11 | [README](sprint02-identity/F05-my-attendance-status/README.md) |
-| F06 | Host board | S03 | BACKLOG | F03 | OD-04, OD-14 | [README](sprint03-host-board/F06-host-board/README.md) |
-| F07 | Attendance management (approve, rest, leave) | S03 | BACKLOG | F06 | OD-07, OD-15 | [README](sprint03-host-board/F07-attendance-management/README.md) |
-| F08 | Create session | S03 | BACKLOG | F03 | OD-05, OD-10 | [README](sprint03-host-board/F08-create-session/README.md) |
-| F09 | Match suggestions (read-only) | S04 | BACKLOG | F07 | — | [README](sprint04-match-loop/F09-match-suggestions/README.md) |
-| F10 | Match confirm + tap-to-swap review | S04 | BACKLOG | F09 | OD-08 (optional) | [README](sprint04-match-loop/F10-match-confirm/README.md) |
-| F11 | Match start / finish / cancel | S04 | BACKLOG | F10 | OD-07 | [README](sprint04-match-loop/F11-match-lifecycle/README.md) |
-| F12 | My game: own assignment + polling | S05 | BACKLOG | F05, F11 | OD-16 | [README](sprint05-player-loop/F12-my-game-assignment/README.md) |
-| F13 | Match-fit feedback | S05 | BACKLOG | F12 | OD-16 | [README](sprint05-player-loop/F13-match-feedback/README.md) |
-| F14 | Host skill assessment | S05 | BACKLOG | F06 | — | [README](sprint05-player-loop/F14-host-assessment/README.md) |
-| F15 | End-to-end smoke test + acceptance check | S06 | BACKLOG | F13 | OD-08 | [README](sprint06-acceptance/F15-e2e-smoke-test/README.md) |
-| F16 | Responsive + accessibility polish | S06 | BACKLOG | F12 | — | [README](sprint06-acceptance/F16-responsive-a11y-polish/README.md) |
-| F17 | CI pipeline | S06 | BACKLOG | F01 | OD-09 | [README](sprint06-acceptance/F17-ci-pipeline/README.md) |
+| F00 | Walking skeleton | S00 | DONE | — | — | [README](sprint00-foundation/walking-skeleton/README.md) |
+| F18 | Service split skeleton (gateway + auth/player/playmatch services, schema per service) | S01 | IN_REVIEW | F00 | Review; WSL check | [README](sprint01-public-read/service-split/README.md) · [design](sprint01-public-read/service-split/design.md) · [implement](sprint01-public-read/service-split/implement.md) |
+| F01 | API foundation: shared error lib, gateway route table, request ID, CSRF bootstrap, test harness | S01 | WAITING_APPROVAL | F18 | Owner approval of design (D-1, D-2) + AD-04, AD-06, AD-14, AD-15, AD-18 | [README](sprint01-public-read/api-foundation/README.md) · [design](sprint01-public-read/api-foundation/design.md) · [implement](sprint01-public-read/api-foundation/implement.md) |
+| F02 | Public session page (+ format, minimum sets, price) + frontend foundation | S01 | WAITING_APPROVAL | F01 | OD-01, OD-02, OD-13, copy approval | [README](sprint01-public-read/public-session-page/README.md) · [design](sprint01-public-read/public-session-page/design.md) · [implement](sprint01-public-read/public-session-page/implement.md) |
+| F03 | Account login, logout, `GET /me` | S02 | BACKLOG | F01 | OD-03 | [README](sprint02-identity/account-login/README.md) |
+| F04 | Guest check-in + guest cookie | S02 | BACKLOG | F02 | OD-02, OD-06 | [README](sprint02-identity/guest-check-in/README.md) |
+| F05 | Own attendance status + member join | S02 | BACKLOG | F03, F04 | OD-02, OD-11 | [README](sprint02-identity/my-attendance-status/README.md) |
+| F06 | Host board | S03 | BACKLOG | F03 | OD-04, OD-14 | [README](sprint03-host-board/host-board/README.md) |
+| F07 | Attendance management (approve, rest, leave) | S03 | BACKLOG | F06 | OD-07, OD-15 | [README](sprint03-host-board/attendance-management/README.md) |
+| F08 | Create session | S03 | BACKLOG | F03 | OD-05, OD-10 | [README](sprint03-host-board/create-session/README.md) |
+| F09 | Match suggestions (read-only) | S04 | BACKLOG | F07 | — | [README](sprint04-match-loop/match-suggestions/README.md) |
+| F10 | Match confirm + tap-to-swap review | S04 | BACKLOG | F09 | OD-08 (optional) | [README](sprint04-match-loop/match-confirm/README.md) |
+| F11 | Match start / finish / cancel | S04 | BACKLOG | F10 | OD-07 | [README](sprint04-match-loop/match-lifecycle/README.md) |
+| F12 | My game: own assignment + polling | S05 | BACKLOG | F05, F11 | OD-16 | [README](sprint05-player-loop/my-game-assignment/README.md) |
+| F13 | Match-fit feedback | S05 | BACKLOG | F12 | OD-16 | [README](sprint05-player-loop/match-feedback/README.md) |
+| F14 | Host skill assessment | S05 | BACKLOG | F06 | — | [README](sprint05-player-loop/host-assessment/README.md) |
+| F15 | End-to-end smoke test + acceptance check | S06 | BACKLOG | F13 | OD-08 | [README](sprint06-acceptance/e2e-smoke-test/README.md) |
+| F16 | Responsive + accessibility polish | S06 | BACKLOG | F12 | — | [README](sprint06-acceptance/responsive-a11y-polish/README.md) |
+| F17 | CI pipeline | S06 | BACKLOG | F01 | OD-09 | [README](sprint06-acceptance/ci-pipeline/README.md) |
 
 Open decisions (OD-xx) are listed with options and a recommendation in [ROADMAP.md §5](ROADMAP.md#5-open-decisions).
 
@@ -61,7 +61,7 @@ planning/
   _templates/               copy these when creating a sprint or feature
   sprintNN-<name>/
     SPRINT.md               sprint goal, gate, feature list, demo, retro
-    FNN-<slug>/             one folder per feature
+    <feature-name>/         one folder per feature (plain name, no ID)
       README.md             status card: goal, scope, acceptance criteria, decisions
       design.md             technical design (written in phase DESIGN)
       implement.md          tasks, files, commands run, evidence per AC (phase IN_PROGRESS)
@@ -103,6 +103,6 @@ A feature folder starts with `README.md` only; `design.md`, `implement.md` and `
 
 Use the `/feature` skill:
 
-- `/feature new S03 waitlist-chip — short intent` creates the next `FNN-<slug>` folder from the templates, status `BACKLOG`, and adds it to this board and the sprint file.
+- `/feature new S03 waitlist-chip — short intent` creates the `waitlist-chip/` folder (plain name, next free ID inside the files) from the templates, status `BACKLOG`, and adds it to this board and the sprint file.
 - `/feature F04` runs exactly one next phase for F04 (design → stop for approval; approved → implement; implemented → review) and updates all status places.
 - `/feature board` checks that this board, the sprint files and the feature READMEs agree.
