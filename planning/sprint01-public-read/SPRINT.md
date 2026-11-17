@@ -13,7 +13,7 @@
 | ID | Feature | Status |
 |---|---|---|
 | F18 | [Service split skeleton](service-split/README.md) | `IN_REVIEW` |
-| F01 | [API foundation: shared lib + gateway](api-foundation/README.md) | `WAITING_APPROVAL` |
+| F01 | [API foundation: shared lib + gateway](api-foundation/README.md) | `DONE` |
 | F02 | [Public session page + frontend foundation](public-session-page/README.md) | `WAITING_APPROVAL` |
 
 Order: F18 → F01 → F02 (backend first, then F02's frontend).

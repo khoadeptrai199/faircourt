@@ -3,6 +3,8 @@ package com.faircourt.playmatch;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.faircourt.common.testsupport.IntegrationTest;
+import com.faircourt.common.testsupport.TestDatabase;
 import com.faircourt.playmatch.seed.LocalDemoSeeder;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
@@ -14,7 +16,6 @@ import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -24,7 +25,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * (blueprint sections 0, 12, 17; F18 AC-02, AC-03, AC-04). Runs against the dedicated faircourt_test database;
  * refuses to clean any other database. Flyway cleans only the "playmatch" schema.
  */
-@SpringBootTest(properties = "spring.flyway.clean-disabled=false")
+@IntegrationTest
 class PlaymatchSchemaIT {
 
     @Autowired
@@ -41,10 +42,7 @@ class PlaymatchSchemaIT {
 
     @BeforeEach
     void resetTestSchema() {
-        String db = jdbc.sql("SELECT current_database()").query(String.class).single();
-        assertThat(db).as("integration tests may only clean a *_test database").endsWith("_test");
-        flyway.clean();
-        flyway.migrate();
+        TestDatabase.reset(jdbc, flyway);
     }
 
     private LocalDemoSeeder seeder() {

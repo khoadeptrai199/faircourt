@@ -1,6 +1,6 @@
 # F01 design — API foundation (shared library + gateway)
 
-Status: `WAITING_APPROVAL` (rewritten 2026-11-17 for microservices, OD-17)
+Status: `APPROVED` (2026-11-17; rewritten the same day for microservices, OD-17)
 
 ## 1. Summary
 

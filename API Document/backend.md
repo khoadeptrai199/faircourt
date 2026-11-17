@@ -9,16 +9,18 @@ This file only restates the blueprint; if they differ, the blueprint wins.
 - Private endpoints use UUIDs in the path; `publicCode` is the shareable random code.
 - Timestamps are ISO-8601 with timezone.
 - Identity comes from the signed-in account or the scoped guest cookie. `hostUserId`, `playerId` or `attendanceId` sent by the client is never proof of identity.
-- CSRF stays enabled for cookie-authenticated writes; `GET /api/v1/auth/csrf` is the public bootstrap (§0). The exact request header name will be documented in `README.md` when the identity slice ships.
+- CSRF stays enabled for cookie-authenticated writes; `GET /api/v1/auth/csrf` is the public bootstrap (§0). The browser app calls it once, then sends the returned `token` in the request header named by `headerName` on every write (`POST`, `PUT`, `PATCH`, `DELETE`). **Header name: `X-CSRF-TOKEN`** (observed in `CsrfBootstrapIT` and with `curl` through the Vite proxy, 2026-11-17). The token is kept in the gateway's HTTP session (`JSESSIONID`, HttpOnly, SameSite=Lax), so JavaScript never reads a cookie. A write without a valid token → `403 CSRF_TOKEN_INVALID`.
+- Every response carries an `X-Request-Id` header created by the gateway (a client-sent one is replaced); the same ID is in error bodies and in every log line of the gateway and the service.
+- The browser only talks to the gateway (port 9090, or through the Vite proxy on 9091). Routes under `/internal/**` exist only between services and are never reachable from outside.
 
 ## Endpoints
 
 Status = what exists in this repository today (not what the blueprint promises).
-Right now only `GET /actuator/health` is reachable; every other route is denied until slice 2 (§17).
+Right now only `GET /actuator/health` and `GET /api/v1/auth/csrf` are reachable; every other route is denied (anonymous → `401 UNAUTHENTICATED`, so unknown routes are not revealed).
 
 | Method and route | Caller | Contract (§13) | Status |
 |---|---|---|---|
-| `GET /auth/csrf` | Anyone | Public CSRF bootstrap for browser writes (§0). | Not started |
+| `GET /auth/csrf` | Anyone | Public CSRF bootstrap for browser writes (§0). Response `{"headerName":"X-CSRF-TOKEN","token":"…"}`. | Implemented (API foundation, 2026-11-17) |
 | `GET /public/sessions/{publicCode}` | Anyone | Public title, venue, localizable times, court count, status; no names or match IDs. | Not started |
 | `POST /auth/login` | Pilot-provisioned account | Cookie-backed account session. Public signup is not available. | Not started |
 | `POST /auth/logout` | Signed-in account | Ends the account session. | Not started |
@@ -119,9 +121,26 @@ Own assignment — `GET /api/v1/sessions/{id}/me`:
 | `403` | Authenticated but no permission |
 | `404` | Unknown, or private resource not visible |
 | `409` | State conflict |
+| `503` | A backend service did not answer in time (microservices, owner decision 2026-11-17) |
 
-## Already in the code (slice 1)
+Error codes (same body from the gateway and every service; messages are generic, never exception text):
 
-- Flyway `V1__initial_schema.sql`, local demo seed (`LocalDemoSeeder`), public code generator.
-- Pure matcher `com.faircourt.matching.MatchSuggester` with unit tests (`MatchSuggesterTest`). It is not exposed over HTTP yet.
-- `SecurityConfig`: health endpoint public, everything else denied, CSRF on.
+| Code | Status | When |
+|---|---|---|
+| `VALIDATION_FAILED` | 400 | Invalid body, unreadable JSON, wrong parameter type |
+| `UNAUTHENTICATED` | 401 | No identity; also any route that does not exist |
+| `GUEST_ACCESS_EXPIRED` | 401 | Guest cookie expired (Guest check-in) |
+| `CSRF_TOKEN_INVALID` | 403 | Write without a valid CSRF token |
+| `FORBIDDEN` | 403 | Identity known, permission missing |
+| `NOT_FOUND` | 404 | Unknown resource |
+| `METHOD_NOT_ALLOWED` | 405 | Wrong HTTP method on an existing route |
+| `MATCH_CONFLICT` | 409 | A player or court is no longer available |
+| `STATE_CONFLICT` | 409 | Illegal state change; database constraint fallback |
+| `INTERNAL_ERROR` | 500 | Anything unexpected |
+| `SERVICE_UNAVAILABLE` | 503 | A service is down or slower than 2 s connect / 5 s read |
+
+## Already in the code
+
+- Service split: `gateway` + `auth-service` + `player-service` + `playmatch-service`, one database schema each, per-service Flyway `V1` and local demo seed.
+- Pure matcher `com.faircourt.matching.MatchSuggester` (library `backend/libs/matching`) with unit tests. It is not exposed over HTTP yet.
+- API foundation: shared error body and codes, request ID, gateway route table (deny by default), CSRF bootstrap, `503` when a service does not answer. Services deny everything except health until a feature opens a route.

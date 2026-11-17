@@ -27,6 +27,9 @@
 
 	<properties>
 		<java.version>25</java.version>
+		<!-- Spring Cloud release train for the gateway (API foundation). start.spring.io compatibility data (2026-11-17):
+		     2025.1.4 = "Spring Boot >=4.0.0 and <4.2.0-M1"; contains Spring Cloud Gateway 5.0.4. Approved by the owner 2026-11-17. -->
+		<spring-cloud.version>2025.1.4</spring-cloud.version>
 	</properties>
 
 	<dependencyManagement>
@@ -38,8 +41,21 @@
 			</dependency>
 			<dependency>
 				<groupId>com.faircourt</groupId>
+				<artifactId>common-web</artifactId>
+				<version>${project.version}</version>
+				<type>test-jar</type>
+			</dependency>
+			<dependency>
+				<groupId>com.faircourt</groupId>
 				<artifactId>matching</artifactId>
 				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-dependencies</artifactId>
+				<version>${spring-cloud.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

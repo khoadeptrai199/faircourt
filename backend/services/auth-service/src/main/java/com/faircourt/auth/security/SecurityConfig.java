@@ -1,23 +1,20 @@
 package com.faircourt.auth.security;
 
+import com.faircourt.common.web.ServiceSecurityDefaults;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 
 /**
- * F18 baseline: only the health endpoint is reachable; every other route is denied until F01/F02 add the
- * first routes and the identity token check (AD-14). CSRF stays enabled (Spring Security default).
+ * Shared service baseline (API foundation, AD-14): health public, JSON errors, everything else denied until a feature
+ * opens its route here.
  */
 @Configuration
 public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.authorizeHttpRequests(auth -> auth.requestMatchers("/actuator/health", "/actuator/health/**")
-                .permitAll()
-                .anyRequest()
-                .denyAll());
-        return http.build();
+        return ServiceSecurityDefaults.build(http);
     }
 }

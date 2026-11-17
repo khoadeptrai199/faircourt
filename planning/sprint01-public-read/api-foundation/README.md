@@ -3,14 +3,14 @@
 | Field | Value |
 |---|---|
 | Sprint | S01 Services + public read |
-| Status | `WAITING_APPROVAL` |
+| Status | `DONE` |
 | Blueprint | §0 (API/auth), §13 (errors, status codes), §15 (route rules, auth baseline), §17 (PostgreSQL-backed tests); OD-17 |
 | Depends on | F18 |
-| Waiting for | Owner approval of [design.md](design.md) incl. D-1, D-2 and AD-04, AD-06, AD-14, AD-15, AD-18 ([decisions](../../architecture/decisions.md)) |
+| Waiting for | — (WSL check still open, accepted as not verified) |
 | Suggested branch | `feature/api-foundation` |
 | Last updated | 2026-11-17 |
 
-Docs: [design.md](design.md) · [implement.md](implement.md)
+Docs: [design.md](design.md) · [implement.md](implement.md) · [review.md](review.md)
 
 ## Goal
 
@@ -40,10 +40,10 @@ Every later endpoint, in any service, gets the same error body, request ID, gate
 
 | ID | Question | Status |
 |---|---|---|
-| D-1 | CSRF token repository at the gateway: HTTP session (recommended) vs. JS-readable cookie | Waiting for owner |
-| D-2 | Downstream timeouts (proposal 2 s connect / 5 s read) | Waiting for owner |
-| AD-04 | Error code names incl. `SERVICE_UNAVAILABLE` | Waiting for owner |
-| F18 D-3 | Gateway technology | Waiting for owner (decided in F18) |
+| D-1 | CSRF token repository at the gateway: HTTP session (recommended) vs. JS-readable cookie | Decided 2026-11-17: HTTP session (A) |
+| D-2 | Downstream timeouts (proposal 2 s connect / 5 s read) | Decided 2026-11-17: 2 s / 5 s |
+| AD-04 | Error code names incl. `SERVICE_UNAVAILABLE` | Decided 2026-11-17: approved as listed |
+| F18 D-3 | Gateway technology | Decided: Spring Cloud Gateway (Web MVC); version 2025.1.4 approved 2026-11-17 |
 
 ## Decision log
 
@@ -51,3 +51,6 @@ Every later endpoint, in any service, gets the same error body, request ID, gate
 |---|---|---|
 | 2026-11-17 | Feature created; design written, waiting for approval | Planning setup |
 | 2026-11-17 | Design rewritten for microservices (OD-17): error model moves to `libs/common-web`, route table / CSRF / request ID move to the gateway, new code `SERVICE_UNAVAILABLE`; now depends on F18 | Owner-approved rewrite, conversation 2026-11-17 |
+| 2026-11-17 | Owner approved implementation ("start implement first feature") and accepted all four recommendations (session CSRF storage, 2 s / 5 s timeouts, error codes incl. `SERVICE_UNAVAILABLE`, request ID in logs) and Spring Cloud 2025.1.4 → `APPROVED` → `IN_PROGRESS` | Conversation 2026-11-17 |
+| 2026-11-17 | All tasks done on the Mac, pipeline green → `IN_REVIEW` | [implement.md](implement.md) |
+| 2026-11-17 | Scope + privacy reviews; fixes applied; owner accepted D-R1…D-R6 (services skip CSRF/sessions, error message texts, one log line per request, access-matrix rows and the real request-ID hop move to Public session page, common-web dependencies, unknown routes → 401) and confirmed `DONE` | [review.md](review.md), conversation 2026-11-17 |
