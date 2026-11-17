@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Sprint | S01 Services + public read |
-| Status | `WAITING_APPROVAL` |
+| Status | `IN_REVIEW` |
 | Blueprint | §0 (one-command local stack, seed), §12 (schema), §14/§17-1 (matcher gate); OD-17 (microservices), OD-18…OD-20 (new session columns) |
 | Depends on | F00 |
-| Waiting for | All design questions answered 2026-11-17; owner said "do not implement yet". Waiting for the owner's go-ahead to start building |
+| Waiting for | Review (`scope-guardian`, `privacy-reviewer`); WSL check after removing the `COMPOSE_FILE` line from its `.env` |
 | Suggested branch | `feature/F18-service-split` |
 | Last updated | 2026-11-17 |
 
@@ -53,3 +53,5 @@ The single backend becomes a gateway plus `auth-service`, `player-service` and `
 |---|---|---|
 | 2026-11-17 | Feature created in S01 as part of the owner-approved sprint plan rewrite for microservices (OD-17); design written, waiting for approval | Conversation 2026-11-17 |
 | 2026-11-17 | Owner answered D-1…D-6 (see design §10) and accepted the architecture (AD-11…AD-15, AD-17, AD-18). Owner: "do not implement yet". Removal of `compose.backend-dev.yaml` approved ("bỏ đi") | Conversation 2026-11-17 |
+| 2026-11-17 | Owner approved implementation as designed ("làm hết", answering "start F18?") → `APPROVED` → `IN_PROGRESS` | Conversation 2026-11-17 |
+| 2026-11-17 | All tasks done on the Mac, pipeline green → `IN_REVIEW`. WSL not verified yet | [implement.md](implement.md) |

@@ -1,6 +1,6 @@
 # F18 design — Service split skeleton
 
-Status: `WAITING_APPROVAL` (2026-11-17)
+Status: `APPROVED` (2026-11-17, owner: "làm hết")
 
 ## 1. Summary
 

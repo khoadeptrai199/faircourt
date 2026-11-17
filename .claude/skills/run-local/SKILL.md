@@ -32,7 +32,7 @@ If `compose.yaml` does not exist yet, say so and stop: the stack has not been im
    - `docker compose ps` — all services running / healthy
    - `curl -fsS http://localhost:9090/actuator/health` → contains `"status":"UP"`
    - `curl -fsS -o /dev/null -w '%{http_code}' http://localhost:9091/` → `200`
-4. Print the sample public code/link as documented in `README.md` or startup logs (`docker compose logs backend | grep -i public`). Do not make one up.
+4. Print the sample public code from the startup logs (`docker compose logs playmatch-service | grep "public code"`); the link is `http://localhost:9091/s/<code>`. Do not make one up. (`README.md` is empty by owner request.)
 
 ### down
 
@@ -44,7 +44,13 @@ If `compose.yaml` does not exist yet, say so and stop: the stack has not been im
 
 ### logs
 
-`docker compose logs --tail=200 <service>` (`postgres`, `backend`, `frontend`).
+`docker compose logs --tail=200 <service>` (`postgres`, `gateway`, `auth-service`, `player-service`, `playmatch-service`, `frontend`). Several at once: `docker compose logs --tail=200 gateway playmatch-service`.
+
+### One service (start / rebuild / stop)
+
+- Start only one service (PostgreSQL starts with it): `docker compose up -d <service>`
+- Rebuild and restart one service after a code change: `docker compose up -d --build <service>`
+- Stop one service, others keep running: `docker compose stop <service>`
 
 ### health
 
@@ -59,9 +65,9 @@ Only the health checks above, no start/stop.
 ```text
 Machine: <os/arch>   Docker: <version>   Compose: <version>
 Commands run: <list with exit status>
-postgres: <state>  backend health: <UP/...>  frontend: <HTTP code>
+postgres: <state>  gateway health: <UP/...>  auth/player/playmatch: <healthy/...>  frontend: <HTTP code>
 Local URL: http://localhost:9091
-Sample public link: <from README/logs, or "not found">
+Sample public link: <from playmatch-service logs, or "not found">
 Not verified: <anything skipped>
 ```
 

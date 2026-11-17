@@ -33,12 +33,13 @@ docker compose down         # keeps the DB volume
 - Do **not** set `platform:` in `compose.yaml` and do not hardcode an arch in Dockerfiles. No downloading arch-specific binaries by URL.
 - Build inside containers with multi-stage Dockerfiles (Maven/JDK build stage → JRE runtime; `npm ci` inside the image). The host's installed Java/Node versions must not matter.
 - `.dockerignore` must exclude at least `node_modules`, `dist`, `target`, `.env`, `.git` so host-built artifacts never enter the image.
-- Health checks must use a command that exists in the image (`pg_isready` exists in the official postgres image; for the backend image check whether `curl`/`wget` exists before using it — do not assume).
+- Health checks must use a command that exists in the image (`pg_isready` exists in the official postgres image; the backend JRE image has no `curl`/`wget`, so the services use a bash `/dev/tcp` check — do not assume a tool exists).
+- Backend services (F18, AD-13): one `backend/Dockerfile` for all of them; the build arg `MODULE` (`gateway`, `auth-service`, `player-service`, `playmatch-service`) selects the service. The `deps` stage copies every module's `pom.xml`, so a new module must be added there too. Each service has its own entry in `compose.yaml`, depends only on `postgres`, and can be started, rebuilt and stopped on its own.
 
 ## Bind mounts and dev servers
 
 - If frontend source is bind-mounted for hot reload, keep `node_modules` in a container-only volume. Native npm packages built for `darwin-arm64` do not work in a Linux container and vice versa.
-- Vite inside a container must listen on all interfaces (`server.host`), and its `/api` proxy target must be the Compose service name (e.g. `http://backend:8080`) — `localhost` inside the frontend container is the container itself.
+- Vite inside a container must listen on all interfaces (`server.host`), and its `/api` proxy target must be the Compose service name of the gateway (`http://gateway:8080`) — `localhost` inside the frontend container is the container itself.
 - Use only relative paths in `compose.yaml`; no `/Users/...`, `C:\...` or `~`.
 
 ## Line endings and file modes
@@ -57,7 +58,7 @@ docker compose down         # keeps the DB volume
 - Code syncs **only via git** (commit/push on one machine, pull on the other). Never commit `.env`.
 - Each machine has its own Postgres volume; data does not sync. The idempotent seed gives both the same baseline.
 - Never run `docker compose down -v` or `docker volume rm` without the owner's explicit consent — it deletes the local database.
-- Published host ports are `9090` (backend), `9091` (frontend), `9092` (JDWP debug) — owner decision 2026-11-12, to stay clear of the HRM project (8080, 8081, 1433, 6379, ...) — and `9093` (PostgreSQL on `127.0.0.1` only, for DBeaver; owner decision 2026-11-13). They are overridable via `BACKEND_PORT` / `FRONTEND_PORT` / `BACKEND_DEBUG_PORT` / `POSTGRES_PORT` in `.env`; container-internal ports stay 8080 / 5173 / 5005. Never use HRM ports; pick 9090+ if another port is needed. If a port conflicts, report it and ask.
+- Published host ports are `9090` (gateway; the other backend services publish no host port), `9091` (frontend), `9092` (JDWP debug on `playmatch-service`) — owner decision 2026-11-12, to stay clear of the HRM project (8080, 8081, 1433, 6379, ...) — and `9093` (PostgreSQL on `127.0.0.1` only, for DBeaver; owner decision 2026-11-13). They are overridable via `BACKEND_PORT` / `FRONTEND_PORT` / `BACKEND_DEBUG_PORT` / `POSTGRES_PORT` in `.env`; container-internal ports stay 8080 / 5173 / 5005. Never use HRM ports; pick 9090+ if another port is needed. If a port conflicts, report it and ask.
 
 ## Definition of done for Docker-related changes
 
@@ -68,7 +69,7 @@ A Docker/Compose change is verified only after `docker compose up --build -d`, h
 The detailed Windows guide (`docs/guides/WSL_LOCAL_DEV.md`) is **local-only** on that machine (`docs/` is in its `.git/info/exclude`), so it never reaches the Mac. What matters here:
 
 - All project work on Windows runs inside WSL Ubuntu; nothing is run with Windows tools. The repo stays on `D:\External\Personal\faircourt` (`/mnt/d/...`) by owner choice.
-- Its `.env` adds `VITE_USE_POLLING=true` (no file events across `/mnt/d`), `BACKEND_DEBUG_OPTS=...address=*:5005` and `COMPOSE_FILE=compose.yaml:compose.backend-dev.yaml` (backend dev mode with DevTools).
-- IntelliJ on Windows edits and compiles the backend (IDE-only JDK 25) and attaches to `localhost:9092` (host side of container port 5005); the app itself always runs in Docker.
-- Keep these working when changing Docker files: do not remove the `VITE_USE_POLLING` switch, the `JAVA_TOOL_OPTIONS`/debug-port wiring, the `dev` Dockerfile stage or `compose.backend-dev.yaml` without asking the owner. All of them default to off, so the Mac's plain `docker compose up --build -d` is unaffected.
+- Its `.env` adds `VITE_USE_POLLING=true` (no file events across `/mnt/d`) and `BACKEND_DEBUG_OPTS=...address=*:5005`. It also had `COMPOSE_FILE=compose.yaml:compose.backend-dev.yaml` for the old backend dev mode; dev mode was removed in F18 (owner decision 2026-11-17), so that line must be deleted from that `.env`, otherwise `docker compose` fails because the file no longer exists.
+- IntelliJ on Windows edits and compiles the backend (IDE-only JDK 25) and attaches to `localhost:9092` (host side of container port 5005 of `playmatch-service`); the services always run in Docker. After a code change the owner rebuilds one service by hand: `docker compose up -d --build <service>`.
+- Keep these working when changing Docker files: do not remove the `VITE_USE_POLLING` switch or the `JAVA_TOOL_OPTIONS`/debug-port wiring without asking the owner. Both default to off, so the Mac's plain `docker compose up --build -d` is unaffected.
 - Host port 5432 is occupied on the Windows machine. Postgres is published only on `127.0.0.1:${POSTGRES_PORT:-9093}` (owner decision 2026-11-13), never on 5432.

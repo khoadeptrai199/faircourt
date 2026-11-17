@@ -31,7 +31,7 @@ frontend/src/
 | `/s/:publicCode` | public summary | unknown code → friendly 404; closed → read-only |
 | `/s/:publicCode/join` | public summary + guest POST | in-place validation; pending-approval panel after submit |
 | `/my/sessions/:sessionId` | own `/me` only | pending, ready/no match, assigned, playing, finished/closed, expired guest access |
-| `/host/sessions/:sessionId` | host board | no ready players, fewer than four, occupied courts, request failure |
+| `/host/sessions/:sessionId` | host board | no ready players, fewer than one full match (4 doubles / 2 singles, OD-20), occupied courts, request failure |
 | `/host/sessions/:sessionId/review` | suggestion preview | wide gap warning, stale 409, Cancel/Confirm |
 
 - Player page polls its own endpoint every 15 s while visible + explicit Refresh button. No WebSocket (§16).
@@ -68,11 +68,13 @@ Accessibility: text label + color for every status; visible keyboard focus; chec
 
 ## Part B — Matching engine (§5, §14)
 
-- Pure function, e.g. `List<Proposal> suggest(BoardSnapshot snapshot)`. No repository access, no mutation. Lives in `backend/.../matching/`.
+- Pure function, e.g. `List<Proposal> suggest(BoardSnapshot snapshot)`. No repository access, no mutation, no Spring. Lives in the library `backend/libs/matching/` (package `com.faircourt.matching`) and is called only by `playmatch-service` (AD-11, AD-18).
 - `BoardSnapshot`: ready attendance IDs, private bands (nullable), `availableSince`, `gamesPlayed`, last three partners per player, free court numbers.
 - Suggestions write nothing; only host confirm persists (§11).
 
 ### Deterministic v1 policy (§14)
+
+> **Pending owner-approved changes.** The steps below are the blueprint's doubles-only policy, and they are what the code implements today. Two owner decisions will change it: **OD-20** (a session is `SINGLES` = 2 players per match, or `DOUBLES` = 4) and **OD-19 (b)** (the matcher also favours players below the session's `min_sets`; shown as progress, e.g. "3/6"). The exact new rules are **not written yet**: AD-19 (team size from the snapshot) is still PROPOSED, and no selection order for `min_sets` has been decided. Design both in F09 and get the owner's approval before changing `MatchSuggester`. Until then, do not change the matcher.
 
 1. Pool = up to 24 `READY` players not in an unfinished match; only free courts.
 2. `slots = 4 × min(freeCourts, floor(readyCount / 4))`.
@@ -89,3 +91,5 @@ Court compatibility is scored before team balance (§5). This is intentionally a
 ### Required boundary tests (§14)
 
 Four equal-band players · `[1,2,3,4]` warns about spread even when team sums tie · one unknown band · four zero-game players chosen before four one-game players · fewer than four ready · occupied court excluded · two simultaneous courts never reuse an attendance ID · same snapshot → same ordering. Assert policy and invariants, not internal implementation details.
+
+When F09 adds singles and minimum sets, add the matching boundary tests (e.g. fewer than two ready in a singles session, a below-minimum player chosen first) as part of that approved design; all doubles tests above stay.

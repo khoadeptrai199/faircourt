@@ -15,8 +15,8 @@ Prerequisite: stack running and healthy (use `/run-local status`). If not runnin
 - A result is **PASS** only with evidence captured in this run (HTTP status + relevant body excerpt, test output, or screenshot). Otherwise **NOT VERIFIED**.
 - Never delete data to make a check pass. Step 6 restarts with `docker compose down` (no `-v`).
 - Use separate cookie jars to simulate separate browsers, e.g. `curl -c/-b /tmp/<scratch>/host.txt`, `guest.txt`, `anon` (no jar), `other.txt`.
-- For writes, first `GET /api/v1/auth/csrf` with that jar and send the CSRF header **exactly as documented in README.md**. If README does not document it, report that as a FAIL of the §0 contract.
-- Public code and demo credentials come from README / seed output (`host@faircourt.local` / `FairCourtDemo!1`, §0). Do not invent IDs.
+- For writes, first `GET /api/v1/auth/csrf` with that jar and send the CSRF header **exactly as documented in `API Document/`** (README is empty by owner request 2026-11-17). If it is not documented there, report that as a FAIL of the §0 contract.
+- Public code and demo credentials come from the seed output (`docker compose logs playmatch-service | grep "public code"`) (`host@faircourt.local` / `FairCourtDemo!1`, §0). Do not invent IDs.
 
 ## §0 end-to-end steps
 

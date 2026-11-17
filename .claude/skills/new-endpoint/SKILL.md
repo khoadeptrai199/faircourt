@@ -25,7 +25,8 @@ Response DTO:     dedicated class; list fields; confirm no names/bands/other pla
 State changes:    which state transitions (§11) and invariants (§12)
 Transaction:      single @Transactional service method? locks needed?
 Errors:           400 / 401 / 403 / 404 / 409 cases with error code
-Package:          identity | sessions | players | matches (§15)
+Service/package:  owning service (the one that owns the table it writes: conventions.md) + com.faircourt.<service>.<area>
+Gateway route:    route-table entry + caller rule in the gateway (AD-14); internal calls to other services listed for approval (AD-15)
 ```
 
 Show this to the owner if anything in it is not determined by the blueprint.
@@ -33,7 +34,7 @@ Show this to the owner if anything in it is not determined by the blueprint.
 ## 3. Implement
 
 - Controller (thin) → service (rules + ownership) → repository. DTOs only at the controller boundary.
-- Spring Security route rule as first gate; service-level ownership check as second (§15).
+- Gateway route table as first gate (AD-14); in the service, identity only from the gateway's identity token (`CallerIdentity`) and the service-level ownership check as second gate (§15).
 - Map DB uniqueness violations to `409 MATCH_CONFLICT`; never report a partial write as success (§15).
 - Use the error body `{"code","message","requestId"}` via `GlobalExceptionHandler` (§13).
 - Inject `Clock` for anything time-based.
@@ -51,4 +52,4 @@ Show this to the owner if anything in it is not determined by the blueprint.
 
 - Run the backend tests; report actual results.
 - Consider running the `privacy-reviewer` agent on the diff.
-- Update `README.md` only for things the blueprint requires there (e.g., the CSRF header).
+- Do not write into `README.md`: it stays empty by owner request (2026-11-17). Record what the blueprint wants documented there (e.g., the CSRF header) in the feature's `implement.md` and `API Document/`, and tell the owner.

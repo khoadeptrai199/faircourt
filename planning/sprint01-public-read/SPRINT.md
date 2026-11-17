@@ -2,17 +2,17 @@
 
 | Field | Value |
 |---|---|
-| Status | `PLANNED` (next) |
+| Status | `ACTIVE` |
 | Goal | The backend runs as a gateway + `auth-service` + `player-service` + `playmatch-service` with one schema each, started by one command; anyone with the link sees the play session (time, venue, courts, singles/doubles, minimum sets, price, status) through the gateway and nothing private; every service shares one error shape, request ID and test harness |
 | Gate | All services healthy with one command on WSL (and Mac); §17 step 1 tests still green after the split; "anonymous sees only public data" through the gateway (first half of §17 step 2); §17 checklist line 1: "Anonymous public response contains no attendance names, bands, match IDs or guest credentials" |
 | Blueprint | §0, §3, §12, §13, §15, §16; OD-17…OD-20 |
-| Started / finished | — |
+| Started / finished | 2026-11-17 / — |
 
 ## Features
 
 | ID | Feature | Status |
 |---|---|---|
-| F18 | [Service split skeleton](F18-service-split/README.md) | `WAITING_APPROVAL` |
+| F18 | [Service split skeleton](F18-service-split/README.md) | `IN_REVIEW` |
 | F01 | [API foundation: shared lib + gateway](F01-api-foundation/README.md) | `WAITING_APPROVAL` |
 | F02 | [Public session page + frontend foundation](F02-public-session-page/README.md) | `WAITING_APPROVAL` |
 

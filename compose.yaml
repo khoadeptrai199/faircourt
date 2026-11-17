@@ -2,7 +2,28 @@
 #   cp .env.example .env          # once
 #   docker compose up --build -d  # start  -> http://localhost:9091
 #   docker compose down           # stop (keeps the database volume)
+# Backend = gateway + auth-service + player-service + playmatch-service (F18, OD-17). Only the gateway publishes
+# a host port; each service can be started, rebuilt and followed on its own (see README "Work with one service").
 name: faircourt
+
+# Shared settings of the three database services (one database, one schema per service, one DB user: AD-12).
+x-db-service: &db-service
+  environment: &db-env
+    SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+    SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+    SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+    SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+  depends_on:
+    postgres:
+      condition: service_healthy
+  healthcheck: &backend-health
+    # The JRE image has no curl/wget; bash /dev/tcp checks the health endpoint for "UP".
+    test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /actuator/health HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && grep -q '\"status\":\"UP\"' <&3"]
+    interval: 5s
+    timeout: 5s
+    retries: 30
+    start_period: 30s
+  restart: unless-stopped
 
 services:
   postgres:
@@ -24,41 +45,61 @@ services:
       retries: 20
     restart: unless-stopped
 
-  backend:
+  # The only backend component the browser reaches (through the Vite proxy). No route yet (F01).
+  # It does not wait for the services: a missing service will answer 503 through the gateway (AD-15).
+  gateway:
     build:
       context: ./backend
       target: runtime
+      args:
+        MODULE: gateway
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       COOKIE_SECURE: ${COOKIE_SECURE}
+    ports:
+      - "127.0.0.1:${BACKEND_PORT:-9090}:8080"
+    healthcheck: *backend-health
+    restart: unless-stopped
+
+  auth-service:
+    <<: *db-service
+    build:
+      context: ./backend
+      target: runtime
+      args:
+        MODULE: auth-service
+    environment:
+      <<: *db-env
       DEMO_HOST_EMAIL: ${DEMO_HOST_EMAIL}
       DEMO_PASSWORD: ${DEMO_PASSWORD}
+
+  player-service:
+    <<: *db-service
+    build:
+      context: ./backend
+      target: runtime
+      args:
+        MODULE: player-service
+
+  playmatch-service:
+    <<: *db-service
+    build:
+      context: ./backend
+      target: runtime
+      args:
+        MODULE: playmatch-service
+    environment:
+      <<: *db-env
       # Optional remote debugging (IntelliJ "Remote JVM Debug" -> localhost:9092; container-side port stays 5005). Empty = off.
       JAVA_TOOL_OPTIONS: ${BACKEND_DEBUG_OPTS:-}
     ports:
-      - "127.0.0.1:${BACKEND_PORT:-9090}:8080"
       - "127.0.0.1:${BACKEND_DEBUG_PORT:-9092}:5005"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      # The JRE image has no curl/wget; bash /dev/tcp checks the health endpoint for "UP".
-      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /actuator/health HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && grep -q '\"status\":\"UP\"' <&3"]
-      interval: 5s
-      timeout: 5s
-      retries: 30
-      start_period: 30s
-    restart: unless-stopped
 
   frontend:
     build:
       context: ./frontend
     environment:
-      # Inside the container, "localhost" is the frontend itself; reach the backend by service name.
-      API_PROXY_TARGET: http://backend:8080
+      # Inside the container, "localhost" is the frontend itself; reach the gateway by service name.
+      API_PROXY_TARGET: http://gateway:8080
       VITE_USE_POLLING: ${VITE_USE_POLLING:-false}
     ports:
       - "127.0.0.1:${FRONTEND_PORT:-9091}:5173"
@@ -68,7 +109,7 @@ services:
       - ./frontend:/app
       - /app/node_modules
     depends_on:
-      backend:
+      gateway:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5173/"]
@@ -77,7 +118,7 @@ services:
       retries: 20
     restart: unless-stopped
 
-  # Backend tests against the separate faircourt_test database:
+  # Backend tests (all modules) against the separate faircourt_test database:
   #   docker compose --profile test run --rm --build backend-test
   backend-test:
     profiles: ["test"]
@@ -94,7 +135,7 @@ services:
       postgres:
         condition: service_healthy
 
-  # Format backend Java in place (Spotless + Palantir Java Format):
+  # Format backend Java in place (Spotless + Palantir Java Format), all modules:
   #   docker compose run --rm backend-format
   backend-format:
     profiles: ["tools"]

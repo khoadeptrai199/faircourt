@@ -9,7 +9,7 @@ node_modules/
 frontend/dist/
 
 # Backend
-backend/target/
+backend/**/target/
 
 # IDE (IntelliJ creates .idea/ in any opened folder)
 .idea/

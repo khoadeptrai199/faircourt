@@ -35,7 +35,7 @@ Keep the app runnable at every step (§8). Do not jump ahead to later slices unl
 2. Bring the stack up with `/run-local up` if Docker is available; check health.
 3. Check the slice's gate; for the final slices use `/acceptance-check`.
 4. Recommend the owner run the `scope-guardian` and `privacy-reviewer` agents on the diff.
-5. Record ordinary implementation decisions in `README.md` (§0).
+5. Record ordinary implementation decisions in the feature's `implement.md` (§0). `README.md` stays empty by owner request (2026-11-17).
 6. Do not commit or push unless the owner asks.
 
 ## Handoff format

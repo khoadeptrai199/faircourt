@@ -43,7 +43,7 @@ Whenever a status changes, update all three in the same step:
 
 - `implement.md` → "Commands executed" lists only commands that were actually run, with the real result and the machine.
 - An AC is `PASS` only with evidence from this feature's work; otherwise `FAIL` or `NOT VERIFIED` with the reason.
-- Copying an older result is allowed only with its date and source (e.g. "README verification log 2026-11-12").
+- Copying an older result is allowed only with its date and source (e.g. "F18 implement.md, 2026-11-17"; the old README verification log is in git history).
 
 ## Decisions
 

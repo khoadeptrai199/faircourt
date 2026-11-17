@@ -30,7 +30,7 @@ These rules apply to every layer. "Keep player data private and host mutations h
 ## CSRF and CORS
 
 - CSRF stays **enabled** for cookie-authenticated writes. Never disable it globally to make forms pass (§0).
-- `GET /api/v1/auth/csrf` is a public CSRF bootstrap; the exact header name must be documented in `README.md` (§0).
+- `GET /api/v1/auth/csrf` is a public CSRF bootstrap; the exact header name must be documented in `API Document/` and the feature's `implement.md` (§0; `README.md` stays empty by owner request 2026-11-17).
 - No open CORS wildcard (§15). Frontend and API share one origin (Vite proxies `/api` locally) (§0, §12).
 
 ## Separate DTOs — never reuse across audiences (§7, §13, §16)
