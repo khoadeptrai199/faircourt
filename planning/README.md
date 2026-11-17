@@ -14,7 +14,7 @@ Last updated: 2026-11-17
 | Sprint | Goal | Gate | Status |
 |---|---|---|---|
 | [S00 Foundation](sprint00-foundation/SPRINT.md) | Docker stack, V1 schema, seed, pure matcher | §17 step 1 | DONE |
-| [S01 Public read](sprint01-public-read/SPRINT.md) | API/security/test foundation + public session page | Anonymous sees only public data | PLANNED (next) |
+| [S01 Services + public read](sprint01-public-read/SPRINT.md) | Split into gateway + services (one schema each), shared API foundation, public session page | All services healthy; anonymous sees only public data through the gateway | PLANNED (next) |
 | [S02 Identity](sprint02-identity/SPRINT.md) | Account login, guest check-in, own attendance | §17 step 2 gate | PLANNED |
 | [S03 Host board](sprint03-host-board/SPRINT.md) | Host board, approve/rest/leave, create session | Host sees full board; other account 403 | PLANNED |
 | [S04 Match loop](sprint04-match-loop/SPRINT.md) | Suggest, swap, confirm, start, finish, cancel | §17 step 3 gate | PLANNED |
@@ -26,8 +26,9 @@ Last updated: 2026-11-17
 | ID | Feature | Sprint | Status | Depends on | Waiting for | Docs |
 |---|---|---|---|---|---|---|
 | F00 | Walking skeleton | S00 | DONE | — | — | [README](sprint00-foundation/F00-walking-skeleton/README.md) |
-| F01 | API foundation: errors, request ID, security route table, CSRF bootstrap, test harness | S01 | WAITING_APPROVAL | F00 | Owner approval of design + AD-01…AD-10 | [README](sprint01-public-read/F01-api-foundation/README.md) · [design](sprint01-public-read/F01-api-foundation/design.md) · [implement](sprint01-public-read/F01-api-foundation/implement.md) |
-| F02 | Public session page + frontend foundation | S01 | WAITING_APPROVAL | F01 | OD-01, OD-02, OD-13, copy approval | [README](sprint01-public-read/F02-public-session-page/README.md) · [design](sprint01-public-read/F02-public-session-page/design.md) · [implement](sprint01-public-read/F02-public-session-page/implement.md) |
+| F18 | Service split skeleton (gateway + auth/player/playmatch services, schema per service) | S01 | WAITING_APPROVAL | F00 | Questions answered 2026-11-17; owner's go-ahead to build ("do not implement yet") | [README](sprint01-public-read/F18-service-split/README.md) · [design](sprint01-public-read/F18-service-split/design.md) · [implement](sprint01-public-read/F18-service-split/implement.md) |
+| F01 | API foundation: shared error lib, gateway route table, request ID, CSRF bootstrap, test harness | S01 | WAITING_APPROVAL | F18 | Owner approval of design (D-1, D-2) + AD-04, AD-06, AD-14, AD-15, AD-18 | [README](sprint01-public-read/F01-api-foundation/README.md) · [design](sprint01-public-read/F01-api-foundation/design.md) · [implement](sprint01-public-read/F01-api-foundation/implement.md) |
+| F02 | Public session page (+ format, minimum sets, price) + frontend foundation | S01 | WAITING_APPROVAL | F01 | OD-01, OD-02, OD-13, copy approval | [README](sprint01-public-read/F02-public-session-page/README.md) · [design](sprint01-public-read/F02-public-session-page/design.md) · [implement](sprint01-public-read/F02-public-session-page/implement.md) |
 | F03 | Account login, logout, `GET /me` | S02 | BACKLOG | F01 | OD-03 | [README](sprint02-identity/F03-account-login/README.md) |
 | F04 | Guest check-in + guest cookie | S02 | BACKLOG | F02 | OD-02, OD-06 | [README](sprint02-identity/F04-guest-check-in/README.md) |
 | F05 | Own attendance status + member join | S02 | BACKLOG | F03, F04 | OD-02, OD-11 | [README](sprint02-identity/F05-my-attendance-status/README.md) |

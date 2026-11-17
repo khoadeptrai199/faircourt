@@ -1,58 +1,62 @@
-# F01 design — API foundation
+# F01 design — API foundation (shared library + gateway)
 
-Status: `WAITING_APPROVAL` (2026-11-17)
+Status: `WAITING_APPROVAL` (rewritten 2026-11-17 for microservices, OD-17)
 
 ## 1. Summary
 
-Backend plumbing that every endpoint reuses:
+Plumbing every endpoint reuses, split between a shared library and the gateway:
 
-1. one error body `{code, message, requestId}` for every failure, including security failures;
-2. a random request ID per request, in logs (MDC) and in error bodies;
-3. a Spring Security route table for `/api/v1` that mirrors §13, deny by default, with JSON 401/403;
-4. the CSRF bootstrap `GET /api/v1/auth/csrf` required by §0;
-5. an integration-test harness: safe DB reset, an access matrix, and a JSON allowlist helper.
+| Piece | Where | What |
+|---|---|---|
+| Error model | `libs/common-web` | `ErrorCode`, `ApiException`, `ApiError`, `GlobalExceptionHandler`; one body `{code, message, requestId}` in every service |
+| Request ID | gateway creates, `common-web` reads | Gateway makes a random ID, overwrites any client `X-Request-Id`, forwards it; every service puts it in MDC and error bodies |
+| Route table | gateway | One line per §13 route as features land; `/api/v1/**` denied by default; `/internal/**` never routed; JSON 401/403 |
+| CSRF bootstrap | gateway | `GET /api/v1/auth/csrf` (§0); CSRF checked on every write at the gateway |
+| Downstream failure | gateway | Service down or timeout → `503 SERVICE_UNAVAILABLE` with the standard body |
+| Test harness | `common-web` test support + gateway | `TestDatabase` (per schema), `@IntegrationTest`, `JsonAllowlist`, per-service `AccessMatrixIT`, gateway ITs with a JDK `HttpServer` stub |
 
-No new dependency, no migration, no frontend change.
+Depends on F18 (the services exist). Adds the gateway dependency chosen in F18 D-3.
 
 ## 2. Blueprint references
 
 - §0: "Add `GET /api/v1/auth/csrf` as a public CSRF bootstrap for browser writes and document the exact request header in README. Do not disable CSRF globally to make forms pass."
-- §13: "Error body: `{"code":"MATCH_CONFLICT","message":"A player or court is no longer available.","requestId":"..."}`. Use `400` invalid payload, `401` missing/expired identity, `403` authenticated but no permission, `404` unknown or private resource not visible, `409` state conflict. Validate field lengths and IDs at the boundary, and show friendly UI messages rather than raw exceptions."
-- §15: "Spring Security route rules provide an initial gate, and service-level ownership does the resource-specific check." "CSRF token on cookie-authenticated writes; no open CORS wildcard."
-- §17: "use a PostgreSQL-backed integration test rather than relying only on an in-memory database."
+- §13: error body `{code, message, requestId}`; 400 / 401 / 403 / 404 / 409 meanings.
+- §15: route rules are the first gate, service-level ownership the second; CSRF on cookie-authenticated writes; no open CORS wildcard.
+- §17: PostgreSQL-backed integration tests.
+- OD-17 (microservices), AD-04, AD-06, AD-14, AD-15, AD-18.
 
 ## 3. API contract
 
-### `GET /api/v1/auth/csrf`
+### `GET /api/v1/auth/csrf` (served by the gateway itself)
 
 | Item | Value |
 |---|---|
 | Caller | anyone |
 | Identity source | none |
 | Response | `200 {"headerName":"<name reported by Spring Security>","token":"<opaque>"}` |
-| Errors | none expected |
-| Side effect | With D-1 option A, creates an HTTP session (HttpOnly `JSESSIONID`) for the browser if none exists |
+| Side effect | With D-1 option A, the gateway creates its HTTP session (HttpOnly cookie) if none exists |
 
-The README documents the header name observed in `CsrfBootstrapIT`, not a value assumed from documentation.
+README documents the header name observed in the test, not a value assumed from documentation.
 
-### Error body (all `/api/v1/**`)
+### Error body (gateway and every service)
 
 `{"code":"<ErrorCode>","message":"<safe text>","requestId":"<uuid>"}`
 
-Catalog (AD-04; only `MATCH_CONFLICT` comes from the blueprint, the rest need approval):
-
 | Code | HTTP | Raised by |
 |---|---|---|
-| `VALIDATION_FAILED` | 400 | Bean Validation failures, unreadable JSON, type mismatches |
-| `UNAUTHENTICATED` | 401 | Security entry point (no identity) |
-| `GUEST_ACCESS_EXPIRED` | 401 | Guest filter (F04) |
-| `CSRF_TOKEN_INVALID` | 403 | Access-denied handler for missing/invalid CSRF token |
-| `FORBIDDEN` | 403 | Access-denied handler; `AccessPolicy` (F06) |
-| `NOT_FOUND` | 404 | Unknown route or resource; services |
+| `VALIDATION_FAILED` | 400 | Services: Bean Validation, unreadable JSON, type mismatch |
+| `UNAUTHENTICATED` | 401 | Gateway security entry point |
+| `GUEST_ACCESS_EXPIRED` | 401 | Gateway guest handling (F04) |
+| `CSRF_TOKEN_INVALID` | 403 | Gateway access-denied handler for CSRF failures |
+| `FORBIDDEN` | 403 | Gateway access-denied handler; services' `AccessPolicy` (F06) |
+| `NOT_FOUND` | 404 | Unknown resource (services); unknown route under an open prefix |
 | `METHOD_NOT_ALLOWED` | 405 | Wrong HTTP method |
-| `MATCH_CONFLICT` | 409 | `MatchService.confirm` (F10) |
-| `STATE_CONFLICT` | 409 | Illegal transitions (F07, F11); fallback for `DataIntegrityViolationException` |
+| `MATCH_CONFLICT` | 409 | playmatch confirm (F10) |
+| `STATE_CONFLICT` | 409 | Illegal transitions; fallback for integrity violations |
 | `INTERNAL_ERROR` | 500 | Anything unexpected |
+| `SERVICE_UNAVAILABLE` | 503 | **New:** gateway or a calling service when a downstream does not answer in time |
+
+When a service returns an error, the gateway passes its status and body through unchanged.
 
 ## 4. Data and transactions
 
@@ -60,95 +64,98 @@ None. No migration.
 
 ## 5. Domain rules
 
-None. This feature adds no business behavior.
+None.
 
-## 6. Backend components
+## 6. Components
 
-| File | New/changed | Pattern | Notes |
-|---|---|---|---|
-| `common/ErrorCode.java` | new | Error catalog | enum: HTTP status + default safe message |
-| `common/ApiException.java` | new | — | `RuntimeException` carrying `ErrorCode` + safe message; the only exception services throw for expected failures |
-| `common/ApiError.java` | new | DTO record | `code`, `message`, `requestId` |
-| `common/GlobalExceptionHandler.java` | new | Central handler | Mapping table below; logs 5xx at ERROR and 409 fallbacks at WARN with `requestId` |
-| `common/RequestIdFilter.java` | new | Servlet filter | Runs first; random UUID → MDC key `requestId` + request attribute; cleared in `finally` |
-| `identity/SecurityConfig.java` | changed | Route table | One `requestMatchers` line per §13 route as features land, each with a comment naming its §13 caller; `/api/v1/**` `denyAll` last; JSON handlers; CSRF default on; no CORS configuration |
-| `identity/JsonSecurityHandlers.java` | new | Adapter | `AuthenticationEntryPoint` → 401 `UNAUTHENTICATED`; `AccessDeniedHandler` → 403 `CSRF_TOKEN_INVALID` for CSRF exceptions, else `FORBIDDEN` |
-| `identity/CsrfController.java` | new | Thin controller | `GET /api/v1/auth/csrf` returns `CsrfTokenResponse(headerName, token)` |
-| `identity/CsrfTokenResponse.java` | new | DTO record | — |
-| `application.properties` | changed | — | Log pattern includes `%X{requestId}` (exact property checked against the Spring Boot 4 reference at implementation) |
+### `libs/common-web`
 
-Exception mapping in `GlobalExceptionHandler`:
+| File | Notes |
+|---|---|
+| `ErrorCode.java` | enum: HTTP status + default safe message |
+| `ApiException.java` | The only exception services throw for expected failures |
+| `ApiError.java` | record `code`, `message`, `requestId` |
+| `GlobalExceptionHandler.java` | Mapping table below; auto-configured into every servlet service |
+| `RequestIdFilter.java` | Services: take `X-Request-Id` (set by the gateway) or create one if missing (direct calls in tests); MDC key `requestId`; cleared in `finally` |
+| `ServiceSecurityDefaults.java` | Shared service rule: health public, everything else denied until a feature opens it. Services do not handle cookies or CSRF (they receive no browser cookies) |
+
+Exception mapping (each class name checked against Spring Framework 7 during implementation; tests prove the mapping):
 
 | Exception | Result |
 |---|---|
-| `ApiException` | its `ErrorCode` and message |
+| `ApiException` | its code and message |
 | `MethodArgumentNotValidException`, `HandlerMethodValidationException`, `HttpMessageNotReadableException`, `MethodArgumentTypeMismatchException`, `ConstraintViolationException` | 400 `VALIDATION_FAILED` |
 | `NoResourceFoundException` | 404 `NOT_FOUND` |
 | `HttpRequestMethodNotSupportedException` | 405 `METHOD_NOT_ALLOWED` |
-| `DataIntegrityViolationException` (fallback; services translate first where they know better) | 409 `STATE_CONFLICT`, transaction already rolled back |
+| `DataIntegrityViolationException` (fallback) | 409 `STATE_CONFLICT` |
 | any other `Exception` | 500 `INTERNAL_ERROR`, generic message |
 
-Exception class names are Spring Framework 7 / Jakarta names as I know them; each is checked against the reference during implementation and the test suite proves the mapping.
+### `services/gateway`
 
-### D-1: CSRF token repository (needs owner decision)
+| File | Notes |
+|---|---|
+| `pom.xml` | Adds the gateway dependency per F18 D-3 (exact version shown to the owner before pinning) |
+| `GatewayRoutes` (config) | Route table: `/api/v1/auth/csrf` local; feature routes added later (F02 adds `/api/v1/public/sessions/*` → playmatch); nothing under `/internal/**` |
+| `GatewaySecurityConfig.java` | Health public; `/api/v1/auth/csrf` public; `/api/v1/**` deny by default; CSRF on; no CORS configuration |
+| `JsonSecurityHandlers.java` | Entry point → 401 `UNAUTHENTICATED`; access denied → 403 `CSRF_TOKEN_INVALID` for CSRF failures, else `FORBIDDEN` |
+| `RequestIdGatewayFilter` | Creates the ID, overwrites the incoming header, adds it to the response header and MDC |
+| `HeaderSanitizer` | Removes client-sent internal headers (`X-Request-Id`, and from F03 the identity header) before forwarding |
+| `DownstreamErrorHandler` | Connect/read timeout or refused → 503 `SERVICE_UNAVAILABLE`; timeouts as properties (proposal: connect 2 s, read 5 s) |
+| `CsrfController.java` + `CsrfTokenResponse.java` | `GET /api/v1/auth/csrf` |
+| `application.properties` | Log pattern with `%X{requestId}`; downstream URLs from env (`PLAYMATCH_URL`, … set in Compose) |
 
-| Option | How it works | Pros | Cons |
+### D-1: CSRF token repository (unchanged question, now at the gateway)
+
+| Option | How | Pros | Cons |
 |---|---|---|---|
-| **A (recommended)** Spring's default HTTP-session repository | Token stored server-side; SPA reads it from `/auth/csrf` and sends it in the header | All cookies stay HttpOnly; nothing for JavaScript to read | Anonymous visitors who bootstrap get an HTTP session |
-| B Cookie repository with a JS-readable token cookie | Double-submit cookie | Stateless | Adds a cookie JavaScript must read; the bootstrap route becomes redundant |
+| **A (recommended)** HTTP-session repository in the gateway | Token stored in the gateway session; SPA reads it from `/auth/csrf`, sends it in the header | All cookies HttpOnly | Anonymous visitors who bootstrap get a gateway session |
+| B Cookie repository, JS-readable | Double-submit cookie | Stateless | JavaScript reads a cookie; bootstrap route redundant |
 
-With A, Spring changes the token when a user logs in or out, so the frontend client fetches a fresh token after login/logout (F03) and retries once on `CSRF_TOKEN_INVALID`.
+Gateway sessions live in memory: restarting the gateway logs everyone out. Acceptable locally; a shared session store is a later decision.
 
 ## 7. Frontend
 
-None in F01. `api/client.ts` arrives in F02 (reads) and gains the CSRF write path in F04, using this contract.
+None in F01. F02 adds the read client; F04 the CSRF write path.
 
 ## 8. Security and privacy checklist
 
-- [x] CSRF stays enabled; nothing is excluded from it
+- [x] CSRF enabled at the gateway; nothing excluded
 - [x] No CORS configuration (same origin through the Vite proxy)
-- [x] Error messages are our own text; no exception messages, SQL, stack traces
-- [x] `requestId` is random and not linked to a user
-- [x] Deny by default: a route is reachable only after its feature adds its line
+- [x] `/internal/**` never routed; services publish no host ports (F18)
+- [x] Client-sent `X-Request-Id` and identity headers are overwritten/removed
+- [x] Error messages are our own text; no exception text, SQL, stack traces
+- [x] Deny by default at the gateway and in every service
 
 ## 9. Test plan
 
 | TC | Covers | Case | Layer |
 |---|---|---|---|
-| TC-01 | AC-01, AC-06 | A test-only controller throws each error type → expected status, code, generic message, non-empty `requestId` | `ErrorContractIT` |
-| TC-02 | AC-05 | Error response `requestId` equals the MDC value captured in the log output | `ErrorContractIT` |
-| TC-03 | AC-02 | Anonymous `GET /api/v1/auth/csrf` → 200, `headerName` and `token` non-empty | `CsrfBootstrapIT` |
-| TC-04 | AC-03 | Test-only `POST` without token → 403 `CSRF_TOKEN_INVALID`; with bootstrapped token + session cookie → reaches handler | `CsrfBootstrapIT` |
-| TC-05 | AC-04 | Rows: anonymous `GET /actuator/health` → 200; anonymous `GET /api/v1/auth/csrf` → 200; anonymous `GET /api/v1/anything` → 401 JSON | `AccessMatrixIT` |
-| TC-06 | AC-07 | `TestDatabase.reset()` refuses a non-`_test` database name | unit test with a stub name, plus existing guard |
-| TC-07 | AC-08 | Full pre-commit pipeline | pipeline |
+| TC-01 | AC-01, AC-06 | Test-only controller in a test app using `common-web` throws each error type → status, code, generic message, non-empty `requestId` | `ErrorContractIT` (common-web) |
+| TC-02 | AC-05 | Same `requestId` in the gateway log, the service log and the error body for one request | gateway IT with stub + log capture |
+| TC-03 | AC-02 | Anonymous `GET /api/v1/auth/csrf` → 200, `headerName` and `token` non-empty | `CsrfBootstrapIT` (gateway) |
+| TC-04 | AC-03 | Test route `POST` without token → 403 `CSRF_TOKEN_INVALID`; with token + session cookie → reaches the stub | `CsrfBootstrapIT` (gateway) |
+| TC-05 | AC-04 | Anonymous: health 200; `/api/v1/auth/csrf` 200; `/api/v1/anything` 401 JSON; `/internal/v1/anything` 401/404 and never reaches the stub | `GatewayAccessMatrixIT` |
+| TC-06 | AC-09 | Stub stopped → 503 `SERVICE_UNAVAILABLE`; stub returns 409 body → same 409 body passed through | `DownstreamErrorIT` (gateway) |
+| TC-07 | AC-10 | Client sends `X-Request-Id: evil` → the stub receives a different, generated ID | gateway IT |
+| TC-08 | AC-07 | `TestDatabase` refuses a database name not ending in `_test`; resets only its own schema | unit + IT |
+| TC-09 | AC-08 | Pipeline | pipeline |
 
-Test-only endpoints live in `src/test` under `/test-only/**`, served by a test-only `SecurityFilterChain` with higher priority and CSRF enabled. They never ship in the jar.
+Downstream services are replaced in gateway tests by a JDK `com.sun.net.httpserver.HttpServer` started in the test (no new test dependency).
 
-Test support (in `src/test/java/com/faircourt/support/`):
-
-| File | Purpose |
-|---|---|
-| `TestDatabase.java` | Checks the DB name ends with `_test`, then `flyway.clean()` + `flyway.migrate()` (logic moved from `DatabaseSchemaIT`) |
-| `IntegrationTest.java` | Meta-annotation: `@SpringBootTest` with `spring.flyway.clean-disabled=false` + MockMvc + `TestDatabase` |
-| `JsonAllowlist.java` | Asserts that a JSON object's keys are a subset of an allowed set (used from F02 on) |
-| `api/AccessMatrixIT.java` | Parameterized rows `(method, path, caller, expected status)`; callers grow with features (anonymous now; host, other account, guest, other guest later) |
-
-`DatabaseSchemaIT` switches to `TestDatabase` (same behavior, no test removed).
-
-## 10. Open decisions and assumptions
+## 10. Open decisions
 
 | ID | Question | Options | Recommendation |
 |---|---|---|---|
 | D-1 | CSRF token repository | A session / B cookie | A |
-| AD-04 | Error code names | as listed | Approve as listed |
-| — | Log pattern change to show `requestId` | approve / skip | Approve; without it AC-05 cannot be checked from logs |
+| AD-04 | Error codes incl. new `SERVICE_UNAVAILABLE` | as listed | Approve |
+| D-2 | Downstream timeouts | connect 2 s / read 5 s, or other | 2 s / 5 s |
+| — | Log pattern with `requestId` | approve / skip | Approve |
 
-Assumption: anonymous calls to routes that do not exist yet return 401 (deny by default) instead of 404. This does not reveal which routes exist. Today the same calls return 403 (README verification log); the README will be updated.
+Assumption: anonymous calls to routes that do not exist return 401 (deny by default), not 404, so route existence is not revealed.
 
 ## 11. Out of scope
 
-- Login and account session → F03
-- Guest cookie and `GUEST_ACCESS_EXPIRED` raising → F04
+- Login, gateway account session, identity token → F03
+- Guest cookie → F04
 - `AccessPolicy` → F06
-- Frontend client → F02/F04
+- Frontend client → F02 / F04

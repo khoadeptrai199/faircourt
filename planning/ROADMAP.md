@@ -1,6 +1,6 @@
 # FairCourt MVP roadmap
 
-Status: PROPOSED (2026-11-17). Sprint content follows the blueprint §17 build order; open decisions below need the owner.
+Status: PROPOSED (2026-11-17; sprint plan rewritten the same day for microservices, OD-17). Sprint content follows the blueprint §17 build order; open decisions below need the owner.
 Board: [README.md](README.md) · System design: [architecture/system-design.md](architecture/system-design.md)
 
 ## 1. Where the project is (repository scan, 2026-11-17)
@@ -58,6 +58,8 @@ Ideas kept for after the MVP pilot (see §6): QR code for the public link, repea
 4. **Additive change**: new behavior = new classes, new migration `V<n>`, new rows in `AccessMatrixIT`. Never widen one audience's DTO to serve another (§13).
 5. **Privacy first**: each read endpoint selects only the columns its audience may see; tests check response keys against an allowlist (system-design §6, §12).
 6. **Decisions before code**: anything the blueprint does not decide becomes an `OD-xx` and blocks only the feature that needs it.
+7. **One service boundary at a time** (OD-17): a new service appears in the sprint that first needs it; a new internal route or event is listed in its feature design and approved first.
+8. **Backend first, then that feature's frontend** (owner 2026-11-17), before the next feature starts.
 
 ## 4. Sprint plan
 
@@ -65,19 +67,21 @@ Timebox per sprint is the owner's call. Blueprint §8 estimates the whole MVP at
 
 | Sprint | Features | Difficulty | Blueprint | Gate |
 |---|---|---|---|---|
-| S00 Foundation | F00 | — | §0, §12, §14, §17-1 | Deterministic two-court proposal, no duplicate players — **DONE** |
-| S01 Public read | F01 API foundation, F02 Public session page | Easy | §0, §13, §16 | Anonymous sees only public data; errors and CSRF bootstrap tested |
-| S02 Identity | F03 Account login, F04 Guest check-in, F05 Own attendance + member join | Medium | §11, §12, §13, §15 | Anonymous sees only public data; guest sees only own state (§17-2) |
-| S03 Host board | F06 Host board, F07 Attendance management, F08 Create session | Medium | §3, §6, §11, §13 | Host creates a session, approves a guest, sees the full board; another account gets 403 |
-| S04 Match loop | F09 Suggestions, F10 Confirm + swap, F11 Start/finish/cancel | Hard | §5, §11, §12, §14, §15 | Correct DB state, 409 on unavailable player/court, no partial rows (§17-3) |
-| S05 Player loop | F12 My game, F13 Feedback, F14 Host assessment | Medium | §4, §13, §16 | Four assigned players see only their own match/court; a fifth sees none (§17-4) |
-| S06 Acceptance | F15 E2E smoke, F16 Responsive/a11y, F17 CI | Medium | §0, §6, §16, §17-5 | All six §0 steps and the §17 checklist PASS with evidence |
+| S00 Foundation | F00 | — | §0, §12, §14, §17-1 | Deterministic two-court proposal, no duplicate players — **DONE** (built as one app; F18 splits it) |
+| S01 Services + public read | **F18 Service split skeleton**, F01 API foundation (shared lib + gateway), F02 Public session page (+ price, format, minimum sets) | Hard (F18), Easy (F01, F02) | §0, §13, §16; OD-17…OD-20 | All services healthy with one command; anonymous sees only public data through the gateway; errors, request ID and CSRF bootstrap tested |
+| S02 Identity | F03 Account login (gateway session + auth-service), F04 Guest check-in (first saga), F05 Own attendance + member join | Medium–Hard | §11, §12, §13, §15 | Guest sees only own state (§17-2); services accept identity only from the gateway |
+| S03 Host board | F06 Host board (sets played vs. minimum), F07 Attendance management, F08 Create session (format, minimum sets, price) | Medium | §3, §6, §11, §13; OD-18…OD-20 | Host creates a session, approves a guest, sees the full board; another account gets 403 |
+| S04 Match loop | F09 Suggestions (singles + doubles), F10 Confirm + swap, F11 Start/finish/cancel | Hard | §5, §11, §12, §14, §15; OD-20 | Correct DB state, 409 on unavailable player/court, no partial rows (§17-3) |
+| S05 Player loop | F12 My game (own sets played), F13 Feedback in **rating-service**, F14 Host assessment in player-service | Medium | §4, §13, §16 | Assigned players see only their own match/court; others see none (§17-4) |
+| S06 Acceptance | F15 E2E smoke through the gateway, F16 Responsive/a11y, F17 CI | Medium | §0, §6, §16, §17-5 | All six §0 steps and the §17 checklist PASS with evidence |
+| Later (not scheduled; owner 2026-11-17: discovery comes after one play session works end to end) | Discovery list (L-18), map (L-14), notifications + Kafka, call/chat with host (L-15, L-16), storage (L-13) | — | owner direction | Needs owner decision per item |
 
-Mapping to §17: step 1 = S00; step 2 = S01 + S02 + guest approval in F07 (approval needs the host identity and board, so it lands in S03); step 3 = S04; step 4 = S05; step 5 = S06 (local part; private deployment and a real session are in the later backlog). The order of the §17 gates is unchanged.
+Mapping to §17: step 1 = S00 (+ F18 re-proves it on the split services); step 2 = S01 + S02 + guest approval in F07; step 3 = S04; step 4 = S05; step 5 = S06 (local part). The order of the §17 gates is unchanged. Product additions from the owner (singles/doubles, price, minimum sets) are added to the features that already own those screens and rules, not as separate sprints.
 
 ```mermaid
 flowchart LR
-    F00["F00 skeleton"] --> F01["F01 API foundation"]
+    F00["F00 skeleton"] --> F18["F18 service split"]
+    F18 --> F01["F01 API foundation"]
     F01 --> F02["F02 public page"]
     F01 --> F03["F03 login"]
     F02 --> F04["F04 guest check-in"]
@@ -122,6 +126,11 @@ Each decision blocks only the features listed. "Recommended" is a proposal; noth
 | OD-14 | Wait indicator on the host board: minutes only, or a highlight after N minutes? | minutes only · highlight after N | Minutes only in MVP | F06 |
 | OD-15 | Can the host reject a pending guest (`PENDING → LEFT`)? Not in the §11 diagram | allow · do not allow | Allow, so a mistaken or duplicate check-in can be cleared | F07 |
 | OD-16 | How does a player learn the `matchId` that `POST /sessions/{id}/me/feedback` requires? `/me` lists `matchNo`, `courtNo`, `matchState` only | (a) add own `matchId` to the `/me` assignment · (b) feedback body uses `matchNo` instead | (a): it is the caller's own match | F12, F13 |
+| OD-17 | Architecture style: one Spring app (blueprint) vs. microservices | (A) modular monolith · (B) microservices from the MVP · (C) monolith now, microservices later | **DECIDED 2026-11-17: (B)**, owner choice, learn-by-doing pet project; overrides the blueprint's "one deployable application" and "microservices later". Service split, Kafka timing and data ownership still to be designed and approved (system-design rewrite). Owner answers 2026-11-17: `player-service` OK; Kafka later (when notifications/events are needed), not in S01; one PostgreSQL container; one repo with one folder per service; backend first, then the frontend of that feature. Further owner answers 2026-11-17: core service is named **`playmatch-service`** (play session, attendance, matches, matcher library); feedback goes to a separate **`rating-service`**, built in S05; one schema per service but **one shared DB user** (boundaries kept by convention and tests, not by DB grants) | all features, S00 rework |
+| OD-18 | Price for the whole play session (shown? split per person? who collects?) | (a) later backlog · (b) MVP: price shown on the session page only · (c) MVP: price + per-person share | **DECIDED 2026-11-17: (b), revised the same day:** the session shows a **price per person by gender as a range** (demo: men 75,000–85,000 VND, women 65,000–75,000 VND). Shown only; players pay the host directly, outside the app; payment is later. Price is optional when the host posts the session | `playmatch-service`, public page |
+| OD-19 | Minimum games committed per player per session (usually 6): what does it change? | (a) display target + progress only · (b) the matcher also favours players below the minimum · (c) later backlog | **DECIDED 2026-11-17: (b), shown as progress.** 1 set = one game to 21 points = one match in the app; after a set the player rests. Host board shows each player's sets played vs. the minimum ("3/6") and which court/set they are on; a player sees how many sets they have played. Minimum is set per play session by the host when posting it (default 6, editable, allowed 1–20) | matcher, host board, my-game |
+| OD-20 | Singles or doubles: the owner says it depends on how the court is set up for walk-in players. The blueprint MVP is doubles only (4 players per match) | (a) doubles only in MVP, singles later · (b) MVP: each session (or each court) is singles or doubles | **DECIDED 2026-11-17: (b)** each play session is either singles (2 players per match) or doubles (4 players per match), chosen by the host | `playmatch-service`, matcher, host board |
+| OD-21 | Who is the "host" in the app: the group organizer (blueprint) or the venue owner? Owner described the venue owner managing courts and walk-in players | (a) one role "host" = whoever creates the session; may be a venue owner or an organizer · (b) separate venue-owner role | **DECIDED 2026-11-17:** the host is the person who **rents** the courts and recruits walk-in players for that play session; not the owner of the venue. One host role per session, as in the blueprint. A venue-owner role, if ever needed, comes with `venue-service` later | auth, `playmatch-service` |
 
 ## 6. Later backlog (not scheduled)
 
@@ -141,6 +150,12 @@ Nothing here enters a sprint without an owner decision. IDs are stable.
 | L-10 | Close-session route (if OD-10 = later) | Blueprint §11 |
 | L-11 | Account verification/recovery and abuse controls before public signup | Blueprint §15 |
 | L-12 | Modules 2–4: recurring sessions/RSVP, live tournament, swing review | Blueprint §2 |
+| L-13 | `storage-service` (files: avatars, videos, …): build when the first feature needs file storage | Owner 2026-11-17 |
+| L-14 | Discovery map (Ho Chi Minh City first): venues with open play sessions as points on a map, like Google Maps; tapping one shows a summary (group name, price, minimum sets, level, time); real-time updates of courts/people | Owner 2026-11-17 (future direction; reason Kafka is expected) |
+| L-15 | Show the **host's** phone number (the person who rents the courts and recruits walk-ins, not the venue owner); one tap to call | Owner 2026-11-17 |
+| L-16 | Real-time chat box with the **host** (not the venue owner) | Owner 2026-11-17 |
+| L-18 | Discovery list: all open play sessions in Ho Chi Minh City, filter by area, level, price, travel distance (like hotel booking) | Owner 2026-11-17 |
+| L-17 | Keycloak / OIDC for accounts (signup, recovery, MFA); trigger: before public signup | Conversation 2026-11-17 |
 
 ## 7. Risks
 

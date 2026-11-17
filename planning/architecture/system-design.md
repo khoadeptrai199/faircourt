@@ -1,270 +1,244 @@
-# FairCourt system design (MVP)
+# FairCourt system design (MVP, microservices)
 
-Status: PROPOSED (2026-11-17). The decisions referenced as `AD-xx` are listed in [decisions.md](decisions.md) and need owner approval. The blueprint wins on any conflict; this document only fills in how to build what §11–17 specify.
+Status: PROPOSED (rewritten 2026-11-17 after OD-17 = microservices). Every `AD-xx` referenced here is in [decisions.md](decisions.md) and needs owner approval. Product rules still come from the blueprint (§3–§17); this document only changes **how the backend is deployed and split**, not what the product does. Owner decisions that change the product (singles/doubles, price, minimum sets) are OD-18…OD-21 in [ROADMAP.md](../ROADMAP.md#5-open-decisions).
+
+Not verified yet: which Spring Cloud release supports Spring Boot 4.1.2, and how much RAM the stack needs. Both are checked in F18 before any version is pinned.
 
 ## 1. Forces that shape the design
 
 | Force | Source | Design consequence |
 |---|---|---|
-| Player data stays private; host actions are host-only, "even if a shortcut would make the demo easier" | §0, §3 | Identity from principal or guest cookie only; one access policy; one DTO per audience; allowlist tests |
-| No half-written match, no player or court used twice | §12, §15 | One transaction per match command; session row lock; partial unique indexes as backstop; 409 on conflict |
-| Rules must be explainable and testable | §5, §14 | Pure matcher behind a snapshot; state transitions in one place per state machine |
-| Boring, one deployable, small pilot | §7 | Modular monolith, REST, polling; no Redis/Kafka/WebSocket |
-| Owner goal: later features should add code, not rewrite old code | owner | Plumbing built once in F01/F02; features add a route line, a DTO, a query/service and test rows |
+| Learn microservices by building them | Owner, OD-17 | Real service boundaries, real network calls, one database container to keep laptops light |
+| Player data stays private; host actions are host-only | §0, §3 | Only the gateway faces the browser; identity is resolved once there and passed on in a signed form; one DTO per audience; allowlist tests |
+| No half-written match, no player or court used twice | §12, §15 | Everything that must change together (session, attendance, matches) lives in **one** service with one local transaction |
+| Runs unchanged on Mac (arm64) and Windows WSL | CLAUDE.md | Docker Compose only; no Kubernetes; no `platform:` pins |
+| Future: real-time court map, chat, notifications, discovery | Owner, L-13…L-18 | Event names are defined now; Kafka is added when the first consumer exists (AD-17) |
+| Later features add code instead of rewriting old code | Owner | Shared libraries for plumbing; a new service is a new folder |
 
-## 2. Runtime view
+## 2. Service map
+
+| Service | Owns (schema → tables) | Responsibility | Built in |
+|---|---|---|---|
+| `gateway` | none | The only component the browser talks to. Route table (deny by default), HTTP session cookie, CSRF, guest cookie, request ID, identity token for services | S01 (routes), S02 (identity) |
+| `auth-service` | `auth` → `app_user`, `guest_access` | Check email + password, issue and resolve guest credentials | S01 shell, S02 logic |
+| `player-service` | `player` → `player_profile`, `skill_assessment` | Player profiles (member and guest), self-reported and host-assessed bands | S01 shell, S02/S05 logic |
+| `playmatch-service` | `playmatch` → `play_session`, `attendance`, `play_match`, `match_player` | Play sessions (incl. singles/doubles, price per person, minimum sets), attendance, host board, suggestions (uses the `matching` library), confirm/start/finish/cancel | S01 |
+| `rating-service` | `rating` → `match_feedback` | Match-fit feedback; later Elo, rankings, peer voting | S05 |
+
+Later, not designed yet: `notification-service`, `venue-service`, `discovery` (list + map), `chat-service`, `storage-service` (L-13…L-19).
+
+### Why `playmatch-service` holds session + attendance + matches
+
+Confirming a match (§15) must, in **one** step: lock the session, check that 2 or 4 players are `READY` and the court is free, create the match, and mark the players `ASSIGNED`. If attendance and matches lived in two services, that step would need a saga across the network, the "no player in two matches" guarantee would no longer come from database constraints, and every confirm would be slower. Splitting by **what changes together** keeps the hardest rule simple.
 
 ```mermaid
 flowchart LR
-    B["Browser (phone / desktop)"] -->|"http://localhost:9091"| V["frontend container: Vite dev server :5173"]
-    V -->|"/api/* proxy (same origin, cookies)"| S["backend container: Spring Boot :8080"]
-    S -->|JDBC| P[("postgres container :5432")]
-    D["DBeaver"] -.->|"127.0.0.1:9093 (admin only)"| P
+    B["Browser"] -->|":9091"| V["frontend (Vite)"]
+    V -->|"/api/* proxy, same origin"| G["gateway :8080 (host :9090)"]
+    G --> A["auth-service"]
+    G --> PL["player-service"]
+    G --> PM["playmatch-service"]
+    G --> R["rating-service (S05)"]
+    PM -.->|"internal REST"| PL
+    PM -.->|"internal REST"| A
+    R -.->|"internal REST"| PM
+    A --> DB[("postgres: schemas auth, player, playmatch, rating")]
+    PL --> DB
+    PM --> DB
+    R --> DB
 ```
 
-Host ports: frontend 9091, backend 9090, JDWP 9092, PostgreSQL 9093 (owner decisions 2026-11-12/13). The browser only talks to the Vite origin; `/api` is proxied, so cookies and CSRF behave as same-origin (§0).
+Only `gateway` (and the frontend) publish host ports. Services are reachable only on the Compose network. Host ports stay in the 9090+ range (9090 gateway, 9091 frontend, 9092 debug, 9093 PostgreSQL); per-service debug ports, if needed, get new numbers from 9094 with owner approval.
 
-## 3. Backend modules
+Every service can be started, rebuilt, stopped and followed in the logs on its own (owner request 2026-11-17). Services depend only on PostgreSQL in Compose; the gateway does not wait for them (a missing service answers `503` through the gateway). Commands are in F18 design §6 and, after F18, in the README.
 
-The packages are the §15 code map. Each module owns its tables for writes.
+## 3. Repository layout (AD-13)
 
-| Package | Owns (writes) | Responsibility |
+```text
+compose.yaml  .env.example  README.md
+backend/
+  pom.xml                       parent + aggregator (versions pinned once)
+  Dockerfile                    one file; build arg MODULE selects the service
+  libs/
+    common-web/                 ApiError, ErrorCode, ApiException, GlobalExceptionHandler,
+                                RequestIdFilter, internal identity token (S02), test support
+    matching/                   pure matcher (moved from today's backend, unchanged behavior)
+  services/
+    gateway/
+    auth-service/
+    player-service/
+    playmatch-service/
+    rating-service/             (S05)
+frontend/                       unchanged, proxies /api to the gateway
+```
+
+A Maven multi-module build compiles the libraries once and every service depends on them. One `mvn verify` still runs all tests, so the pre-commit pipeline keeps one command.
+
+## 4. Data: one container, one schema per service (AD-12)
+
+- One PostgreSQL container, one database `faircourt` (tests: `faircourt_test`), **one schema per service**, **one shared DB user** (owner decision 2026-11-17).
+- Each service runs its own Flyway on its own schema with its own history table. A service never reads or writes another schema; it calls that service instead.
+- No foreign keys across schemas. A reference to another service's row is a plain UUID column (e.g. `attendance.player_id`), checked by calling the owning service when it is created.
+- Because the DB user is shared, the database does not block a wrong cross-schema query. A test in every service fails the build if its SQL or migrations mention another service's schema name.
+
+### Where the blueprint §12 tables go
+
+| Table | Schema | Change from the blueprint V1 |
 |---|---|---|
-| `common` | — | `ApiError`, `ErrorCode`, `ApiException`, `GlobalExceptionHandler`, `RequestIdFilter`, `ClockConfig`, local seed |
-| `identity` | `app_user`, `guest_access` | `SecurityConfig` route table, account login, guest cookie issue/resolve, `CallerIdentity`, `AccessPolicy`, CSRF bootstrap |
-| `sessions` | `play_session` | Create session, public summary, host board read model, public code |
-| `players` | `player_profile`, `attendance`, `skill_assessment` | Guest check-in, member join, own attendance (`/me`), attendance state changes, host assessment |
-| `matching` | — (pure) | `MatchSuggester(BoardSnapshot) → SuggestionResult`; no Spring, no DB |
-| `matches` | `play_match`, `match_player`, `match_feedback` | Suggestions endpoint (builds the snapshot), confirm/start/finish/cancel, feedback |
+| `app_user` | `auth` | none |
+| `guest_access` | `auth` | FK to `attendance` becomes plain `session_id` + `attendance_id` UUIDs |
+| `player_profile` | `player` | FK to `app_user` becomes plain `user_id` |
+| `skill_assessment` | `player` | `session_id`, `reviewer_user_id` become plain UUIDs |
+| `play_session` | `playmatch` | `host_user_id` plain UUID; **new** `match_format` (`SINGLES`/`DOUBLES`, OD-20), `min_sets` (default 6, 1–20, OD-19), price per person by gender as a range: `price_male_min_vnd`, `price_male_max_vnd`, `price_female_min_vnd`, `price_female_max_vnd` (optional, shown only, OD-18) |
+| `attendance` | `playmatch` | `player_id` plain UUID; **new** `display_name` copied at join (so the host board does not call player-service for names) |
+| `play_match`, `match_player` | `playmatch` | none (singles uses one player per team) |
+| `match_feedback` | `rating` | FK to `match_player` removed; the participant check is a call to playmatch-service |
 
-Dependency direction (no cycles; `matching` depends on nothing):
+Exact columns, defaults and limits are fixed in the F18 design. `attendance.games_played` already exists and is the "sets played" counter (OD-19: 1 set = 1 match).
 
-```mermaid
-flowchart BT
-    common
-    identity --> common
-    sessions --> identity
-    players --> sessions
-    matches --> players
-    matches --> matching
-    matching
-```
-
-Rules (AD-01):
-- A module writes only its own tables, through its own service. Another module calls that service; it never updates those tables itself.
-- Read models may join across tables (they are read-only SQL; see §6).
-- `matching` stays pure: input `BoardSnapshot`, output `SuggestionResult`. `matches/BoardSnapshotAssembler` converts DB rows to the snapshot (anti-corruption layer).
-
-## 4. Request pipeline
+## 5. Request pipeline and identity (AD-14)
 
 ```mermaid
 sequenceDiagram
     participant C as Browser
-    participant F as RequestIdFilter
-    participant SEC as Spring Security
-    participant CTL as Controller
-    participant SVC as Service / Query
-    participant DB as PostgreSQL
-    C->>F: HTTP /api/v1/...
-    F->>F: requestId → MDC
-    F->>SEC: 
-    SEC->>SEC: account session or guest cookie → Authentication
-    SEC->>SEC: CSRF check on writes; route rule (first gate)
-    SEC->>CTL: 
-    CTL->>CTL: validate request DTO (@Valid) → 400
-    CTL->>SVC: call with CallerIdentity + path IDs + request
-    SVC->>SVC: AccessPolicy (second gate, resource-specific)
-    SVC->>DB: transaction / read query
-    SVC-->>CTL: result record
-    CTL-->>C: audience-specific response DTO
-    Note over SEC,CTL: Any failure → ApiError {code, message, requestId}
-```
-
-- Spring Security route rules are the first gate; the service-level ownership check is the second and runs for every host mutation (§15).
-- Security failures (401/403, CSRF) are written as `ApiError` JSON by the security entry point and access-denied handler, so the frontend sees one error shape everywhere (AD-04).
-
-## 5. Identity model
-
-```java
-// identity/CallerIdentity.java (sketch)
-public sealed interface CallerIdentity {
-    record Anonymous() implements CallerIdentity {}
-    record Account(UUID userId) implements CallerIdentity {}
-    record Guest(UUID guestAccessId, UUID sessionId, UUID attendanceId) implements CallerIdentity {}
-}
-```
-
-- **Account**: email + password login creates a server-side HTTP session (HttpOnly, SameSite=Lax, `Secure` from `COOKIE_SECURE`) (§13, §15). F03.
-- **Guest**: a filter on the guest-capable paths reads the guest cookie, hashes it with SHA-256, looks up `guest_access` (not revoked, not expired) and sets a guest authentication. Expired or revoked → `401 GUEST_ACCESS_EXPIRED`; unknown → anonymous. The raw secret is never stored or logged (§12). F04.
-- Controllers receive a `CallerIdentity` from one argument resolver. Services `switch` over it; the sealed type makes the compiler list every case (AD-05).
-- A guest identity is valid only for its own `sessionId`; a guest calling another session's `/me` gets 404.
-- If one browser has both an account session and a guest cookie, the account wins (documented in F05 design).
-
-Access policy (§11, §15):
-
-```text
-AccessPolicy.requireHost(caller, sessionId):
-  session missing                      → 404 NOT_FOUND
-  caller is Anonymous                  → 401 UNAUTHENTICATED
-  caller is Guest, or Account ≠ host   → 403 FORBIDDEN
-For /host/matches/{matchId}/...: resolve sessionId from the match first (unknown match → 404).
-```
-
-## 6. Write side vs. read side (CQRS-lite)
-
-| Side | Technology | Used for | Why |
-|---|---|---|---|
-| Write (commands) | Spring Data JPA entities + repositories inside the owning module | create session, join, check-in, attendance transitions, confirm/start/finish/cancel, feedback, assessment | Entity methods enforce state transitions; `@Lock` for row locks; §7 says JPA for routine CRUD |
-| Read (queries) | `JdbcClient` SQL in `*Query` classes that return the response record directly | public summary, `/me`, host board, snapshot for the matcher | The SQL selects only the columns that audience may see, so a privacy leak needs a SQL change, not just a forgotten field; no N+1 loading; no entities leave persistence |
-
-The existing seed already uses `JdbcClient`. Entities are never returned from controllers (§15). (AD-02)
-
-## 7. State machines
-
-Transitions live in one enum per machine; entity methods call it; an illegal transition throws `ApiException(STATE_CONFLICT)` → 409 (AD-03).
-
-```java
-// players/AttendanceState.java (sketch of the §11 diagram)
-public enum AttendanceState {
-    PENDING, READY, ASSIGNED, PLAYING, RESTING, LEFT;
-
-    private static final Map<AttendanceState, Set<AttendanceState>> NEXT = Map.of(
-            PENDING, Set.of(READY),                 // + LEFT only if OD-15 approves
-            READY, Set.of(ASSIGNED, RESTING, LEFT),
-            ASSIGNED, Set.of(PLAYING, READY),       // READY = planned match cancelled
-            PLAYING, Set.of(READY),                 // finish or cancel
-            RESTING, Set.of(READY),
-            LEFT, Set.of());
-
-    public void requireTransitionTo(AttendanceState target) { ... }
-}
-```
-
-| Machine | States | Transitions (§11) | Owner |
-|---|---|---|---|
-| Attendance | PENDING, READY, ASSIGNED, PLAYING, RESTING, LEFT | as above | `players` |
-| Match | PLANNED, ACTIVE, FINISHED, CANCELLED | PLANNED→ACTIVE→FINISHED; PLANNED→CANCELLED; ACTIVE→CANCELLED | `matches` |
-| Session | OPEN, CLOSED | no route in §13 (OD-10); CLOSED blocks new assignments | `sessions` |
-
-Enum constants match the DB `CHECK` values exactly, and the frontend string unions match them too.
-
-## 8. Transactions and concurrency (match confirm)
-
-```mermaid
-sequenceDiagram
-    participant H as Host
-    participant MS as MatchService.confirm (@Transactional)
-    participant DB as PostgreSQL
-    H->>MS: courtNo + teams A/B (4 attendance IDs)
-    MS->>MS: MatchLineup value object: 4 distinct IDs, 2 per team → else 400
-    MS->>DB: SELECT play_session ... FOR UPDATE (serializes confirms per session)
-    MS->>MS: AccessPolicy.requireHost; session OPEN; courtNo ≤ court_count
-    MS->>DB: re-read the 4 attendance rows (same session, READY) and the court
-    alt anyone unavailable or court busy
-        MS-->>H: 409 MATCH_CONFLICT (nothing written)
-    else ok
-        MS->>DB: matchNo = next_match_no; next_match_no + 1
-        MS->>DB: INSERT play_match (PLANNED) + 4 match_player
-        MS->>DB: 4 attendance → ASSIGNED
-        MS->>DB: flush — unique index violation → rollback → 409 MATCH_CONFLICT
-        MS-->>H: 201 {matchId, matchNo, courtNo, state: PLANNED}
+    participant G as gateway
+    participant A as auth-service
+    participant S as target service
+    C->>G: /api/v1/... (cookies)
+    G->>G: requestId; route rule (deny by default); CSRF on writes
+    alt account session cookie
+        G->>G: userId from the gateway's HTTP session
+    else guest cookie
+        G->>A: resolve guest credential (hash lookup)
+        A-->>G: guestAccessId, sessionId, attendanceId or "expired"
     end
+    G->>S: request + X-Request-Id + signed identity token (short-lived)
+    S->>S: verify token → CallerIdentity; service-level checks (AccessPolicy)
+    S-->>G: response or ApiError
+    G-->>C: same body
 ```
 
-- The session row lock makes concurrent confirms for the same session run one after another; `ux_busy_court` and `ux_player_in_unreleased_match` are the backstop (§12) (AD-07).
-- Start/finish/cancel lock the match row, check the match state, and update the match, its four `match_player` rows and four attendance rows in one transaction (§15).
-- A uniqueness error is never swallowed: the transaction rolls back and the client gets 409 (§15).
+- The browser only ever holds HttpOnly cookies (account session, guest credential). Tokens never reach JavaScript (§16).
+- The gateway removes any identity or request-ID header sent by the browser before forwarding, so a client cannot pretend to be someone.
+- Services accept identity **only** from the signed token. The token format (signed JWT vs. plain header on the private network) is decided in the F03 design. S01 needs no identity (public reads only).
+- Login (F03): the gateway sends the credentials to `auth-service`, receives a `userId`, and stores it in its own HTTP session. Later account requests need no call to auth-service.
+- The service-level host check from §15 still runs inside `playmatch-service` for every host mutation; the gateway route rule is only the first gate.
+- CSRF stays on at the gateway, the only place that accepts cookies (§0). Services do not see browser cookies.
 
-## 9. Error model
+## 6. Communication between services
 
-Body (§13): `{"code":"MATCH_CONFLICT","message":"A player or court is no longer available.","requestId":"..."}`
+| Kind | Now (MVP) | Later |
+|---|---|---|
+| Query another service | Synchronous REST on `/internal/v1/**` over the Compose network; the gateway never routes `/internal/**`; short timeouts | Same, or a local copy fed by events |
+| Tell others something happened | Not needed in S01–S06 | Kafka topics with the event names below (AD-17) |
 
-Proposed catalog (AD-04). Only `MATCH_CONFLICT` is named in the blueprint; the others need approval.
+Internal routes are new API surface beyond §13, so each one is listed in its feature design and needs owner approval (rule: no unapproved endpoints).
 
-| Code | HTTP | When | Frontend reaction |
+When a called service is down: the caller returns `503 SERVICE_UNAVAILABLE` with the standard error body. Writes are never retried automatically.
+
+### Event names reserved for Kafka (no Kafka in S01–S06)
+
+| Event | Producer | First consumer (later) |
+|---|---|---|
+| `MatchStarted`, `MatchFinished` | playmatch-service | notification-service ("your turn, court 2"), real-time court map (L-14), rating-service |
+| `AttendanceChanged` | playmatch-service | court map (people per session) |
+| `PlayerBandChanged` | player-service | playmatch-service local copy of bands |
+
+When Kafka arrives, events are written with a transactional outbox (row in the producer's schema in the same transaction, then published), so an event is never lost or sent for a rolled-back change.
+
+## 7. Flows that cross services
+
+| Flow | Services | How | Failure handling |
 |---|---|---|---|
-| `VALIDATION_FAILED` | 400 | Invalid body, path or query | Inline field error |
-| `UNAUTHENTICATED` | 401 | No account session / no valid guest cookie | Go to login or public page |
-| `GUEST_ACCESS_EXPIRED` | 401 | Guest cookie expired or revoked | "Check in again and tell the host to remove your old entry." (§16) |
-| `CSRF_TOKEN_INVALID` | 403 | Missing or stale CSRF token | Fetch a new token, retry once |
-| `FORBIDDEN` | 403 | Signed in but not allowed (e.g. not this session's host) | "You don't manage this session" + public page link (§16) |
-| `NOT_FOUND` | 404 | Unknown, or private and not visible | Friendly not-found |
-| `METHOD_NOT_ALLOWED` | 405 | Wrong HTTP method | Generic error |
-| `MATCH_CONFLICT` | 409 | Player or court no longer available at confirm | "This lineup changed. Refresh suggestions" (§16) |
-| `STATE_CONFLICT` | 409 | Illegal state transition, closed session, duplicate feedback | Reload the view |
-| `INTERNAL_ERROR` | 500 | Unexpected | Generic error with requestId |
+| Public session page (F02) | gateway → playmatch | One read | — |
+| Login (F03) | gateway → auth | Verify credentials; gateway session | Wrong password → 401 |
+| Guest check-in (F04) | gateway → playmatch → player, auth | **playmatch orchestrates**: create guest profile (player), create `PENDING` attendance (local transaction), ask auth for a guest credential, gateway sets the cookie | If auth fails after the attendance exists: mark that attendance `LEFT` (compensation) and return 503. This is the first saga in the project (AD-16) |
+| Member join (F05) | playmatch → player | Look up the member's profile by `userId`, copy `display_name` | 503 if player-service is down |
+| Host board, suggestions (F06, F09) | playmatch → player | One batch call for the bands of everyone in the pool | 503; no partial board |
+| Confirm / start / finish / cancel (F10, F11) | playmatch only | One local transaction, session row lock, unique-index backstop (AD-07) | 409 `MATCH_CONFLICT`, nothing written |
+| Feedback (F13) | rating → playmatch | Ask playmatch whether the caller played that finished match, then store | 503; duplicate → 409 |
+| Host assessment (F14) | player (host check via playmatch) | player-service asks playmatch "is this caller the host of this session?" | 403 / 503 |
 
-Messages are written by us; framework or SQL exception text is never returned. Every request gets a random `requestId` (MDC + error body).
+## 8. Inside a service
 
-## 10. Frontend architecture
+The patterns of the earlier design still apply **inside** each service:
 
-Target layout. §16 lists `api/`, `components/`, `features/`, `routes/`, `styles/`; `hooks/`, `lib/` and `copy/` are additions proposed in AD-08.
+- Thin controllers, one `@Transactional` command per write, `CallerIdentity` as the only identity source.
+- CQRS-lite (AD-02): JPA for writes, `JdbcClient` read queries that select only the columns the audience may see.
+- State transitions in one enum per state machine (AD-03): `AttendanceState`, `MatchState` live in playmatch-service.
+- Match commands lock the `play_session` row and rely on partial unique indexes as a backstop (AD-07).
+- `matching` stays pure (AD-10). Singles vs. doubles reaches it as a team size in the snapshot (AD-19); detailed in F09.
 
-```text
-frontend/src/
-  api/          client.ts (the only place that calls fetch), errors.ts, types.ts,
-                sessions.ts, matches.ts
-  hooks/        useAsync.ts, useMutation.ts, usePolling.ts
-  components/   Button, StatusBadge, EmptyState, ErrorBanner, ConfirmDialog, CourtCard, ...
-  features/     home/, public-session/, join/, my-game/, host-board/, match-review/
-  routes/       route table + guards (guards improve UX only; the backend enforces access)
-  lib/          time.ts (Asia/Ho_Chi_Minh formatting), status.ts (state → label/icon/tone)
-  copy/         en.ts (every user-facing string; vi.ts later)
-  styles/       tokens.css, globals.css
-```
+Module packages inside a service follow its responsibilities, e.g. `playmatch-service`: `session`, `attendance`, `match`, `board`.
 
-| Concern | Design |
-|---|---|
-| API client | `api/client.ts`: same-origin `fetch`, JSON, typed `ApiError {status, code, message, requestId}`. Writes fetch the CSRF token from `GET /api/v1/auth/csrf` once, keep it in memory, send it in the documented header, refetch after login/logout and once on `CSRF_TOKEN_INVALID`. Components never call `fetch`. |
-| Page state | `useAsync` returns `{status:'loading'} \| {status:'empty'} \| {status:'success', data} \| {status:'error', error}`; `useMutation` returns `idle \| saving \| success \| conflict \| error` (§16 page-state matrix). Pages render with an exhaustive `switch`. |
-| Polling | `usePolling(fn, 15_000)` runs only while the page is visible (Page Visibility API) plus a manual Refresh (§16). WebSocket later replaces this hook only. |
-| Status display | `lib/status.ts` maps every `AttendanceState` / `MatchState` to `{label, icon, tone}` with a `Record<State, …>`, so a new state is a compile error until mapped. `StatusBadge` always shows text + color (§6). |
-| Copy | All user-facing strings in `copy/en.ts`, blueprint copy verbatim; new strings are reviewed in one file (owner rule) and Vietnamese later is a new file (§6). |
-| Tap-to-swap | `SwapSelector` logic as a pure reducer (`idle → firstPicked → swapped`), keyboard-operable, no drag-and-drop (§16). |
-| Time | API returns ISO-8601 UTC; `lib/time.ts` formats in `Asia/Ho_Chi_Minh` with `Intl.DateTimeFormat` (§12). |
-| State library | None; route-local state only (§16). |
+## 9. Error model (AD-04, shared in `common-web`)
 
-## 11. Pattern catalog: where each pattern is used, and where it is not
+Body everywhere: `{"code":"…","message":"…","requestId":"…"}`.
 
-| Pattern | Where | Why there | Not used |
-|---|---|---|---|
-| Modular monolith (package per module) | Backend packages (§15) | Clear ownership; a module can be split later | No microservices (§3) |
-| Functional core, imperative shell | `matching` (pure) + `matches` service (I/O) | Deterministic, unit-testable rules (§14) | — |
-| Anti-corruption assembler | `BoardSnapshotAssembler` | DB shape never leaks into the matcher | — |
-| State machine as enum transition table | `AttendanceState`, `MatchState` | §11 rules in one place; consistent 409 | No Spring Statemachine library (too heavy) |
-| Value object | `MatchLineup`, `GuestAnswers` (band mapping), `PublicCode` | Invariants checked at construction; unit tests without Spring | Not for every primitive |
-| Application service, one transaction per command | `MatchService.confirm/start/finish/cancel`, `AttendanceService` | §15 "single @Transactional method, no partial success" | No event bus in MVP |
-| CQRS-lite read projections | `*Query` classes | Privacy by construction; no N+1 | Writes never go through ad-hoc SQL outside the owning module |
-| Policy object | `AccessPolicy` | One host-ownership check for every host route (§15) | No global ADMIN role (§11) |
-| Sealed type + pattern matching | `CallerIdentity` | Compiler forces member/guest/anonymous handling | — |
-| Pessimistic lock + DB constraint backstop | Confirm / lifecycle | Double taps and two tabs | No distributed lock or Redis |
-| Error catalog + central handler | `ErrorCode`, `GlobalExceptionHandler`, security handlers | One error shape; frontend maps codes to copy | — |
-| Strategy (deferred) | Matching policy | Only when a second policy (L-06) is approved; the snapshot seam already allows it | Not now: one implementation |
-| Discriminated unions | `useAsync`, `useMutation`, API error types | The compiler enforces the §16 page states | — |
-| Reducer | Tap-to-swap | Pure and testable | — |
-| Adapter over transport | `usePolling` | WebSocket later changes one hook | — |
-| Object Mother / builder for tests | `support/TestData` | Readable integration-test setup | — |
+| Code | HTTP | When |
+|---|---|---|
+| `VALIDATION_FAILED` | 400 | Invalid body, path or query |
+| `UNAUTHENTICATED` | 401 | No account session / no valid guest cookie |
+| `GUEST_ACCESS_EXPIRED` | 401 | Guest cookie expired or revoked |
+| `CSRF_TOKEN_INVALID` | 403 | Missing or stale CSRF token (gateway) |
+| `FORBIDDEN` | 403 | Signed in but not allowed |
+| `NOT_FOUND` | 404 | Unknown, or private and not visible |
+| `METHOD_NOT_ALLOWED` | 405 | Wrong HTTP method |
+| `MATCH_CONFLICT` | 409 | Player or court no longer available at confirm (§13) |
+| `STATE_CONFLICT` | 409 | Illegal transition, closed session, duplicate feedback |
+| `INTERNAL_ERROR` | 500 | Unexpected |
+| `SERVICE_UNAVAILABLE` | 503 | **New:** a service needed for the request did not answer in time |
 
-## 12. Testing strategy
+The gateway creates the `requestId`, forwards it as `X-Request-Id`, and every service logs it (MDC). One ID follows a request through all services.
+
+## 10. Frontend
+
+Unchanged from the earlier design (AD-08): `api/client.ts` is the only `fetch` caller; `useAsync` / `useMutation` page states; `lib/status.ts`; copy in `copy/en.ts`; Vite proxies `/api` to the gateway, so the browser still sees one origin. Work order per feature: backend first, then that feature's frontend, before the next feature (owner decision 2026-11-17).
+
+## 11. Testing strategy
 
 | Layer | What | Where |
 |---|---|---|
-| Unit | Matcher (existing), value objects, state enums, band mapping | `src/test/.../<module>/*Test.java` |
-| PostgreSQL integration | Services and HTTP through MockMvc with real security, against `faircourt_test` | `*IT.java`, run by failsafe in `mvn verify` |
-| Access matrix | One parameterized `AccessMatrixIT`: rows `(method, path, caller, expected status)` mirroring the §3 table; every new route adds rows | `api/AccessMatrixIT.java` |
-| Privacy allowlist | Public, `/me` and other non-host responses: JSON keys must be a subset of an explicit allowlist | helper `support/JsonAllowlist` |
-| Conflict / atomicity | Stale confirm → 409 and row counts unchanged; two concurrent confirms → exactly one succeeds | F10 ITs |
-| HTTP smoke | §0 steps 1–5 with separate cookie jars (host, guest, other player, anonymous) over real HTTP | F15 `HostGuestFlowIT` |
-| Frontend | `npm run build` (type check) + Prettier; Vitest/Playwright only if OD-08 approves | — |
+| Unit | Matcher, value objects, state enums | each lib/service |
+| Service integration | Controllers + DB against the service's schema in `faircourt_test`, identity given as a test token | `*IT.java` per service |
+| Gateway integration | Route table, CSRF, JSON 401/403, request ID, 503 when a downstream is down; downstream replaced by a JDK `HttpServer` stub in the test (no new dependency) | gateway `*IT.java` |
+| Schema boundary | Each service's SQL and migrations do not mention another service's schema | one test per service |
+| Access matrix | Per service: `(route, caller) → status`. End to end: the §0 demo through the gateway with separate cookie jars (F15) | per service + F15 |
+| Privacy allowlist | Every non-host response's JSON keys ⊆ allowlist | `JsonAllowlist` in `common-web` test support |
 
-## 13. Extension points after the MVP
+## 12. Pattern catalog
 
-| Future need | Where it plugs in | Existing code touched |
-|---|---|---|
-| New matching rule (e.g. repeat opponents, L-05) | New field in `BoardSnapshot` + rule in `MatchSuggester` + tests | `matching` + assembler |
-| Alternative rotation mode (L-06) | Extract `MatchingPolicy` interface; add a second implementation; host setting picks one | `matching` + one parameter |
-| Live updates (module 3) | Replace `usePolling` internals; add a push endpoint | One hook |
-| Score entry / tournament (module 3) | New tables via `V<n>` referencing `play_match`; new module package | None in the matcher |
-| Recurring sessions / RSVP (module 2) | New module creating `play_session` rows through `SessionService` | `SessionService` gets a new caller |
-| Vietnamese UI (L-03) | `copy/vi.ts` + locale switch | Copy module only |
-| Pilot deployment (L-01) | `COOKIE_SECURE=true`, same-origin reverse proxy, production profile without the seed | Config only |
+| Pattern | Where | Why | Not used |
+|---|---|---|---|
+| API gateway / BFF | `gateway` | One origin, cookies and CSRF in one place, services never see browser credentials | No service exposed to the browser directly |
+| Database per service (schema variant) | One schema per service | Ownership without one container per service | No cross-schema joins or FKs |
+| Split by transaction boundary | `playmatch-service` | Confirm stays one local transaction | No saga for confirm |
+| Orchestrated saga + compensation | Guest check-in (F04) | Three owners touched by one user action | No two-phase commit |
+| Identity propagation (signed token) | gateway → services | Services trust one signed value, not client headers | No client-provided IDs as identity (§13) |
+| Shared kernel library | `common-web`, `matching` | One error shape; pure matcher reused | No business rules or entities in libs |
+| Transactional outbox (later) | When Kafka arrives | Events never lost or sent for rolled-back changes | Not in S01–S06 |
+| Functional core / imperative shell | `matching` + playmatch match service | Deterministic, testable rules (§14) | — |
+| CQRS-lite, state enum, policy object, value objects, discriminated unions | Inside services / frontend | As before (AD-02, AD-03, AD-08) | — |
+
+## 13. What microservices cost here (to learn from, not to hide)
+
+| Area | Single app (blueprint) | This design | Effect |
+|---|---|---|---|
+| Containers locally | 3 | 7 in S05 (gateway, 4 services, postgres, frontend) | More RAM and slower start; not measured yet |
+| Guest check-in | One transaction | Saga with compensation | More code and more failure cases to test |
+| Host board / suggestions | One SQL query | Query + one batch call to player-service | One extra network round trip; fails with 503 if player-service is down |
+| Tests | One `mvn verify` | Still one `mvn verify` (multi-module), plus gateway stub tests | Slightly longer pipeline |
+| Debugging | One log | Logs from several containers, joined by `requestId` | `docker compose logs` filtered by requestId |
+| Learning value | Low | High: gateway, identity propagation, saga, later Kafka/outbox | Owner's goal |
+
+## 14. Extension points
+
+| Future need | Where it plugs in |
+|---|---|
+| Notifications "your turn, court N" | Kafka + `notification-service` consuming `MatchStarted` |
+| Real-time court map (L-14) and discovery list (L-18) | New read service fed by `AttendanceChanged` / `MatchStarted` events; venue coordinates from a later `venue-service` |
+| Call / chat with the host (L-15, L-16) | Host phone in auth or player profile; `chat-service` with WebSocket |
+| Files (L-13) | `storage-service` when the first feature needs files |
+| Keycloak (L-17) | Replaces the credential check in `auth-service`; the gateway becomes the OIDC client; services unchanged because they only see the identity token |
+| Elo / rankings | `rating-service` |
+| New matching rules (L-05, L-06) | `matching` library |

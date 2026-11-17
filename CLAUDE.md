@@ -1,6 +1,6 @@
 # FairCourt — instructions for Claude
 
-FairCourt is a responsive web app that helps office badminton groups form fair doubles matches during one play session. This repository builds the **MVP (module 1: Fair Matcher) only**.
+FairCourt is a responsive web app that helps badminton groups (a host who rents courts and recruits walk-in players) form fair singles or doubles matches during one play session. This repository builds the **MVP (module 1: Fair Matcher) only**.
 
 ## Source of truth
 
@@ -20,7 +20,9 @@ FairCourt is a responsive web app that helps office badminton groups form fair d
 ## Scope guard
 
 - In scope: blueprint §3, §11–17 (public page, login, guest join, host board, suggestions, swap/confirm/start/finish/cancel, own-assignment view, feedback, host assessment).
-- Out of scope (§0, §2, §3 "Explicitly later"): venue booking, live tournament, swing video, AI rankings, Elo, peer voting, payment, chat, public leaderboards, injury advice, public signup, Kafka, Redis, WebSocket, microservices.
+- Out of scope (§0, §2, §3 "Explicitly later"): venue booking, live tournament, swing video, AI rankings, Elo, peer voting, payment, chat, public leaderboards, injury advice, public signup, Redis, WebSocket. Kafka: not in the MVP until the owner approves its timing (future real-time features need it, see OD-17).
+- **Exception (owner decision 2026-11-17, OD-17):** the backend is built as **microservices** from the MVP, overriding the blueprint's "one deployable application". Architecture accepted 2026-11-17 (AD-11…AD-15, AD-17, AD-18 in `planning/architecture/decisions.md`); details in `planning/architecture/system-design.md`.
+- Discovery (list of sessions with filters, map of Ho Chi Minh City) comes **after** one play session works end to end (owner 2026-11-17); not in S01–S06.
 
 ## Open questions — ask the owner, do not resolve silently
 
@@ -39,28 +41,39 @@ FairCourt is a responsive web app that helps office badminton groups form fair d
 - 2026-11-16 — **Pre-commit pipeline is mandatory and must be green**: backend `spotless:apply` → frontend `prettier --write` → backend `mvn -B clean verify` (in the `backend-test` container, includes `spotless:check`) → frontend `format:check` + `npm run build`, plus a check that `.env` and `.idea/` are not staged. Exact commands: `docs/guides/WSL_GITHUB_WORKFLOW.md` section 10 (local-only guide). Verified 2026-11-16 on WSL: `PIPELINE OK` in 31 s.
 - 2026-11-12 — Windows machine: all project work only inside WSL Ubuntu; the repo stays on `D:\External\Personal\faircourt` (`/mnt/d/...`), an intentional deviation from the "clone inside WSL" rule. Guide: `docs/guides/WSL_LOCAL_DEV.md` (local-only, `docs/` is in `.git/info/exclude`).
 - 2026-11-12 — Backend is edited and compiled in IntelliJ (Windows, with an IntelliJ-downloaded JDK 25 used only for the IDE) but always **runs in Docker in WSL**. Debugging via JDWP: `BACKEND_DEBUG_OPTS` in `.env`, host port `127.0.0.1:9092` (container port 5005).
-- 2026-11-12 — Optional backend dev mode `compose.backend-dev.yaml` (enabled per machine with `COMPOSE_FILE=compose.yaml:compose.backend-dev.yaml` in `.env`): `mvn spring-boot:run` on mounted source + `spring-boot-devtools` (runtime, optional; not in the packaged jar) → app restarts after a compile. Default stack unchanged.
+- 2026-11-12 — Optional backend dev mode `compose.backend-dev.yaml` (enabled per machine with `COMPOSE_FILE=compose.yaml:compose.backend-dev.yaml` in `.env`): `mvn spring-boot:run` on mounted source + `spring-boot-devtools` (runtime, optional; not in the packaged jar) → app restarts after a compile. Default stack unchanged. **Superseded 2026-11-17:** the owner dropped dev mode; it is removed when the services are split (F18). The owner rebuilds one service by hand (`docker compose up -d --build <service>`).
 - 2026-11-12 — Vite polling is opt-in via `VITE_USE_POLLING=true` in `.env` (needed on `/mnt/d`; observed: no file-change events without it). Default `false`, so the Mac is unchanged.
 - 2026-11-12 — **Host ports moved to 9090+** (owner request, to avoid the HRM project which uses 8080, 8081, 1433, 6379, ...): backend `9090`, frontend `9091`, JDWP debug `9092`; overridable via `BACKEND_PORT` / `FRONTEND_PORT` / `BACKEND_DEBUG_PORT` in `.env`. Only the host side of the mapping changed; container-internal ports stay 8080 / 5173 / 5005. This intentionally deviates from blueprint §0 (`localhost:5173`, `:8080`). Always use 9090+ for any new published port; never HRM ports. App URL is now http://localhost:9091.
 - 2026-11-13 — PostgreSQL published to the host for DBeaver: `127.0.0.1:${POSTGRES_PORT:-9093}` -> container 5432 (loopback only, 9090+ range). Owner asked to connect DBeaver; DB admin client only, Flyway still owns the schema. Note for agents: WSL on the Windows machine idles to `Stopped` and takes Docker with it; keep a WSL window open (see `docs/guides/WSL_LOCAL_DEV.md` section 4).
 - 2026-11-12 — Home page at `/` approved: hero + "How it works" + "Got a session link?" panel + disabled "Host login · Coming soon" button; English copy. Exact copy awaits owner review.
 - 2026-11-17 — **Planning tracker `planning/` (committed to git)** is the single place to create features and track status, design, plan and evidence (one folder per feature under its sprint). It replaces the local-only Codex work-item flow (`docs/work-items/`, `$feature-flow`); those Codex files are left untouched. Planning docs are written in English. Added rules `conventions.md` and `planning-workflow.md` and the `/feature` skill. The sprint plan, `AD-xx` architecture decisions and `OD-xx` open decisions in `planning/` are **proposals** until the owner approves each one.
 
+- 2026-11-17 — **Microservices from the MVP (OD-17 = B).** This is a learn-by-doing pet project. Long-term direction (later backlog, not MVP): real-time court map, venue owner's phone with one-tap call, real-time chat (L-14…L-16), so Kafka is expected eventually. `storage-service` is built only when a feature needs file storage (L-13). Explanations to the owner: go straight to the point, as "now it works like X → after the change it works like Y → faster / slower / what risk, and why", with a short comparison. Keep evidence but do not quote line numbers.
+- 2026-11-17 — Service split so far: `gateway`, `auth-service`, `player-service`, **`playmatch-service`** (play session + attendance + matches + matcher library), `rating-service` (feedback, built in S05). Kafka later (notifications/events), not in S01. One PostgreSQL container, one schema per service, **one shared DB user**. One repo, one folder per service. Each feature: backend first, then its frontend, before the next feature. Session price is a price **per person by gender, as a range** (demo: men 75k–85k VND, women 65k–75k VND), optional, shown only; no payment in the app; players' gender is not stored (OD-18). Minimum sets per player shown as progress, 1 set = one game to 21 = one match (OD-19). Each play session is singles or doubles, chosen by the host (OD-20). The host is the person who rents the courts and recruits walk-in players, not the venue owner (OD-21). Minimum sets per player is set per session when the host posts it, default 6, editable, 1–20 (OD-19).
+- 2026-11-17 — Service split details (F18 design): gateway = Spring Cloud Gateway (version shown to the owner before pinning); old `public` tables kept; old V1 migration moved to `backend/legacy/`; JDWP 9092 on `playmatch-service`; **every service can be started, rebuilt, stopped and followed in the logs on its own** (commands in the F18 design and, after F18, the README). The owner says when implementation starts.
+- 2026-11-17 — The owner deleted `nana/tesst.txt`; do not restore it. The owner asked Claude to commit and push planning work to `main` this time (commit and push rules: see memory, no Claude co-author line).
+
 ## Unrelated existing files
 
-`nana/tesst.txt` pre-dates this setup. Do not modify or delete it without asking. `README.md` is the project README; the owner allowed keeping its run instructions and verification log up to date (2026-11-12).
+`README.md` is the project README; the owner allowed keeping its run instructions and verification log up to date (2026-11-12). (`nana/tesst.txt` was deleted by the owner on 2026-11-17.)
 
 ## Two development machines in parallel
 
 The owner works on both a **MacBook Pro (Apple Silicon, arm64, Docker Desktop)** and a **Windows PC using WSL**. Everything Docker-related must run unchanged on both. Follow [.claude/rules/docker-crossplatform.md](.claude/rules/docker-crossplatform.md). Code moves between machines only through git.
 
-## Target repository layout (blueprint §0, §15, §16)
+## Target repository layout (microservices, AD-13; replaces the blueprint's single `backend/` app)
 
 ```text
 compose.yaml  .env.example  .gitignore  README.md
-backend/   Spring Boot app, Flyway migrations, seed, tests
-frontend/  React + TypeScript + Vite + Tailwind
+backend/
+  pom.xml          parent + aggregator (one `mvn verify` for everything)
+  Dockerfile       one file, build arg MODULE picks the service
+  libs/            common-web (errors, request ID, test support), matching (pure matcher)
+  services/        gateway, auth-service, player-service, playmatch-service, rating-service (S05)
+frontend/          React + TypeScript + Vite + Tailwind; /api proxied to the gateway
 ```
+
+Until F18 is implemented, the code is still the single app in `backend/src/`.
 
 ## Project guidance files
 

@@ -5,9 +5,13 @@ paths:
 
 # Backend and database (blueprint §7, §11, §12, §13, §15)
 
-Stack: Java + Spring Boot, REST, one deployable app; PostgreSQL + Flyway; Spring Data JPA for routine CRUD (§7). Pinned (owner-approved 2026-11-09): Java 25, Spring Boot 4.1.2 (Spring Framework 7 / Spring Security 7 — use Boot 4 module starters such as `spring-boot-starter-webmvc`, `spring-boot-starter-flyway`), PostgreSQL 18.6. Base package `com.faircourt`. Run tests with `docker compose --profile test run --rm --build backend-test`.
+Stack: Java + Spring Boot, REST, **microservices** behind a gateway (owner decision 2026-11-17, OD-17; replaces the blueprint's "one deployable app"; see `planning/architecture/system-design.md` and `conventions.md`); PostgreSQL + Flyway, one schema per service; Spring Data JPA for routine CRUD (§7). Pinned (owner-approved 2026-11-09): Java 25, Spring Boot 4.1.2 (Spring Framework 7 / Spring Security 7 — use Boot 4 module starters such as `spring-boot-starter-webmvc`, `spring-boot-starter-flyway`), PostgreSQL 18.6. Base package `com.faircourt`. Run tests with `docker compose --profile test run --rm --build backend-test`.
 
-## Code map (§15)
+## Code map
+
+Target (after F18): one folder per service under `backend/services/` (`gateway`, `auth-service`, `player-service`, `playmatch-service`, `rating-service`), shared code in `backend/libs/` (`common-web`, `matching`); each service has its own `src/main/resources/db/migration/` for its own schema. Table ownership is in `conventions.md`. The blueprint's §15 classes map to services like this: `identity` → gateway + auth-service; `sessions`, `matches` and attendance → playmatch-service; `players` (profiles, assessments) → player-service; feedback → rating-service.
+
+Current code (before F18, single app, §15 packages):
 
 ```text
 backend/src/main/java/.../faircourt/
