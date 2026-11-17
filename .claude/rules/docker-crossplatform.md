@@ -48,8 +48,8 @@ docker compose down         # keeps the DB volume
 
 ## WSL specifics
 
-- Clone the repository inside the WSL Linux filesystem (e.g. `~/code/faircourt`), not under `/mnt/c/...`. File access and file-change notifications across the Windows mount are slow/unreliable.
-- Only if hot reload is observed not to work, consider Vite `server.watch.usePolling` — do not add it preemptively.
+- General advice: clone the repository inside the WSL Linux filesystem (e.g. `~/code/faircourt`); file access and file-change notifications across a Windows mount (`/mnt/c`, `/mnt/d`) are slow/unreliable. Exception (owner decision 2026-11-12): the owner's Windows machine keeps the repo on `/mnt/d` on purpose — do not move it or suggest moving it.
+- Vite polling exists as an opt-in switch (`VITE_USE_POLLING=true` in `.env`, default `false`), added 2026-11-12 after hot reload was observed not to work on `/mnt/d`. Keep it opt-in; do not turn it on by default.
 - Run `git`, `docker compose` and editors from inside WSL for this repo so line endings and permissions stay consistent.
 
 ## Working in parallel
@@ -57,7 +57,7 @@ docker compose down         # keeps the DB volume
 - Code syncs **only via git** (commit/push on one machine, pull on the other). Never commit `.env`.
 - Each machine has its own Postgres volume; data does not sync. The idempotent seed gives both the same baseline.
 - Never run `docker compose down -v` or `docker volume rm` without the owner's explicit consent — it deletes the local database.
-- Published host ports are `9090` (backend), `9091` (frontend), `9092` (JDWP debug) — owner decision 2026-11-12, to stay clear of the HRM project (8080, 8081, 1433, 6379, ...). They are overridable via `BACKEND_PORT` / `FRONTEND_PORT` / `BACKEND_DEBUG_PORT` in `.env`; container-internal ports stay 8080 / 5173 / 5005. Never use HRM ports; pick 9090+ if another port is needed. If a port conflicts, report it and ask.
+- Published host ports are `9090` (backend), `9091` (frontend), `9092` (JDWP debug) — owner decision 2026-11-12, to stay clear of the HRM project (8080, 8081, 1433, 6379, ...) — and `9093` (PostgreSQL on `127.0.0.1` only, for DBeaver; owner decision 2026-11-13). They are overridable via `BACKEND_PORT` / `FRONTEND_PORT` / `BACKEND_DEBUG_PORT` / `POSTGRES_PORT` in `.env`; container-internal ports stay 8080 / 5173 / 5005. Never use HRM ports; pick 9090+ if another port is needed. If a port conflicts, report it and ask.
 
 ## Definition of done for Docker-related changes
 
@@ -71,4 +71,4 @@ The detailed Windows guide (`docs/guides/WSL_LOCAL_DEV.md`) is **local-only** on
 - Its `.env` adds `VITE_USE_POLLING=true` (no file events across `/mnt/d`), `BACKEND_DEBUG_OPTS=...address=*:5005` and `COMPOSE_FILE=compose.yaml:compose.backend-dev.yaml` (backend dev mode with DevTools).
 - IntelliJ on Windows edits and compiles the backend (IDE-only JDK 25) and attaches to `localhost:9092` (host side of container port 5005); the app itself always runs in Docker.
 - Keep these working when changing Docker files: do not remove the `VITE_USE_POLLING` switch, the `JAVA_TOOL_OPTIONS`/debug-port wiring, the `dev` Dockerfile stage or `compose.backend-dev.yaml` without asking the owner. All of them default to off, so the Mac's plain `docker compose up --build -d` is unaffected.
-- Host port 5432 is occupied on the Windows machine; Postgres is not published to the host anyway.
+- Host port 5432 is occupied on the Windows machine. Postgres is published only on `127.0.0.1:${POSTGRES_PORT:-9093}` (owner decision 2026-11-13), never on 5432.

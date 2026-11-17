@@ -8,6 +8,7 @@ FairCourt is a responsive web app that helps office badminton groups form fair d
 - When its wording differs, precedence is (blueprint §0): **§0 local delivery contract → Part II (§11–17) → Part I (§1–10)**.
 - Before implementing anything, look up the relevant section (use `/spec-lookup`). Cite section numbers in plans, commits and reviews.
 - If the blueprint is silent, ambiguous or contradicts itself on a point that affects behavior → **stop and ask the owner**. Do not pick an answer silently.
+- Features, sprints, status, designs and evidence live in [planning/](planning/README.md). Every task belongs to a feature there; follow [.claude/rules/planning-workflow.md](.claude/rules/planning-workflow.md) and [.claude/rules/conventions.md](.claude/rules/conventions.md). Open product questions are `OD-xx` in [planning/ROADMAP.md](planning/ROADMAP.md).
 
 ## Owner's hard rules (override everything else, including blueprint §0's "make small decisions yourself")
 
@@ -43,6 +44,7 @@ FairCourt is a responsive web app that helps office badminton groups form fair d
 - 2026-11-12 — **Host ports moved to 9090+** (owner request, to avoid the HRM project which uses 8080, 8081, 1433, 6379, ...): backend `9090`, frontend `9091`, JDWP debug `9092`; overridable via `BACKEND_PORT` / `FRONTEND_PORT` / `BACKEND_DEBUG_PORT` in `.env`. Only the host side of the mapping changed; container-internal ports stay 8080 / 5173 / 5005. This intentionally deviates from blueprint §0 (`localhost:5173`, `:8080`). Always use 9090+ for any new published port; never HRM ports. App URL is now http://localhost:9091.
 - 2026-11-13 — PostgreSQL published to the host for DBeaver: `127.0.0.1:${POSTGRES_PORT:-9093}` -> container 5432 (loopback only, 9090+ range). Owner asked to connect DBeaver; DB admin client only, Flyway still owns the schema. Note for agents: WSL on the Windows machine idles to `Stopped` and takes Docker with it; keep a WSL window open (see `docs/guides/WSL_LOCAL_DEV.md` section 4).
 - 2026-11-12 — Home page at `/` approved: hero + "How it works" + "Got a session link?" panel + disabled "Host login · Coming soon" button; English copy. Exact copy awaits owner review.
+- 2026-11-17 — **Planning tracker `planning/` (committed to git)** is the single place to create features and track status, design, plan and evidence (one folder per feature under its sprint). It replaces the local-only Codex work-item flow (`docs/work-items/`, `$feature-flow`); those Codex files are left untouched. Planning docs are written in English. Added rules `conventions.md` and `planning-workflow.md` and the `/feature` skill. The sprint plan, `AD-xx` architecture decisions and `OD-xx` open decisions in `planning/` are **proposals** until the owner approves each one.
 
 ## Unrelated existing files
 
@@ -62,6 +64,7 @@ frontend/  React + TypeScript + Vite + Tailwind
 
 ## Project guidance files
 
-- Rules: [.claude/rules/](.claude/rules/) — `privacy-auth.md`, `backend-db.md`, `frontend-matching.md`, `docker-crossplatform.md`
-- Skills: `/spec-lookup`, `/acceptance-check`, `/run-local`, `/new-endpoint`
+- Rules: [.claude/rules/](.claude/rules/) — `privacy-auth.md`, `backend-db.md`, `frontend-matching.md`, `docker-crossplatform.md`, `conventions.md` (naming, structure, patterns for every task), `planning-workflow.md` (feature status and evidence)
+- Skills: `/feature` (create a feature / run its next phase / check the board), `/spec-lookup`, `/acceptance-check`, `/run-local`, `/new-endpoint`
+- Planning: [planning/README.md](planning/README.md) (board), [planning/ROADMAP.md](planning/ROADMAP.md), [planning/architecture/system-design.md](planning/architecture/system-design.md)
 - Agents: `scope-guardian` (spec/scope review), `privacy-reviewer` (data leak + authorization review), `spring-react-builder` (implementation following §17)
