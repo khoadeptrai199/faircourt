@@ -27,7 +27,8 @@ Resolve the folder from the board, read the feature files, then act on the statu
 |---|---|
 | `BACKLOG`, `DESIGN` | Write `design.md` from the template (spec quotes, API contract, data/transactions, components with patterns from `system-design.md`, copy table, test plan, open decisions). Create `implement.md` with the task list. Set `WAITING_APPROVAL`. Ask the owner the open questions with recommended options. |
 | `WAITING_APPROVAL` | Show what is still undecided. Do not implement. If the owner approves in this conversation, record it and set `APPROVED`. |
-| `APPROVED`, `IN_PROGRESS`, `CHANGES_REQUESTED` | Check the Definition of Ready. Implement the next tasks (use `/new-endpoint` for routes), run tests, record real commands and evidence in `implement.md`. When all tasks are done and the pre-commit pipeline was run, set `IN_REVIEW`. |
+| `APPROVED` without a "Gate 2 (plan)" line | Write the plan in `implement.md`: ordered tasks, files, and full test cases (Given / When / Then, oracle per case). Ask the owner for Gate 2. Do not implement. |
+| `APPROVED` with Gate 2, `IN_PROGRESS`, `CHANGES_REQUESTED` | Check the Definition of Ready. Implement the next tasks (use `/new-endpoint` for routes), run tests, record real commands and evidence in `implement.md`. When all tasks are done and the pre-commit pipeline was run, set `IN_REVIEW`. |
 | `IN_REVIEW` | Run the `scope-guardian` and `privacy-reviewer` agents on the feature diff; write `review.md` from the template. Open high/medium findings → `CHANGES_REQUESTED`; otherwise report ready for the owner to confirm `DONE` and commit. |
 | `DONE` | Report the evidence summary. Change nothing. |
 | `BLOCKED` | Re-check the named blocker; report what is still missing. |

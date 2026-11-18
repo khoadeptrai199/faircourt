@@ -10,6 +10,14 @@ Small, runnable steps in order. Status: `TODO` | `DOING` | `DONE` | `SKIPPED (re
 |---|---|---|---|
 | T01 | AC-01 | | `TODO` |
 
+## Test cases
+
+Approved at Gate 2 together with the tasks. At least one case per AC, negative and edge cases included. Oracle = where the expected value comes from (blueprint §, golden file, owner, or `agent-derived`).
+
+| TC | Covers | Layer | Given | When | Then (status, body, rows, message) | Oracle |
+|---|---|---|---|---|---|---|
+| TC-01 | AC-01 | unit / IT / HTTP / UI | | | | |
+
 ## Files
 
 | File | Added / changed | Why |
