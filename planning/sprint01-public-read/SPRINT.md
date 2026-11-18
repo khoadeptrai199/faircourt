@@ -12,7 +12,7 @@
 
 | ID | Feature | Status |
 |---|---|---|
-| F18 | [Service split skeleton](service-split/README.md) | `IN_REVIEW` |
+| F18 | [Service split skeleton](service-split/README.md) | `DONE` |
 | F01 | [API foundation: shared lib + gateway](api-foundation/README.md) | `DONE` |
 | F02 | [Public session page + frontend foundation](public-session-page/README.md) | `WAITING_APPROVAL` |
 

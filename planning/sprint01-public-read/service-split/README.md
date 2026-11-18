@@ -3,12 +3,12 @@
 | Field | Value |
 |---|---|
 | Sprint | S01 Services + public read |
-| Status | `IN_REVIEW` |
+| Status | `DONE` |
 | Blueprint | §0 (one-command local stack, seed), §12 (schema), §14/§17-1 (matcher gate); OD-17 (microservices), OD-18…OD-20 (new session columns) |
 | Depends on | F00 |
-| Waiting for | Owner decisions D-R1 (JDWP opt-in), D-R2 (WSL) in [review.md](review.md), then owner confirmation |
+| Waiting for | — |
 | Suggested branch | `feature/service-split` |
-| Last updated | 2026-11-17 |
+| Last updated | 2026-11-18 |
 
 Docs: [design.md](design.md) · [implement.md](implement.md) · [review.md](review.md)
 
@@ -56,3 +56,4 @@ The single backend becomes a gateway plus `auth-service`, `player-service` and `
 | 2026-11-17 | Owner approved implementation as designed ("làm hết", answering "start F18?") → `APPROVED` → `IN_PROGRESS` | Conversation 2026-11-17 |
 | 2026-11-17 | All tasks done on the Mac, pipeline green → `IN_REVIEW`. WSL not verified yet | [implement.md](implement.md) |
 | 2026-11-17 | Scope + privacy reviews (fresh agents); 8 findings fixed and re-tested (83 tests green); 2 owner decisions open | [review.md](review.md) |
+| 2026-11-18 | Owner answered D-R1 (debug port opt-in) and D-R2 (run on WSL); WSL run: stack healthy, one-service commands and pipeline PASS (83 tests); owner confirmed → `DONE` | Conversation 2026-11-18; [implement.md](implement.md) |

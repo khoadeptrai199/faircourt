@@ -7,11 +7,12 @@
 name: faircourt
 
 # Shared settings of the three database services (one database, one schema per service, one DB user: AD-12).
+# Each service's application.yaml holds the connection defaults (localhost:9093, user faircourt) so it also runs
+# outside Docker. Inside Docker we only override the address and hand over the password from .env (owner decision 2026-11-18).
 x-db-service: &db-service
   environment: &db-env
     SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
     SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-    SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
     SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
   depends_on:
     postgres:

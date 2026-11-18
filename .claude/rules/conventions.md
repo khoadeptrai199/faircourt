@@ -63,6 +63,8 @@ When this file and the blueprint differ, the blueprint wins. When this file and 
 
 ### Database
 
+- Spring configuration files are `application.yaml` (and `application-<profile>.yaml`), not `.properties` (owner decision 2026-11-18). In YAML, quote values that start with `%`, `${`, `*`, `@` or contain `: `.
+- DB connection (owner decision 2026-11-18): each database service's `application.yaml` holds `url` (default `jdbc:postgresql://localhost:9093/faircourt`) and `username` (default `faircourt`); the password is never written in a file and comes only from the environment variable `SPRING_DATASOURCE_PASSWORD` (`.env`). `compose.yaml` only overrides the url (`postgres:5432`) and passes the password. A new database service copies this block.
 - One PostgreSQL container and database, one schema per service, one shared DB user (AD-12). Each service runs Flyway only on its own schema; migrations live in `services/<name>/src/main/resources/db/migration/`.
 - No foreign keys or joins across schemas; a reference to another service's row is a plain UUID column.
 - New schema change = new file `V<n>__<snake_case_description>.sql` in the owning service. Never edit an applied migration (`backend-db.md`).

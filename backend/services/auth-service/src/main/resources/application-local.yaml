@@ -1,0 +1,5 @@
+# Local/demo profile only (SPRING_PROFILES_ACTIVE=local from .env). Never enable outside local/demo.
+faircourt:
+  seed:
+    host-email: "${DEMO_HOST_EMAIL:host@faircourt.local}"
+    password: "${DEMO_PASSWORD:FairCourtDemo!1}"

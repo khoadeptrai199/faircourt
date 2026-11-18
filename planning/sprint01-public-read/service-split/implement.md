@@ -72,19 +72,38 @@ All on the Mac (macOS 15.1, `arm64`, Docker 28.0.4, Compose v2.34.0-desktop.1), 
 | `docker compose run --rm --no-deps frontend npm run format` / `format:check` / `build` | passed |
 | `git diff --cached --name-only` checked for `.env` / `.idea/` | none staged |
 
+### Windows WSL, 2026-11-18 (owner decisions D-R1, D-R2 in review.md)
+
+WSL Ubuntu 24.04, `x86_64`, Docker Engine 29.5.3, Compose 5.1.4. The repo was at `02db10b` (fast-forward pull).
+
+| Command | Result |
+|---|---|
+| Local `.env`: removed `COMPOSE_FILE=compose.yaml:compose.backend-dev.yaml` and its comment (backup in WSL `/tmp`) | `docker compose` no longer fails on the missing file; `BACKEND_DEBUG_OPTS` kept on for this machine (owner debugs here) |
+| `.env.example`: `BACKEND_DEBUG_OPTS=` empty, the JDWP value moved into a comment (D-R1) | changed |
+| `docker compose up --build -d --remove-orphans` | 137 s; the old single-app `backend` container (which held ports 9090/9092) was removed as an orphan; volume `pgdata` untouched |
+| `docker compose ps` | postgres, gateway, auth-service, player-service, playmatch-service, frontend all `healthy`; host ports only `127.0.0.1:9090` (gateway), `9091` (frontend), `9092` (playmatch JDWP), `9093` (postgres) |
+| `curl 127.0.0.1:9090/actuator/health` · `curl 127.0.0.1:9091/` · `curl 127.0.0.1:9090/api/v1/auth/csrf` | `UP` · `200` · `200` with `headerName` `X-CSRF-TOKEN` |
+| `docker compose logs playmatch-service \| grep seed` | `FairCourt local demo seed (playmatch) CREATED \| public code: 7RQGQ484` |
+| `psql`: tables per schema; READY attendance | auth 3, player 3, playmatch 5 (incl. `flyway_schema_history`); 8 READY |
+| `docker compose logs playmatch-service \| grep transport` | `Listening for transport dt_socket at address: 5005` |
+| `docker stats --no-stream` | gateway 256 MiB, auth 302, player 329, playmatch 325, frontend 122, postgres 105 |
+| `docker compose stop player-service` → `ps` → `up -d player-service` | gateway kept running; player-service back `healthy` (2 s to start the container) |
+| `docker compose up -d --build playmatch-service` (no code change) | 5 s, recreated, `healthy` |
+| Pre-commit pipeline (format → prettier → `mvn -B clean verify` → `format:check` + `build` → staged-file check) | `PIPELINE OK` in 81 s; 7 modules `SUCCESS`, 83 tests, 0 failures |
+
 ## Acceptance evidence
 
 | AC | Check | Result | Evidence |
 |---|---|---|---|
-| AC-01 | `docker compose ps` | PASS (Mac) · NOT VERIFIED (WSL) | 6 containers healthy (see above). WSL not run; its `.env` needs the `COMPOSE_FILE` line removed first |
+| AC-01 | `docker compose ps` | PASS (Mac, WSL) | 6 containers healthy on both machines (see above) |
 | AC-02 | `<Service>SchemaIT` | PASS | `migrationCreatesOnly…` in `AuthSchemaIT`, `PlayerSchemaIT`, `PlaymatchSchemaIT`; same lists in `psql` on the dev DB |
 | AC-03 | Seed ITs + manual SQL | PASS | `seedIsIdempotent` + seed content tests in all three ITs; cross-schema `psql` check 8/8/1; counts unchanged after restarts |
 | AC-04 | `mvn verify` | PASS | `MatchSuggesterTest` 13/13; `databaseRejectsSecondBusyMatchOnSameCourt`, `databaseRejectsPlayerInTwoUnreleasedMatches` in `PlaymatchSchemaIT` |
 | AC-05 | Boundary test | PASS | `SchemaBoundaryTest` per DB service; `checkRecognisesAQueryOnAnotherServicesSchemaButNotOnItsOwn` covers the deliberate failing sample |
-| AC-06 | `docker compose ps` ports | PASS (Mac) | gateway 9090, frontend 9091, playmatch JDWP 9092, postgres 9093, all on `127.0.0.1`; services expose only `8080/tcp` internally |
-| AC-07 | `docker stats` | PASS (Mac) · NOT VERIFIED (WSL) | "Commands executed" above (gateway 250, auth 295, player 306, playmatch 307, frontend 262, postgres 119 MiB) |
-| AC-08 | Pre-commit pipeline | PASS (Mac) | spotless apply → prettier write → `mvn verify` (incl. `spotless:check`) → `format:check` + `build` → no `.env`/`.idea` staged |
-| AC-09 | One-service commands run | PASS (Mac) | see commands above |
+| AC-06 | `docker compose ps` ports | PASS (Mac, WSL) | gateway 9090, frontend 9091, playmatch JDWP 9092, postgres 9093, all on `127.0.0.1`; services expose only `8080/tcp` internally |
+| AC-07 | `docker stats` | PASS (Mac, WSL) | Mac: gateway 250, auth 295, player 306, playmatch 307, frontend 262, postgres 119 MiB. WSL: 256 / 302 / 329 / 325 / 122 / 105 MiB |
+| AC-08 | Pre-commit pipeline | PASS (Mac, WSL) | spotless apply → prettier write → `mvn verify` (incl. `spotless:check`) → `format:check` + `build` → no `.env`/`.idea` staged |
+| AC-09 | One-service commands run | PASS (Mac, WSL) | see commands above |
 | AC-10 | Dev mode removed + README | PASS | `compose.backend-dev.yaml` removed; DevTools gone from poms; Dockerfile has no `dev` stage; rebuild commands in design §6. README part waived: README is empty by owner request |
 
 ## Deviations from the design

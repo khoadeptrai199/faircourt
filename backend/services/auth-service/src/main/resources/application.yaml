@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: auth-service
+
+  # Database connection. url and username default to a Postgres reachable from the host (docker compose publishes
+  # it on 127.0.0.1:9093), so a service started outside Docker (e.g. from IntelliJ) connects with no extra setup.
+  # compose.yaml overrides the url (postgres:5432) inside Docker. The password is never written here: it must come
+  # from the environment variable SPRING_DATASOURCE_PASSWORD (.env), otherwise startup fails.
+  datasource:
+    url: jdbc:postgresql://localhost:9093/faircourt
+    username: faircourt
+    password: "${SPRING_DATASOURCE_PASSWORD}"
+    hikari:
+      schema: auth
+
+  # One schema per service, one shared DB user (AD-12). This service owns only the "auth" schema:
+  # Flyway creates it and keeps its history table there; every connection uses it as its search path.
+  flyway:
+    locations: classpath:db/migration
+    schemas: auth
+    default-schema: auth
+  jpa:
+    properties:
+      hibernate:
+        default_schema: auth
+        # Store and read timestamptz as UTC (blueprint section 12).
+        jdbc:
+          time_zone: UTC
+    hibernate:
+      # Schema is owned by Flyway; Hibernate only validates.
+      ddl-auto: validate
+    open-in-view: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Only the health endpoint is exposed (blueprint section 0).
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  pattern:
+    # Every log line carries the request ID (API foundation; AD-04).
+    level: "%5p [%X{requestId:-}]"
+
+faircourt:
+  request-id:
+    # Keep the request ID the gateway forwarded (services are reachable only from the gateway).
+    trust-incoming: true

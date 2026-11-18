@@ -7,7 +7,7 @@ The one place to create features, track their status, and read each feature's de
 - System design: [architecture/system-design.md](architecture/system-design.md) · Decision log: [architecture/decisions.md](architecture/decisions.md)
 - Rules for agents: [.claude/rules/planning-workflow.md](../.claude/rules/planning-workflow.md), [.claude/rules/conventions.md](../.claude/rules/conventions.md)
 
-Last updated: 2026-11-17
+Last updated: 2026-11-18
 
 ## Sprints
 
@@ -26,7 +26,7 @@ Last updated: 2026-11-17
 | ID | Feature | Sprint | Status | Depends on | Waiting for | Docs |
 |---|---|---|---|---|---|---|
 | F00 | Walking skeleton | S00 | DONE | — | — | [README](sprint00-foundation/walking-skeleton/README.md) |
-| F18 | Service split skeleton (gateway + auth/player/playmatch services, schema per service) | S01 | IN_REVIEW | F00 | Owner decisions (JDWP opt-in, WSL) + confirmation | [README](sprint01-public-read/service-split/README.md) · [design](sprint01-public-read/service-split/design.md) · [implement](sprint01-public-read/service-split/implement.md) |
+| F18 | Service split skeleton (gateway + auth/player/playmatch services, schema per service) | S01 | DONE | F00 | — | [README](sprint01-public-read/service-split/README.md) · [design](sprint01-public-read/service-split/design.md) · [implement](sprint01-public-read/service-split/implement.md) |
 | F01 | API foundation: shared error lib, gateway route table, request ID, CSRF bootstrap, test harness | S01 | DONE | F18 | — | [README](sprint01-public-read/api-foundation/README.md) · [design](sprint01-public-read/api-foundation/design.md) · [implement](sprint01-public-read/api-foundation/implement.md) |
 | F02 | Public session page (+ format, minimum sets, price) + frontend foundation | S01 | WAITING_APPROVAL | F01 | OD-01, OD-02, OD-13, copy approval | [README](sprint01-public-read/public-session-page/README.md) · [design](sprint01-public-read/public-session-page/design.md) · [implement](sprint01-public-read/public-session-page/implement.md) |
 | F03 | Account login, logout, `GET /me` | S02 | BACKLOG | F01 | OD-03 | [README](sprint02-identity/account-login/README.md) |
