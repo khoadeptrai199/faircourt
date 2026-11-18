@@ -149,7 +149,7 @@ Nothing here enters a sprint without an owner decision. IDs are stable.
 | L-08 | Player self-service sit-out | PaQueueKa |
 | L-09 | Host-assisted check-in for people without a phone | Blueprint §3 "Can assist", Reclub "reserve" |
 | L-10 | Close-session route (if OD-10 = later) | Blueprint §11 |
-| L-11 | Account verification/recovery and abuse controls before public signup | Blueprint §15 |
+| L-11 | Account verification and abuse controls before public signup (recovery by emailed code moved into the MVP as F21, owner 2026-11-18) | Blueprint §15 |
 | L-12 | Modules 2–4: recurring sessions/RSVP, live tournament, swing review | Blueprint §2 |
 | L-13 | `storage-service` (files: avatars, videos, …): build when the first feature needs file storage | Owner 2026-11-17 |
 | L-14 | Discovery map (Ho Chi Minh City first): venues with open play sessions as points on a map, like Google Maps; tapping one shows a summary (group name, price, minimum sets, level, time); real-time updates of courts/people | Owner 2026-11-17 (future direction; reason Kafka is expected) |
