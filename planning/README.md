@@ -90,6 +90,7 @@ A feature folder starts with `README.md` only; `design.md`, `implement.md` and `
 ### Definition of Ready (before `IN_PROGRESS`)
 
 - Design `APPROVED` by the owner; every blocking OD for this feature is decided.
+- Plan and test cases in `implement.md` approved by the owner (Gate 2, owner decision 2026-11-18).
 - Dependencies are `DONE`, or the owner explicitly allowed starting earlier.
 - All new user-facing copy in the design's copy table is approved.
 - No new dependency, config file or route outside the blueprint without an approval entry in the decision log.

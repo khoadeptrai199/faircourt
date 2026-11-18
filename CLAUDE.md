@@ -62,6 +62,8 @@ FairCourt is a responsive web app that helps badminton groups (a host who rents 
 - 2026-11-18 — **Password reset by emailed OTP approved and built** (owner: "đồng ý đề xuất"). 8-digit single-use code, 10 min, 5 tries, 1 per minute and 3 per hour per email, same answer for known and unknown emails, reset ends all sessions of the account (gateway re-checks once a minute), "changed" mail, no auto login. New: `spring-boot-starter-mail`, Compose service `mailpit` (pinned `axllent/mailpit:v1.33.1`, web page http://localhost:9094, loopback only), `MAIL_*` variables in `.env.example`. A real pilot needs a real SMTP server and real emails on the accounts (seeded ones are `@faircourt.local`).
 - 2026-11-17 — The owner deleted `nana/tesst.txt`; do not restore it. The owner asked Claude to commit and push planning work to `main` this time (commit and push rules: see memory, no Claude co-author line).
 
+- 2026-11-18 — **Agentic workflow with three human gates.** Gate 1 spec (`design.md`) → Gate 2 plan + test cases (`implement.md`) → build loop without stopping (implement on a Sonnet subagent, validators, fresh-session review on Opus, fix, docs) → Gate 3 report; the owner commits. The generic engine is user-level (`/flow` skill and `flow-implementer` / `flow-reviewer` agents in the Claude config folder, not in git); this repo holds only the project layer in `.claude/flow/` (config, tracker adapter, discovery maps, golden cases) and `scripts/precommit.sh` (the pre-commit pipeline as a script, plus a guard against editing applied migrations). Not tracked as a feature in `planning/`.
+
 ## Unrelated existing files
 
 `README.md` is the project README. It is an empty file by owner request since 2026-11-17 (see "Owner decisions"); do not fill it unasked. (`nana/tesst.txt` was deleted by the owner on 2026-11-17.)
@@ -87,6 +89,7 @@ Until F18 is implemented, the code is still the single app in `backend/src/`.
 ## Project guidance files
 
 - Rules: [.claude/rules/](.claude/rules/) — `privacy-auth.md`, `backend-db.md`, `frontend-matching.md`, `docker-crossplatform.md`, `conventions.md` (naming, structure, patterns for every task), `planning-workflow.md` (feature status and evidence)
+- Agentic loop: `/flow <feature> [design|plan|build|status]` (user-level engine) with project config [.claude/flow/config.json](.claude/flow/config.json); validator `scripts/precommit.sh`
 - Skills: `/feature` (create a feature / run its next phase / check the board), `/spec-lookup`, `/acceptance-check`, `/run-local`, `/new-endpoint`
 - Planning: [planning/README.md](planning/README.md) (board), [planning/ROADMAP.md](planning/ROADMAP.md), [planning/architecture/system-design.md](planning/architecture/system-design.md)
 - Agents: `scope-guardian` (spec/scope review), `privacy-reviewer` (data leak + authorization review), `spring-react-builder` (implementation following §17)
