@@ -1,9 +1,9 @@
-package com.faircourt.playmatch.session;
+package com.faircourt.playmatch.game;
 
 import java.security.SecureRandom;
 
 /**
- * Random shareable public code for a play session (blueprint sections 11 and 13, e.g. "FRI7Q2K9").
+ * Random shareable public code for a game (the play event a host posts) (blueprint sections 11 and 13, e.g. "FRI7Q2K9").
  * 8 characters from an alphabet without look-alike characters (0/O, 1/I).
  * The public code only opens the read-only summary; it never authenticates anyone.
  */

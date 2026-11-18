@@ -1,14 +1,15 @@
 // Home page at "/" (owner-approved 2026-11-12; not part of blueprint section 16 routes).
+// 2026-11-18: "session" -> "game" and a single contest -> "match" (owner decision, OD-22).
 // Only blueprint copy plus short explanatory text. "Host login" stays disabled until the
 // identity slice (blueprint section 17, step 2) ships the real login.
 
 const steps = [
   {
-    title: 'Join a session',
+    title: 'Join a game',
     body: 'Open the link your host shares and check in.',
   },
   {
-    title: 'Find a fair game',
+    title: 'Find a fair match',
     body: 'Matches are suggested by level and by who has waited longest.',
   },
   {
@@ -45,15 +46,15 @@ export default function HomePage() {
               id="home-title"
               className="mt-5 text-4xl leading-[1.1] font-extrabold tracking-tight md:text-6xl"
             >
-              Join a session.
+              Join a game.
               <br />
-              Find a fair game.
+              Find a fair match.
               <br />
               <span className="text-accent">Keep playing.</span>
             </h1>
             <p className="mt-5 text-lg leading-relaxed text-white md:text-xl">
               FairCourt helps your badminton group form fair doubles matches, so
-              everyone gets a good game.
+              everyone gets a good match.
             </p>
           </div>
         </section>
@@ -93,11 +94,11 @@ export default function HomePage() {
           </span>
           <div>
             <h2 id="link-title" className="text-xl font-bold">
-              Got a session link?
+              Got a game link?
             </h2>
             <p className="mt-1 text-base leading-relaxed">
-              Open the link from your host's message to see tonight's session
-              and check in.
+              Open the link from your host's message to see tonight's game and
+              check in.
             </p>
           </div>
         </section>

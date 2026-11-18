@@ -36,6 +36,10 @@ logging:
     level: "%5p [%X{requestId:-}]"
 
 faircourt:
+  services:
+    # Where the gateway forwards each service's routes. Default = the Compose service name (services publish no host
+    # port, so the gateway reaches them only inside the Compose network).
+    playmatch-url: http://playmatch-service:8080
   request-id:
     # The gateway always creates the request ID and replaces any client-sent X-Request-Id (API foundation AC-10).
     trust-incoming: false

@@ -2,6 +2,7 @@
 
 Source: [FairCourt_Project_Blueprint.md](../FairCourt_Project_Blueprint.md) §0 (API/auth), §3, §13.
 This file only restates the blueprint; if they differ, the blueprint wins.
+Naming (owner decision 2026-11-18): the blueprint's "session" (the play event) is called **game** here and in the code, so `/sessions/...` routes are `/games/...` and `sessionId` is `gameId`. A single contest is a **match** (code) or **set** (UI). "Session" below only means the login/HTTP session.
 
 ## Conventions (§13)
 
@@ -16,38 +17,65 @@ This file only restates the blueprint; if they differ, the blueprint wins.
 ## Endpoints
 
 Status = what exists in this repository today (not what the blueprint promises).
-Right now only `GET /actuator/health` and `GET /api/v1/auth/csrf` are reachable; every other route is denied (anonymous → `401 UNAUTHENTICATED`, so unknown routes are not revealed).
+Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf` and `GET /api/v1/public/games/{publicCode}` are reachable; every other route is denied (anonymous → `401 UNAUTHENTICATED`, so unknown routes are not revealed).
 
 | Method and route | Caller | Contract (§13) | Status |
 |---|---|---|---|
 | `GET /auth/csrf` | Anyone | Public CSRF bootstrap for browser writes (§0). Response `{"headerName":"X-CSRF-TOKEN","token":"…"}`. | Implemented (API foundation, 2026-11-17) |
-| `GET /public/sessions/{publicCode}` | Anyone | Public title, venue, localizable times, court count, status; no names or match IDs. | Not started |
+| `GET /public/games/{publicCode}` | Anyone | Public title, venue, localizable times, court count, status; no names or match IDs. Also singles/doubles, minimum sets, price per person (OD-18…OD-20). | Implemented (Public game page, 2026-11-18) |
 | `POST /auth/login` | Pilot-provisioned account | Cookie-backed account session. Public signup is not available. | Not started |
 | `POST /auth/logout` | Signed-in account | Ends the account session. | Not started |
 | `GET /me` | Signed-in account | Returns account identity. | Not started |
-| `POST /sessions` | Signed-in account | Create session; creator becomes host. | Not started |
-| `POST /public/sessions/{publicCode}/guests` | Visitor | Submit name/assessment; create guest `PENDING`, set private guest cookie. | Not started |
-| `POST /sessions/{sessionId}/join` | Signed-in player | Join once with member profile; return own attendance. | Not started |
-| `GET /sessions/{sessionId}/me` | Member or scoped guest | Own attendance state, optional own `matchNo`, `courtNo`, `matchState`; no other players. | Not started |
-| `GET /host/sessions/{sessionId}/board` | This session's host | Full attendance list, private bands, current matches and courts. | Not started |
-| `PATCH /host/sessions/{sessionId}/attendance/{attendanceId}` | Host | Approve guest, set Ready/Resting/Left with state validation. | Not started |
-| `POST /host/sessions/{sessionId}/suggestions` | Host | Compute one or more proposed courts; read-only, no match persistence. | Not started (pure matcher exists, see below) |
-| `POST /host/sessions/{sessionId}/matches` | Host | Confirm one proposed or manually edited four-player pairing as `PLANNED`. | Not started |
+| `POST /games` | Signed-in account | Create a game; creator becomes host. | Not started |
+| `POST /public/games/{publicCode}/guests` | Visitor | Submit name/assessment; create guest `PENDING`, set private guest cookie. | Not started |
+| `POST /games/{gameId}/join` | Signed-in player | Join once with member profile; return own attendance. | Not started |
+| `GET /games/{gameId}/me` | Member or scoped guest | Own attendance state, optional own `matchNo`, `courtNo`, `matchState`; no other players. | Not started |
+| `GET /host/games/{gameId}/board` | This game's host | Full attendance list, private bands, current matches and courts. | Not started |
+| `PATCH /host/games/{gameId}/attendance/{attendanceId}` | Host | Approve guest, set Ready/Resting/Left with state validation. | Not started |
+| `POST /host/games/{gameId}/suggestions` | Host | Compute one or more proposed courts; read-only, no match persistence. | Not started (pure matcher exists, see below) |
+| `POST /host/games/{gameId}/matches` | Host | Confirm one proposed or manually edited four-player pairing as `PLANNED`. | Not started |
 | `PATCH /host/matches/{matchId}/start` | Owning host | Planned → active; four attendance rows Assigned → Playing. | Not started |
 | `PATCH /host/matches/{matchId}/finish` | Owning host | Active → finished; release players, set Ready and update wait/game counters. | Not started |
 | `PATCH /host/matches/{matchId}/cancel` | Owning host | Planned/active → cancelled; release players and restore Ready. | Not started |
-| `POST /sessions/{sessionId}/me/feedback` | Participant | Body includes `matchId` and fit answer; only a participant of that finished match; one answer per player/match. | Not started |
-| `POST /host/sessions/{sessionId}/assessments` | Host | Record observation and update current private band. | Not started |
+| `POST /games/{gameId}/me/feedback` | Participant | Body includes `matchId` and fit answer; only a participant of that finished match; one answer per player/match. | Not started |
+| `POST /host/games/{gameId}/assessments` | Host | Record observation and update current private band. | Not started |
 
 Outside `/api/v1`: `GET /actuator/health` — **implemented**, public, reports `UP` after Flyway and DB connection (§0).
 
-"Host" always means the creator of **this** session (`play_session.host_user_id`), never a global admin flag (§11).
+"Host" always means the creator of **this** game (`game.host_user_id`), never a global admin flag (§11).
+
+### `GET /public/games/{publicCode}` (implemented)
+
+Anyone, GET only. `publicCode` is trimmed and upper-cased; anything that is not 1–20 characters `A–Z0–9`, or no game with that code → `404 NOT_FOUND`. A write on this path never reaches the service (gateway: `403 CSRF_TOKEN_INVALID` without a token, otherwise `401`). Service down → `503 SERVICE_UNAVAILABLE`.
+
+```json
+{
+  "gameId": "db8e1f53-2930-3def-902c-04e9a57758c1",
+  "title": "Friday Badminton",
+  "venue": "Court House D7",
+  "startsAt": "2026-11-17T11:00:00Z",
+  "endsAt": "2026-11-17T14:00:00Z",
+  "courtCount": 2,
+  "state": "OPEN",
+  "matchFormat": "DOUBLES",
+  "minSets": 6,
+  "pricePerPerson": {
+    "male": { "minVnd": 75000, "maxVnd": 85000 },
+    "female": { "minVnd": 65000, "maxVnd": 75000 }
+  }
+}
+```
+
+- These are the only fields (checked by an allowlist test). No names, bands, roster, match IDs or guest tokens.
+- `gameId` is the opaque internal id later routes use (`/games/{gameId}/...`); it grants nothing (owner decision 2026-11-18).
+- `state`: `OPEN` | `CLOSED` (closed = read-only). `matchFormat`: `SINGLES` | `DOUBLES`. `minSets`: 1–20.
+- `pricePerPerson` is `null` when no price is set; `male` or `female` is `null` when that line is not set; when only one bound of a line is set it is used as both. Shown only; players pay the host outside the app.
 
 ## Who may see what (§3)
 
 | Action / information | Anyone | Joined player | Court host |
 |---|:-:|:-:|:-:|
-| Public session page (time, venue, courts, basic status) | Yes | Yes | Yes |
+| Public game page (time, venue, courts, basic status) | Yes | Yes | Yes |
 | Check in as a player | Via join flow | Yes | Can assist |
 | Own match number, court number, start status | No | Yes | Yes |
 | Another player's assignment, private skill evidence, full ready pool | No | No | Yes |
@@ -60,7 +88,7 @@ Each audience gets its own DTO. The host board response is never reused for a pl
 Guest check-in:
 
 ```http
-POST /api/v1/public/sessions/FRI7Q2K9/guests
+POST /api/v1/public/games/FRI7Q2K9/guests
 Content-Type: application/json
 
 {"displayName":"Mai","answers":{"serve":2,"rally":1,"movement":1,"positioning":1}}
@@ -74,7 +102,7 @@ Response `201 Created`, guest cookie set:
 
 Provisional band from the four answers (0–3 each): total 0–3 → 1; 4–6 → 2; 7–9 → 3; 10–12 → 4. All four `null` → `current_band = null`, shown as **Unknown / provisional** to the host. Partial answers are rejected. This is a pilot heuristic, not a validated rating.
 
-Host suggestions — `POST /api/v1/host/sessions/{id}/suggestions` response:
+Host suggestions — `POST /api/v1/host/games/{id}/suggestions` response:
 
 ```json
 {
@@ -88,7 +116,7 @@ Host suggestions — `POST /api/v1/host/sessions/{id}/suggestions` response:
 }
 ```
 
-Confirm a match — `POST /api/v1/host/sessions/{id}/matches` request:
+Confirm a match — `POST /api/v1/host/games/{id}/matches` request:
 
 ```json
 {
@@ -100,7 +128,7 @@ Confirm a match — `POST /api/v1/host/sessions/{id}/matches` request:
 
 Returns `201` with `matchId`, `matchNo`, `courtNo`, `state: "PLANNED"`. The server re-reads the four attendance rows and the court; if anyone is unavailable it returns `409 MATCH_CONFLICT`.
 
-Own assignment — `GET /api/v1/sessions/{id}/me`:
+Own assignment — `GET /api/v1/games/{id}/me`:
 
 ```json
 {"attendanceState":"ASSIGNED","assignment":{"matchNo":3,"courtNo":2,"matchState":"PLANNED"}}
@@ -141,6 +169,7 @@ Error codes (same body from the gateway and every service; messages are generic,
 
 ## Already in the code
 
-- Service split: `gateway` + `auth-service` + `player-service` + `playmatch-service`, one database schema each, per-service Flyway `V1` and local demo seed.
+- Service split: `gateway` + `auth-service` + `player-service` + `playmatch-service`, one database schema each, per-service Flyway `V1` and local demo seed. Flyway `V2` in each database service renames "session" to "game" (2026-11-18).
 - Pure matcher `com.faircourt.matching.MatchSuggester` (library `backend/libs/matching`) with unit tests. It is not exposed over HTTP yet.
 - API foundation: shared error body and codes, request ID, gateway route table (deny by default), CSRF bootstrap, `503` when a service does not answer. Services deny everything except health until a feature opens a route.
+- Public game page: `GET /public/games/{publicCode}` (playmatch-service, routed by the gateway).

@@ -83,6 +83,8 @@ A Maven multi-module build compiles the libraries once and every service depends
 
 ### Where the blueprint §12 tables go
 
+Renamed 2026-11-18 (OD-22, Flyway V2): `play_session` is now `game`, every `session_id` is `game_id`, `attendance.games_played` is `matches_played`. The table below keeps the older names.
+
 | Table | Schema | Change from the blueprint V1 |
 |---|---|---|
 | `app_user` | `auth` | none |

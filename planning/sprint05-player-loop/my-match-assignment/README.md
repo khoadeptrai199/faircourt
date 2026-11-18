@@ -7,7 +7,7 @@
 | Blueprint | §3, §6 (My game, "Your next match: Court 2"), §11 (privacy), §13 (`GET /sessions/{id}/me` with `assignment`), §16 (`/my/sessions/:sessionId`, 15 s polling, Refresh) |
 | Depends on | F05, F11 |
 | Waiting for | OD-16 (`matchId` for feedback) |
-| Suggested branch | `feature/my-game-assignment` |
+| Suggested branch | `feature/my-match-assignment` |
 | Last updated | 2026-11-17 |
 
 ## Goal

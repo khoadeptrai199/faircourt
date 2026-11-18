@@ -1,5 +1,7 @@
 package com.faircourt.gateway;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.faircourt.gateway.routing.GatewayRouteTable;
 import java.net.CookieManager;
 import java.net.URI;
@@ -7,6 +9,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -64,5 +68,26 @@ abstract class GatewayTestBase {
 
     HttpResponse<String> get(String path) throws Exception {
         return send("GET", path, Map.of());
+    }
+
+    private static final Pattern CSRF_FIELD = Pattern.compile("\"(headerName|token)\":\"([^\"]+)\"");
+
+    /** Bootstraps a CSRF token in this browser; returns the header to send on writes. */
+    Map<String, String> bootstrap() throws Exception {
+        HttpResponse<String> response = get("/api/v1/auth/csrf");
+        assertThat(response.statusCode()).isEqualTo(200);
+        Matcher m = CSRF_FIELD.matcher(response.body());
+        String headerName = null;
+        String token = null;
+        while (m.find()) {
+            if (m.group(1).equals("headerName")) {
+                headerName = m.group(2);
+            } else {
+                token = m.group(2);
+            }
+        }
+        assertThat(headerName).isNotBlank();
+        assertThat(token).isNotBlank();
+        return Map.of(headerName, token);
     }
 }

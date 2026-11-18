@@ -1,4 +1,4 @@
-# F08 — Create session
+# F08 — Create game
 
 | Field | Value |
 |---|---|
@@ -7,7 +7,7 @@
 | Blueprint | §3 step 1, §11 (creator is sole host), §12 (`play_session`), §13 (`POST /sessions`), §17 checklist ("Host can create a session") |
 | Depends on | F03 |
 | Waiting for | OD-05 (screen or API only), OD-10 (closing) |
-| Suggested branch | `feature/create-session` |
+| Suggested branch | `feature/create-game` |
 | Last updated | 2026-11-17 |
 
 ## Goal

@@ -32,8 +32,8 @@ class MatchSuggesterTest {
         return new ReadyPlayer(id(n), band, T0, 0, Set.of());
     }
 
-    private static ReadyPlayer player(int n, Integer band, int gamesPlayed, Instant availableSince) {
-        return new ReadyPlayer(id(n), band, availableSince, gamesPlayed, Set.of());
+    private static ReadyPlayer player(int n, Integer band, int matchesPlayed, Instant availableSince) {
+        return new ReadyPlayer(id(n), band, availableSince, matchesPlayed, Set.of());
     }
 
     private static BoardSnapshot snapshot(List<ReadyPlayer> ready, Integer... freeCourts) {
@@ -99,8 +99,8 @@ class MatchSuggesterTest {
     }
 
     @Test
-    void zeroGamePlayersAreSelectedAheadOfOneGamePlayers() {
-        // One-game players became available earlier, but games played is the first criterion.
+    void zeroMatchPlayersAreSelectedAheadOfOneMatchPlayers() {
+        // One-match players became available earlier, but matches played is the first criterion.
         Instant earlier = T0.minusSeconds(3600);
         var ready = List.of(
                 player(1, 2, 1, earlier),
@@ -118,7 +118,7 @@ class MatchSuggesterTest {
     }
 
     @Test
-    void amongEqualGamesTheLongerWaitingPlayersAreSelected() {
+    void amongEqualMatchesPlayedTheLongerWaitingPlayersAreSelected() {
         var ready = List.of(
                 player(1, 2, 0, T0), player(2, 2, 0, T0),
                 player(3, 2, 0, T0.minusSeconds(600)), player(4, 2, 0, T0.minusSeconds(600)),

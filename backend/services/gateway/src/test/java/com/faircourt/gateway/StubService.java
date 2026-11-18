@@ -77,12 +77,12 @@ public final class StubService {
     }
 
     /**
-     * Production route table plus test routes: {@code /api/v1/test/**} (all methods) and {@code /api/v1/readonly/**}
+     * Production route table (its service routes pointed at this stub) plus test routes: {@code /api/v1/test/**} (all methods) and {@code /api/v1/readonly/**}
      * (GET only) → this stub; {@code /api/v1/down/**} → a closed port.
      */
     public GatewayRouteTable routeTable() {
         List<GatewayRoute> routes =
-                new ArrayList<>(GatewayRouteTable.production().routes());
+                new ArrayList<>(GatewayRouteTable.production(url()).routes());
         Set<HttpMethod> all =
                 Set.of(HttpMethod.GET, HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH, HttpMethod.DELETE);
         routes.add(new GatewayRoute("test-stub", all, "/api/v1/test/**", RouteAccess.PUBLIC, url()));

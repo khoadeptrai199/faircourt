@@ -58,6 +58,13 @@ class AuthSchemaIT {
     }
 
     @Test
+    void guestAccessReferencesItsGameByGameId() {
+        assertThat(jdbc.sql("""
+						SELECT column_name FROM information_schema.columns
+						WHERE table_schema = 'auth' AND table_name = 'guest_access'""").query(String.class).list()).contains("game_id").doesNotContain("session_id");
+    }
+
+    @Test
     void seedIsIdempotent() {
         boolean first = seeder().seed();
         boolean second = seeder().seed();

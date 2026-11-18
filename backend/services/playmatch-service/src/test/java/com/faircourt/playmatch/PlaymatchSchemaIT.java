@@ -64,7 +64,24 @@ class PlaymatchSchemaIT {
         assertThat(jdbc.sql("""
 						SELECT table_name FROM information_schema.tables
 						WHERE table_schema = 'playmatch' ORDER BY table_name""").query(String.class).list())
-                .containsExactly("attendance", "flyway_schema_history", "match_player", "play_match", "play_session");
+                .containsExactly("attendance", "flyway_schema_history", "game", "match_player", "play_match");
+    }
+
+    @Test
+    void noTableColumnConstraintOrIndexIsNamedAfterSessionOrGamesPlayed() {
+        String names = """
+				SELECT table_name AS name FROM information_schema.tables WHERE table_schema = 'playmatch'
+				UNION ALL
+				SELECT column_name FROM information_schema.columns WHERE table_schema = 'playmatch'
+				UNION ALL
+				SELECT con.conname FROM pg_constraint con
+				  JOIN pg_namespace nsp ON nsp.oid = con.connamespace WHERE nsp.nspname = 'playmatch'
+				UNION ALL
+				SELECT indexname FROM pg_indexes WHERE schemaname = 'playmatch'""";
+
+        assertThat(jdbc.sql(names).query(String.class).list())
+                .contains("game_id", "matches_played", "game_pkey", "ix_game_host_start")
+                .noneMatch(name -> name.contains("session") || name.contains("games_played"));
     }
 
     @Test
@@ -75,20 +92,20 @@ class PlaymatchSchemaIT {
         assertThat(first.created()).isTrue();
         assertThat(second.created()).isFalse();
         assertThat(second.publicCode()).isEqualTo(first.publicCode());
-        assertThat(count("play_session")).isEqualTo(1);
+        assertThat(count("game")).isEqualTo(1);
         assertThat(count("attendance")).isEqualTo(8);
     }
 
     @Test
-    void seedCreatesOpenTwoCourtDoublesSessionWithMinimumSetsAndPrice() {
+    void seedCreatesOpenTwoCourtDoublesGameWithMinimumSetsAndPrice() {
         String code = seeder().seed().publicCode();
 
         assertThat(code).matches("[A-HJ-NP-Z2-9]{8}");
-        Map<String, Object> session = jdbc.sql("""
+        Map<String, Object> game = jdbc.sql("""
 						SELECT id, host_user_id, court_count, state, match_format, min_sets,
 						  price_male_min_vnd, price_male_max_vnd, price_female_min_vnd, price_female_max_vnd
-						FROM play_session""").query().singleRow();
-        assertThat(session)
+						FROM game""").query().singleRow();
+        assertThat(game)
                 .containsEntry("id", demoId("session:1"))
                 .containsEntry("host_user_id", demoId("user:host"))
                 .containsEntry("court_count", 2)
@@ -132,11 +149,9 @@ class PlaymatchSchemaIT {
     void databaseRejectsAMinimumSetsOutsideOneToTwenty() {
         seeder().seed();
 
-        assertThatThrownBy(
-                        () -> jdbc.sql("UPDATE play_session SET min_sets = 21").update())
+        assertThatThrownBy(() -> jdbc.sql("UPDATE game SET min_sets = 21").update())
                 .isInstanceOf(DataIntegrityViolationException.class);
-        assertThatThrownBy(
-                        () -> jdbc.sql("UPDATE play_session SET min_sets = 0").update())
+        assertThatThrownBy(() -> jdbc.sql("UPDATE game SET min_sets = 0").update())
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
@@ -144,56 +159,55 @@ class PlaymatchSchemaIT {
     void databaseRejectsAPriceRangeWhoseMinimumIsAboveItsMaximum() {
         seeder().seed();
 
-        assertThatThrownBy(() -> jdbc.sql("UPDATE play_session SET price_male_min_vnd = 90000")
-                        .update())
+        assertThatThrownBy(() ->
+                        jdbc.sql("UPDATE game SET price_male_min_vnd = 90000").update())
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     void databaseRejectsSecondBusyMatchOnSameCourt() {
-        UUID session = sessionWithSeed();
-        insertMatch(session, 1, 1, "PLANNED");
+        UUID game = gameWithSeed();
+        insertMatch(game, 1, 1, "PLANNED");
 
-        assertThatThrownBy(() -> insertMatch(session, 2, 1, "ACTIVE"))
-                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> insertMatch(game, 2, 1, "ACTIVE")).isInstanceOf(DataIntegrityViolationException.class);
 
         // A finished match does not keep the court busy.
         jdbc.sql("UPDATE play_match SET state = 'FINISHED' WHERE match_no = 1").update();
-        insertMatch(session, 3, 1, "PLANNED");
+        insertMatch(game, 3, 1, "PLANNED");
     }
 
     @Test
     void databaseRejectsPlayerInTwoUnreleasedMatches() {
-        UUID session = sessionWithSeed();
+        UUID game = gameWithSeed();
         UUID attendance = jdbc.sql("SELECT id FROM attendance ORDER BY id LIMIT 1")
                 .query(UUID.class)
                 .single();
-        UUID match1 = insertMatch(session, 1, 1, "PLANNED");
-        UUID match2 = insertMatch(session, 2, 2, "PLANNED");
+        UUID match1 = insertMatch(game, 1, 1, "PLANNED");
+        UUID match2 = insertMatch(game, 2, 2, "PLANNED");
 
-        insertMatchPlayer(match1, session, attendance);
-        assertThatThrownBy(() -> insertMatchPlayer(match2, session, attendance))
+        insertMatchPlayer(match1, game, attendance);
+        assertThatThrownBy(() -> insertMatchPlayer(match2, game, attendance))
                 .isInstanceOf(DataIntegrityViolationException.class);
 
         // Once released, the player can be assigned again.
         jdbc.sql("UPDATE match_player SET released_at = now() WHERE match_id = :m")
                 .param("m", match1)
                 .update();
-        insertMatchPlayer(match2, session, attendance);
+        insertMatchPlayer(match2, game, attendance);
     }
 
-    private UUID sessionWithSeed() {
+    private UUID gameWithSeed() {
         seeder().seed();
-        return jdbc.sql("SELECT id FROM play_session").query(UUID.class).single();
+        return jdbc.sql("SELECT id FROM game").query(UUID.class).single();
     }
 
-    private UUID insertMatch(UUID session, int matchNo, int courtNo, String state) {
+    private UUID insertMatch(UUID game, int matchNo, int courtNo, String state) {
         UUID id = UUID.randomUUID();
         jdbc.sql("""
-				INSERT INTO play_match (id, session_id, match_no, court_no, state, created_at)
-				VALUES (:id, :session, :no, :court, :state, :created)""")
+				INSERT INTO play_match (id, game_id, match_no, court_no, state, created_at)
+				VALUES (:id, :game, :no, :court, :state, :created)""")
                 .param("id", id)
-                .param("session", session)
+                .param("game", game)
                 .param("no", matchNo)
                 .param("court", courtNo)
                 .param("state", state)
@@ -202,12 +216,12 @@ class PlaymatchSchemaIT {
         return id;
     }
 
-    private void insertMatchPlayer(UUID match, UUID session, UUID attendance) {
+    private void insertMatchPlayer(UUID match, UUID game, UUID attendance) {
         jdbc.sql("""
-				INSERT INTO match_player (match_id, session_id, attendance_id, team)
-				VALUES (:match, :session, :attendance, 'A')""")
+				INSERT INTO match_player (match_id, game_id, attendance_id, team)
+				VALUES (:match, :game, :attendance, 'A')""")
                 .param("match", match)
-                .param("session", session)
+                .param("game", game)
                 .param("attendance", attendance)
                 .update();
     }

@@ -1,10 +1,12 @@
 package com.faircourt.gateway;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.faircourt.gateway.routing.GatewayRoute;
 import com.faircourt.gateway.routing.RouteAccess;
 import java.net.http.HttpResponse;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
@@ -30,7 +32,7 @@ class GatewayAccessMatrixIT extends GatewayTestBase {
     @Test
     void anyRouteNotInTheTableIs401ForAnonymous() throws Exception {
         assertUnauthenticated(get("/api/v1/anything"));
-        assertUnauthenticated(get("/api/v1/public/sessions/ANYCODE"));
+        assertUnauthenticated(get("/api/v1/public/games/ANYCODE/guests"));
         assertUnauthenticated(get("/"));
     }
 
@@ -50,6 +52,36 @@ class GatewayAccessMatrixIT extends GatewayTestBase {
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).isEqualTo("{\"ok\":true}");
         assertThat(STUB.received()).extracting(StubService.Received::path).containsExactly("/api/v1/test/echo");
+    }
+
+    @Test
+    void publicGamePageIsForwardedToPlaymatchForAnonymousGet() throws Exception {
+        HttpResponse<String> response = get("/api/v1/public/games/FRI7Q2K9");
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(STUB.received())
+                .extracting(StubService.Received::method, StubService.Received::path)
+                .containsExactly(tuple("GET", "/api/v1/public/games/FRI7Q2K9"));
+        // Reading the public page never starts a gateway session.
+        assertThat(response.headers().allValues("Set-Cookie")).isEmpty();
+    }
+
+    @Test
+    void writesOnThePublicGamePathAreNeverForwarded() throws Exception {
+        for (String method : new String[] {"POST", "PUT", "PATCH", "DELETE"}) {
+            HttpResponse<String> response = send(method, "/api/v1/public/games/FRI7Q2K9", Map.of());
+
+            // No CSRF token → refused before the route rule.
+            assertThat(response.statusCode()).as(method).isIn(401, 403);
+        }
+        // With a valid CSRF token, the GET-only route rule itself refuses the write.
+        Map<String, String> csrfHeader = bootstrap();
+        for (String method : new String[] {"POST", "PUT", "PATCH", "DELETE"}) {
+            assertThat(send(method, "/api/v1/public/games/FRI7Q2K9", csrfHeader).statusCode())
+                    .as(method + " with CSRF token")
+                    .isEqualTo(401);
+        }
+        assertThat(STUB.received()).isEmpty();
     }
 
     @Test

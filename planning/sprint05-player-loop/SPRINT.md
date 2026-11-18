@@ -12,7 +12,7 @@
 
 | ID | Feature | Status |
 |---|---|---|
-| F12 | [My game: own assignment + polling](my-game-assignment/README.md) | `BACKLOG` |
+| F12 | [My game: own assignment + polling](my-match-assignment/README.md) | `BACKLOG` |
 | F13 | [Match-fit feedback](match-feedback/README.md) | `BACKLOG` |
 | F14 | [Host skill assessment](host-assessment/README.md) | `BACKLOG` |
 

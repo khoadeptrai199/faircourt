@@ -23,11 +23,11 @@ public record BoardSnapshot(List<ReadyPlayer> readyPlayers, List<Integer> freeCo
      * @param attendanceId   attendance row id
      * @param band           private band 1..4, or null when unknown
      * @param availableSince when this player last became available
-     * @param gamesPlayed    finished games this session
+     * @param matchesPlayed  finished matches in this game (shown as "sets played", OD-19)
      * @param recentPartners partners from this player's last three finished matches
      */
     public record ReadyPlayer(
-            UUID attendanceId, Integer band, Instant availableSince, int gamesPlayed, Set<UUID> recentPartners) {
+            UUID attendanceId, Integer band, Instant availableSince, int matchesPlayed, Set<UUID> recentPartners) {
 
         public ReadyPlayer {
             Objects.requireNonNull(attendanceId, "attendanceId");

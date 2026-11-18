@@ -17,9 +17,9 @@ Route: **$ARGUMENTS**
 
 ```text
 Route:            <METHOD /api/v1/...>
-Caller (§13):     anyone | signed-in account | member or scoped guest | this session's host | participant
+Caller (§13):     anyone | signed-in account | member or scoped guest | this game's host | participant
 Identity source:  principal | guest cookie | none   (never from request body/path IDs — §13)
-Ownership check:  AccessPolicy(principalUserId, sessionId) in the service? (required for every host mutation — §15)
+Ownership check:  AccessPolicy(principalUserId, gameId) in the service? (required for every host mutation — §15)
 Request DTO:      fields + validation (lengths, UUID format, enum values)
 Response DTO:     dedicated class; list fields; confirm no names/bands/other players leak to non-host callers
 State changes:    which state transitions (§11) and invariants (§12)

@@ -46,7 +46,7 @@ services:
       retries: 20
     restart: unless-stopped
 
-  # The only backend component the browser reaches (through the Vite proxy). No route yet (F01).
+  # The only backend component the browser reaches (through the Vite proxy). Routes: gateway route table (deny by default).
   # It does not wait for the services: a missing service will answer 503 through the gateway (AD-15).
   gateway:
     build:

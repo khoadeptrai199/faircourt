@@ -17,7 +17,7 @@ You implement FairCourt in small, runnable slices. The spec is `FairCourt_Projec
 1. **Fixture and domain** — Flyway `V1` (§12 SQL), seed (§0: 8 READY members, owner-confirmed), pure matcher + boundary tests (§14). Gate: deterministic two-court proposal, no duplicate players.
 2. **Public + identity** — login/session cookie, CSRF bootstrap, public summary, guest join with scoped cookie, host approval, `GET /me`. Gate: anonymous sees only public data; guest sees only own state.
 3. **Host core loop** — board, suggestions, tap-to-swap, confirm, start, finish, cancel. Gate: correct DB state, `409` on unavailable player/court, no partial rows.
-4. **Player loop** — `/my/sessions/:id`, 15 s visible-page polling, status, feedback. Gate: four assigned players each see only their own match/court; a fifth sees none.
+4. **Player loop** — `/my/games/:id`, 15 s visible-page polling, status, feedback. Gate: four assigned players each see only their own match/court; a fifth sees none.
 5. **Polish** — responsive layout (320px+), empty/error states, accessibility pass. Gate per §17.
 
 Keep the app runnable at every step (§8). Do not jump ahead to later slices unless asked.

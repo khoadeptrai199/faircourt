@@ -12,8 +12,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 /**
  * The real playmatch-service security chain (API foundation, AD-14): health public; every route that no feature opened,
- * including {@code /internal/**}, is 401 JSON; no session cookie is ever created. Access-matrix rows per route are
- * added here when the service gets its first route.
+ * including {@code /internal/**}, is 401 JSON; no HTTP session cookie is ever created. Plus one access-matrix row
+ * per opened route (public game page: anyone, GET only).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class PlaymatchServiceAccessIT {
@@ -47,5 +47,23 @@ class PlaymatchServiceAccessIT {
                 assertThat(response.headers().allValues("Set-Cookie")).isEmpty();
             }
         }
+    }
+
+    @Test
+    void publicGamePageIsOpenToAnonymousForGetOnly() throws Exception {
+        // Unknown code: the route is open, so the answer is the controller's 404, not the security chain's 401.
+        HttpResponse<String> get = send("GET", "/api/v1/public/games/UNKNOWN1");
+        assertThat(get.statusCode()).isEqualTo(404);
+        assertThat(get.body()).contains("\"code\":\"NOT_FOUND\"");
+        assertThat(get.headers().allValues("Set-Cookie")).isEmpty();
+
+        for (String method : new String[] {"POST", "PUT", "PATCH", "DELETE"}) {
+            assertThat(send(method, "/api/v1/public/games/UNKNOWN1").statusCode())
+                    .as(method)
+                    .isEqualTo(401);
+        }
+        // Only one path segment is open.
+        assertThat(send("GET", "/api/v1/public/games/UNKNOWN1/guests").statusCode())
+                .isEqualTo(401);
     }
 }

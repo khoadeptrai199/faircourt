@@ -11,6 +11,16 @@ When this file and the blueprint differ, the blueprint wins. When this file and 
 - Cite the blueprint as `§<n>` where a rule is not obvious from the code. Do not paste long spec text into comments.
 - IDs: features `F<nn>`, acceptance criteria `AC-<nn>` (global form `F04/AC-02`), tasks `T<nn>`, test cases `TC-<nn>`, open decisions `OD-<nn>`, architecture decisions `AD-<nn>`, later backlog `L-<nn>`. Never renumber or reuse an ID.
 
+## Domain words (owner decision 2026-11-18, OD-22)
+
+| Thing | Word in code, URLs, tables and copy | Never |
+|---|---|---|
+| The play event a host posts (blueprint: "play session") | **game** (`game` table, `game_id`, `/games/{gameId}`, `/g/:publicCode`, `PublicGameController`) | "session" |
+| One contest to 21 points | **match** in code (`play_match`, `matchesPlayed`); **set** in UI copy ("At least 6 sets per player") | "game" |
+| Login state | "session" (account / HTTP session, `JSESSIONID`) | — |
+
+Blueprint routes map 1:1: `/sessions/...` → `/games/...`, `/public/sessions/...` → `/public/games/...`, `/host/sessions/...` → `/host/games/...`, `/s/:publicCode` → `/g/:publicCode`, `/my/sessions/:sessionId` → `/my/games/:gameId`. Older planning documents still say "session"; read it as "game".
+
 ## Backend (Java 25, Spring Boot 4.1.2)
 
 ### Structure (microservices, owner decision 2026-11-17; AD-11…AD-18)
@@ -22,7 +32,7 @@ When this file and the blueprint differ, the blueprint wins. When this file and 
   | `gateway` | — | — (route table, account session, CSRF, guest cookie, request ID) |
   | `auth-service` | `auth` | `app_user`, `guest_access` |
   | `player-service` | `player` | `player_profile`, `skill_assessment` |
-  | `playmatch-service` | `playmatch` | `play_session`, `attendance`, `play_match`, `match_player` |
+  | `playmatch-service` | `playmatch` | `game`, `attendance`, `play_match`, `match_player` |
   | `rating-service` (S05) | `rating` | `match_feedback` |
 
 - Put a new class in the service that owns the table it writes. A service never reads or writes another service's schema; it calls that service's `/internal/v1/**` route (AD-12, AD-15). No new service without approval.
@@ -34,13 +44,13 @@ When this file and the blueprint differ, the blueprint wins. When this file and 
 
 | Kind | Pattern | Example |
 |---|---|---|
-| Controller | `<Audience><Resource>Controller` (audience omitted for signed-in callers) | `PublicSessionController`, `HostMatchController`, `AttendanceController` |
+| Controller | `<Audience><Resource>Controller` (audience omitted for signed-in callers) | `PublicGameController`, `HostMatchController`, `AttendanceController` |
 | Command service (writes, `@Transactional`) | `<Resource>Service` | `MatchService`, `AttendanceService` |
-| Read projection (`JdbcClient`, read-only) | `<View>Query` | `PublicSessionQuery`, `HostBoardQuery`, `MyAttendanceQuery` |
-| JPA entity | table name in PascalCase, no suffix | `PlaySession`, `Attendance`, `PlayMatch`, `MatchPlayer` |
+| Read projection (`JdbcClient`, read-only) | `<View>Query` | `PublicGameQuery`, `HostBoardQuery`, `MyAttendanceQuery` |
+| JPA entity | table name in PascalCase, no suffix | `Game`, `Attendance`, `PlayMatch`, `MatchPlayer` |
 | Repository | `<Entity>Repository` | `PlayMatchRepository` |
 | Request DTO | `<Action><Resource>Request` record | `ConfirmMatchRequest`, `GuestCheckInRequest` |
-| Response DTO | `<Audience><Resource>Response` record | `PublicSessionResponse`, `MyAttendanceResponse`, `HostBoardResponse` |
+| Response DTO | `<Audience><Resource>Response` record | `PublicGameResponse`, `MyAttendanceResponse`, `HostBoardResponse` |
 | Value object | domain noun record | `MatchLineup`, `GuestAnswers` |
 | State enum | `<Thing>State`, constants equal to the DB `CHECK` values | `AttendanceState.READY` |
 
@@ -68,7 +78,7 @@ When this file and the blueprint differ, the blueprint wins. When this file and 
 - One PostgreSQL container and database, one schema per service, one shared DB user (AD-12). Each service runs Flyway only on its own schema; migrations live in `services/<name>/src/main/resources/db/migration/`.
 - No foreign keys or joins across schemas; a reference to another service's row is a plain UUID column.
 - New schema change = new file `V<n>__<snake_case_description>.sql` in the owning service. Never edit an applied migration (`backend-db.md`).
-- SQL in `*Query` classes as Java text blocks with named parameters (`:sessionId`), never string concatenation of values.
+- SQL in `*Query` classes as Java text blocks with named parameters (`:gameId`), never string concatenation of values.
 
 ### Tests
 
@@ -115,7 +125,7 @@ src/styles/      tokens.css, globals.css
 | Hook | `useCamelCase.ts` | `usePolling.ts` |
 | Other modules | `camelCase.ts` | `time.ts` |
 | Feature folder | kebab-case (§16) | `match-review/` |
-| Types | `PascalCase`; API types mirror backend record names without the `Response` suffix | `PublicSession`, `MyAttendance` |
+| Types | `PascalCase`; API types mirror backend record names without the `Response` suffix | `PublicGame`, `MyAttendance` |
 
 ### Rules
 

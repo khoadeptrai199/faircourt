@@ -54,6 +54,13 @@ class PlayerSchemaIT {
     }
 
     @Test
+    void skillAssessmentReferencesItsGameByGameId() {
+        assertThat(jdbc.sql("""
+						SELECT column_name FROM information_schema.columns
+						WHERE table_schema = 'player' AND table_name = 'skill_assessment'""").query(String.class).list()).contains("game_id").doesNotContain("session_id");
+    }
+
+    @Test
     void seedIsIdempotent() {
         boolean first = seeder().seed();
         boolean second = seeder().seed();

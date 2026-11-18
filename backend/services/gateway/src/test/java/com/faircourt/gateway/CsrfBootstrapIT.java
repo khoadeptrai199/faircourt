@@ -4,8 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.http.HttpResponse;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -13,26 +11,6 @@ import org.junit.jupiter.api.Test;
  * header name is read from the response, not assumed.
  */
 class CsrfBootstrapIT extends GatewayTestBase {
-
-    private static final Pattern FIELD = Pattern.compile("\"(headerName|token)\":\"([^\"]+)\"");
-
-    private Map<String, String> bootstrap() throws Exception {
-        HttpResponse<String> response = get("/api/v1/auth/csrf");
-        assertThat(response.statusCode()).isEqualTo(200);
-        Matcher m = FIELD.matcher(response.body());
-        String headerName = null;
-        String token = null;
-        while (m.find()) {
-            if (m.group(1).equals("headerName")) {
-                headerName = m.group(2);
-            } else {
-                token = m.group(2);
-            }
-        }
-        assertThat(headerName).isNotBlank();
-        assertThat(token).isNotBlank();
-        return Map.of(headerName, token);
-    }
 
     @Test
     void bootstrapReturnsHeaderNameAndTokenAndAnHttpOnlyLaxSessionCookie() throws Exception {

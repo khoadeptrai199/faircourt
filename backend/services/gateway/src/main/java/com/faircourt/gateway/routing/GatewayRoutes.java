@@ -7,6 +7,7 @@ import static org.springframework.web.servlet.function.RequestPredicates.methods
 import static org.springframework.web.servlet.function.RequestPredicates.path;
 
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -18,8 +19,8 @@ import org.springframework.web.servlet.function.ServerResponse;
 public class GatewayRoutes {
 
     @Bean
-    GatewayRouteTable gatewayRouteTable() {
-        return GatewayRouteTable.production();
+    GatewayRouteTable gatewayRouteTable(@Value("${faircourt.services.playmatch-url}") String playmatchUrl) {
+        return GatewayRouteTable.production(playmatchUrl);
     }
 
     @Bean
