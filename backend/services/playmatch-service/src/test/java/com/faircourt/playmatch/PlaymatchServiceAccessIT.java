@@ -50,6 +50,19 @@ class PlaymatchServiceAccessIT {
     }
 
     @Test
+    void guestCheckInRouteIsInternalAndOpenForPostOnly() throws Exception {
+        String path = "/internal/v1/games/by-code/ABC12345/guest-check-ins";
+        // Opened by Guest check-in. An empty body is a 4xx from the route, never 401 from the security chain.
+        assertThat(send("POST", path).statusCode()).isNotEqualTo(401);
+        assertThat(send("GET", path).statusCode()).isEqualTo(401);
+        assertThat(send("PUT", path).statusCode()).isEqualTo(401);
+        assertThat(send("POST", path + "/extra").statusCode()).isEqualTo(401);
+        assertThat(send("POST", "/api/v1/games/by-code/ABC12345/guest-check-ins")
+                        .statusCode())
+                .isEqualTo(401);
+    }
+
+    @Test
     void publicGamePageIsOpenToAnonymousForGetOnly() throws Exception {
         // Unknown code: the route is open, so the answer is the controller's 404, not the security chain's 401.
         HttpResponse<String> get = send("GET", "/api/v1/public/games/UNKNOWN1");

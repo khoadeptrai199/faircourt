@@ -48,6 +48,10 @@ faircourt:
     # port, so the gateway reaches them only inside the Compose network).
     playmatch-url: http://playmatch-service:8080
     auth-url: http://auth-service:8080
+  guest:
+    # Guest cookie (Guest check-in): generic name; on HTTPS set GUEST_COOKIE_NAME=__Host-fc_guest (needs Secure).
+    cookie-name: "${GUEST_COOKIE_NAME:fc_guest}"
+    cookie-secure: "${COOKIE_SECURE:false}"
   account:
     # A login ends after this time however active the person is (OWASP Session Management: 4-8 hours for a workday app).
     absolute-timeout: 8h

@@ -41,6 +41,10 @@ public record GatewayRouteTable(List<GatewayRoute> routes) {
                         "/api/v1/auth/password/reset",
                         RouteAccess.PUBLIC,
                         authUrl),
+                // Guest check-in (owner approved 2026-11-18): anyone, POST only, answered by the gateway itself (it
+                // owns the guest cookie); CSRF token required.
+                GatewayRoute.local(
+                        "guest-check-in", HttpMethod.POST, "/api/v1/public/games/*/guests", RouteAccess.PUBLIC),
                 // Public game page (blueprint sections 3, 13; OD-22): anyone, read-only.
                 new GatewayRoute(
                         "public-game",

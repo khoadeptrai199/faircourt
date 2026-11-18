@@ -17,6 +17,8 @@ import org.springframework.security.web.SecurityFilterChain;
  *   <li>Password reset: {@code POST /api/v1/auth/password/forgot} and {@code POST /api/v1/auth/password/reset}
  *       (anyone; the gateway forwards them and checks CSRF) and {@code GET
  *       /internal/v1/auth/accounts/{userId}/session-check} (internal, called by the gateway).
+ *   <li>Guest check-in: {@code POST /internal/v1/auth/guest-credentials} (playmatch-service) and {@code POST
+ *       /internal/v1/auth/guest-credentials/resolve} (gateway), both internal.
  * </ul>
  */
 @Configuration
@@ -29,6 +31,12 @@ public class SecurityConfig {
             auth.requestMatchers(HttpMethod.POST, "/api/v1/auth/password/forgot", "/api/v1/auth/password/reset")
                     .permitAll();
             auth.requestMatchers(HttpMethod.GET, "/internal/v1/auth/accounts/*/session-check")
+                    .permitAll();
+            // Guest check-in: issue (called by playmatch-service) and resolve (called by the gateway); internal only.
+            auth.requestMatchers(
+                            HttpMethod.POST,
+                            "/internal/v1/auth/guest-credentials",
+                            "/internal/v1/auth/guest-credentials/resolve")
                     .permitAll();
         });
     }

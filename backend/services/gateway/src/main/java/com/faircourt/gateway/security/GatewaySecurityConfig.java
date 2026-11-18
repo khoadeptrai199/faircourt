@@ -79,7 +79,10 @@ public class GatewaySecurityConfig {
                 // parsed.
                 .addFilterBefore(
                         new RequestBodyLimitFilter(
-                                "/api/v1/auth/login", "/api/v1/auth/password/forgot", "/api/v1/auth/password/reset"),
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/password/forgot",
+                                "/api/v1/auth/password/reset",
+                                "/api/v1/public/games/*/guests"),
                         CsrfFilter.class)
                 // After a password change the account's sessions end: asked of auth-service at most once per interval.
                 .addFilterAfter(

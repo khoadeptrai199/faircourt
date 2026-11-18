@@ -265,15 +265,19 @@ class AccountLoginIT extends LoginTestBase {
     }
 
     @Test
-    void logoutEndsTheSessionAndAsksTheBrowserToDropCookies() throws Exception {
+    void logoutEndsTheSessionAndAsksTheBrowserToDropOnlyCachedResponsesAndTheSessionCookie() throws Exception {
         login(uniqueEmail(), StubService.ACCOUNT_PASSWORD);
         assertThat(get("/api/v1/me").statusCode()).isEqualTo(200);
 
         HttpResponse<String> logout = postJson("/api/v1/auth/logout", "{}", bootstrap());
 
         assertThat(logout.statusCode()).isEqualTo(204);
-        assertThat(logout.headers().firstValue("Clear-Site-Data"))
-                .hasValueSatisfying(v -> assertThat(v).contains("cookies"));
+        assertThat(logout.headers().firstValue("Clear-Site-Data")).hasValue("\"cache\"");
+        assertThat(logout.headers().allValues("Set-Cookie"))
+                .singleElement()
+                .asString()
+                .startsWith("fc_sid=")
+                .containsIgnoringCase("Max-Age=0");
         assertThat(get("/api/v1/me").statusCode()).isEqualTo(401);
     }
 

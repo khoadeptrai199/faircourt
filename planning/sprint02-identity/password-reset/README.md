@@ -6,7 +6,7 @@
 | Status | `IN_REVIEW` |
 | Blueprint | §15 ("account verification/recovery … before wider public signup"), §7, §13 (new routes, owner-approved addition); OWASP Forgot Password, Authentication, Session Management cheat sheets |
 | Depends on | F03 (Account login) |
-| Waiting for | Owner approval of the items in review.md (mail subjects and time format, shorter common-password list, extra env vars) and acceptance of the residual risks; owner looks at both pages at 320 / 375 / 1280px (AC-08 `NOT VERIFIED`); ideally a second review under Opus 5.5 |
+| Waiting for | Owner looks at both pages at 320 / 375 / 1280px (AC-08 `NOT VERIFIED`); ideally a second review under Opus 5.5 |
 | Suggested branch | `feature/password-reset` |
 | Last updated | 2026-11-18 |
 
@@ -41,3 +41,4 @@ A person who forgot their password asks for a one-time code by email, enters the
 | 2026-11-18 | Owner asked: "nên thêm cái reset password khi người dùng forgot password. dĩ nhiên là có xác thực OTP qua mail" while approving Account login. Feature created; design written, waiting for approval | Owner, conversation 2026-11-18 |
 | 2026-11-18 | **APPROVED** by the owner: "đồng ý đề xuất" for D-1…D-9. Implemented (backend 168 tests, live check on Docker); two review agents started; status `IN_REVIEW` | Owner, conversation 2026-11-18 |
 | 2026-11-18 | Reviews run, defects fixed (review.md); live check repeated on the rebuilt stack; open for the owner: G3, G4, G6 approvals, residual risks S2/S6, visual check | review.md |
+| 2026-11-18 | Owner approved the open items of Password reset: mail subjects and the changed-mail time format, the shorter common-password list, the extra env vars; accepted the residual risks (denial of recovery, sessions kept while auth-service is down, local mail catcher exposure); allowed deleting the two throw-away test accounts (done: 2 accounts and their code rows, 9 demo accounts remain). Visual check of the pages still open | Owner, conversation 2026-11-18 ("tôi duyệt hết. tiếp tục đi") |

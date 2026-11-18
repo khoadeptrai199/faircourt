@@ -11,11 +11,18 @@ import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.http.HttpMethod;
 
 /**
@@ -41,6 +48,20 @@ public final class StubService {
     public static final String ACCOUNT_USER_ID = "11111111-1111-1111-1111-111111111111";
     /** An email starting with this prefix makes the stub answer after 3 s (slower than the 1 s test timeout). */
     public static final String SLOW_EMAIL_PREFIX = "slow-";
+
+    /** Stand-ins for auth-service's guest resolve route and playmatch-service's guest check-in route. */
+    public static final String RESOLVE_PATH = "/internal/v1/auth/guest-credentials/resolve";
+
+    public static final String GUEST_GAME_ID = "22222222-2222-2222-2222-222222222222";
+    /** Game codes that make the check-in stub answer 404, 409 or 500. */
+    public static final String UNKNOWN_GAME_CODE = "UNKNOWN1";
+
+    public static final String CLOSED_GAME_CODE = "CLOSED001";
+    public static final String FAILING_GAME_CODE = "FAILING1";
+
+    private final Map<String, String> guestTokens = new ConcurrentHashMap<>();
+    private final AtomicInteger guestTokenCounter = new AtomicInteger();
+    private volatile boolean resolveFails = false;
 
     private record VerifyAnswer(int status, String body) {}
 
@@ -74,6 +95,16 @@ public final class StubService {
         this.sessionCheckFails = fails;
     }
 
+    /** Makes the guest cookie with this token resolve to the attendance (otherwise the resolve route answers 401). */
+    public void knownGuestToken(String token, String attendanceId) {
+        guestTokens.put(token, attendanceId);
+    }
+
+    /** Makes the guest resolve route answer 500, like an auth-service that is up but failing. */
+    public void resolveFails(boolean fails) {
+        this.resolveFails = fails;
+    }
+
     public static StubService start() {
         return new StubService();
     }
@@ -90,6 +121,8 @@ public final class StubService {
         received.clear();
         sessionValid = true;
         sessionCheckFails = false;
+        guestTokens.clear();
+        resolveFails = false;
     }
 
     /** A port on which nothing listens, for the "service is down" case. */
@@ -138,8 +171,7 @@ public final class StubService {
     }
 
     private static String jsonField(String json, String name) {
-        java.util.regex.Matcher m =
-                java.util.regex.Pattern.compile("\"" + name + "\":\"([^\"]*)\"").matcher(json);
+        Matcher m = Pattern.compile("\"" + name + "\":\"([^\"]*)\"").matcher(json);
         return m.find() ? m.group(1) : "";
     }
 
@@ -156,6 +188,37 @@ public final class StubService {
             VerifyAnswer answer = verifyAnswer(requestBody);
             status = answer.status();
             body = answer.body();
+        } else if (path.equals(RESOLVE_PATH)) {
+            String token = jsonField(requestBody, "token");
+            String attendance = guestTokens.get(token);
+            if (resolveFails) {
+                status = 500;
+            } else if (attendance == null) {
+                status = 401;
+                body = "{\"code\":\"UNAUTHENTICATED\",\"message\":\"Sign in or check in to continue.\","
+                        + "\"requestId\":\"from-service\"}";
+            } else {
+                body = "{\"gameId\":\"" + GUEST_GAME_ID + "\",\"attendanceId\":\"" + attendance + "\"}";
+            }
+        } else if (path.startsWith("/internal/v1/games/by-code/") && path.endsWith("/guest-check-ins")) {
+            String code =
+                    path.substring("/internal/v1/games/by-code/".length(), path.length() - "/guest-check-ins".length());
+            if (code.equals(UNKNOWN_GAME_CODE)) {
+                status = 404;
+                body = "{\"code\":\"NOT_FOUND\",\"message\":\"Not found.\",\"requestId\":\"from-service\"}";
+            } else if (code.equals(CLOSED_GAME_CODE)) {
+                status = 409;
+                body =
+                        "{\"code\":\"STATE_CONFLICT\",\"message\":\"This game is closed.\",\"requestId\":\"from-service\"}";
+            } else if (code.equals(FAILING_GAME_CODE)) {
+                status = 500;
+            } else if (jsonField(requestBody, "existingAttendanceId").length() > 0) {
+                body = "{\"attendanceState\":\"PENDING\",\"created\":false,\"credential\":null}";
+            } else {
+                String token = String.format("%043d", guestTokenCounter.incrementAndGet());
+                body = "{\"attendanceState\":\"PENDING\",\"created\":true,\"credential\":{\"token\":\"" + token
+                        + "\",\"expiresAt\":\"" + Instant.now().plus(Duration.ofHours(14)) + "\"}}";
+            }
         } else if (path.endsWith("/conflict")) {
             status = 409;
             body = CONFLICT_BODY;

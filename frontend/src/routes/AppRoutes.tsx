@@ -4,6 +4,7 @@ import EmptyState from '../components/EmptyState'
 import Logo from '../components/Logo'
 import { copy } from '../copy/en'
 import HomePage from '../features/home/HomePage'
+import JoinPage from '../features/join/JoinPage'
 import LoginPage from '../features/login/LoginPage'
 import ForgotPasswordPage from '../features/password-reset/ForgotPasswordPage'
 import ResetPasswordPage from '../features/password-reset/ResetPasswordPage'
@@ -15,6 +16,7 @@ export default function AppRoutes() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/g/:publicCode" element={<PublicGamePage />} />
+      <Route path="/g/:publicCode/join" element={<JoinPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />

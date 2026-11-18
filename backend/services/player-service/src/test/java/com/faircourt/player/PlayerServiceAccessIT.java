@@ -37,6 +37,18 @@ class PlayerServiceAccessIT {
     }
 
     @Test
+    void onlyTheGuestProfileRouteIsOpenUnderInternalAndOnlyForPost() throws Exception {
+        // Opened by Guest check-in: POST only. An empty body is a 4xx from the route, never 401 from the security
+        // chain.
+        assertThat(send("POST", "/internal/v1/players/guests").statusCode()).isNotEqualTo(401);
+        assertThat(send("GET", "/internal/v1/players/guests").statusCode()).isEqualTo(401);
+        assertThat(send("PUT", "/internal/v1/players/guests").statusCode()).isEqualTo(401);
+        assertThat(send("POST", "/internal/v1/players/guests/extra").statusCode())
+                .isEqualTo(401);
+        assertThat(send("POST", "/api/v1/players/guests").statusCode()).isEqualTo(401);
+    }
+
+    @Test
     void routesNoFeatureOpenedAre401JsonWithoutASession() throws Exception {
         for (String path : new String[] {"/api/v1/anything", "/internal/v1/anything"}) {
             for (String method : new String[] {"GET", "POST"}) {

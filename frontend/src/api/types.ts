@@ -39,3 +39,25 @@ export type ApiErrorBody = {
   message: string
   requestId: string
 }
+
+// POST /api/v1/public/games/{publicCode}/guests: guest check-in (Guest check-in, design section 3).
+// Each answer is 0-3 (Still learning ... Consistently); "answers: null" means "not sure about my level".
+export type SkillAnswers = {
+  serve: number
+  rally: number
+  movement: number
+  positioning: number
+}
+
+export type GuestCheckInRequest = {
+  displayName: string
+  answers: SkillAnswers | null
+}
+
+export type AttendanceState =
+  'PENDING' | 'READY' | 'ASSIGNED' | 'PLAYING' | 'RESTING' | 'LEFT'
+
+export type GuestCheckIn = {
+  attendanceState: AttendanceState
+  message: string | null
+}
