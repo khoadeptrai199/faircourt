@@ -2,9 +2,14 @@
 // 2026-11-18: "session" -> "game" and a single contest -> "match" (owner decision, OD-22); restyled with the
 // "Court lines" look (Look and feel feature). Only existing copy; navigation and "games near you" are mocked up
 // in the design file and come with their own features (backlog L-20…L-22).
-// "Host login" stays disabled until the identity slice (blueprint section 17, step 2) ships the real login.
+// "Host login" links to /login (Account login feature); when signed in the header shows the email and "Sign out".
+import { Link } from 'react-router'
+import { logout } from '../../api/account'
+import Button from '../../components/Button'
 import CourtLines from '../../components/CourtLines'
 import Logo from '../../components/Logo'
+import { copy } from '../../copy/en'
+import { useAccount } from '../../hooks/useAccount'
 
 const steps = [
   {
@@ -26,7 +31,7 @@ export default function HomePage() {
     <div className="min-h-dvh bg-background text-ink">
       <header className="mx-auto flex max-w-[1080px] items-center justify-between gap-3 px-4 pt-4 pb-2 pl-5 md:px-6 md:pt-6 md:pb-3">
         <Logo />
-        <HostLoginButton />
+        <AccountMenu />
       </header>
 
       <main className="mx-auto max-w-[1080px] px-4 pt-2 pb-12 md:px-6 md:pt-3">
@@ -118,21 +123,44 @@ export default function HomePage() {
   )
 }
 
-function HostLoginButton() {
-  return (
-    <button
-      type="button"
-      disabled
-      aria-describedby="host-login-soon"
-      className="inline-flex min-h-11 cursor-not-allowed items-center gap-1.5 rounded-xl border-2 border-ink/15 bg-surface px-2.5 text-sm font-extrabold text-muted md:gap-2 md:px-4 md:text-base"
-    >
-      Host login
-      <span
-        id="host-login-soon"
-        className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-extrabold text-ink md:text-xs"
-      >
-        Coming soon
-      </span>
-    </button>
-  )
+function AccountMenu() {
+  const account = useAccount()
+
+  switch (account.status) {
+    case 'loading':
+      // Keeps the space so the header does not jump when the answer arrives.
+      return <span className="inline-block min-h-11" aria-hidden="true" />
+    case 'signedIn':
+      return (
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="hidden max-w-[240px] truncate text-sm font-bold text-muted sm:inline">
+            {copy.account.signedInAs(account.account.email)}
+          </span>
+          <Button
+            variant="secondary"
+            className="min-h-11 rounded-xl px-3 text-sm md:px-4 md:text-base"
+            onClick={async () => {
+              await logout().catch(() => undefined)
+              account.reload()
+            }}
+          >
+            {copy.account.signOut}
+          </Button>
+        </div>
+      )
+    case 'signedOut':
+    case 'error':
+      return (
+        <Link
+          to="/login"
+          className="inline-flex min-h-11 items-center rounded-xl border-2 border-ink/15 bg-surface px-3 text-sm font-extrabold text-ink hover:bg-highlight focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-action md:px-4 md:text-base"
+        >
+          {copy.login.title}
+        </Link>
+      )
+    default: {
+      const unreachable: never = account
+      return unreachable
+    }
+  }
 }

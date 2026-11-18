@@ -10,22 +10,22 @@ Naming (owner decision 2026-11-18): the blueprint's "session" (the play event) i
 - Private endpoints use UUIDs in the path; `publicCode` is the shareable random code.
 - Timestamps are ISO-8601 with timezone.
 - Identity comes from the signed-in account or the scoped guest cookie. `hostUserId`, `playerId` or `attendanceId` sent by the client is never proof of identity.
-- CSRF stays enabled for cookie-authenticated writes; `GET /api/v1/auth/csrf` is the public bootstrap (§0). The browser app calls it once, then sends the returned `token` in the request header named by `headerName` on every write (`POST`, `PUT`, `PATCH`, `DELETE`). **Header name: `X-CSRF-TOKEN`** (observed in `CsrfBootstrapIT` and with `curl` through the Vite proxy, 2026-11-17). The token is kept in the gateway's HTTP session (`JSESSIONID`, HttpOnly, SameSite=Lax), so JavaScript never reads a cookie. A write without a valid token → `403 CSRF_TOKEN_INVALID`.
+- CSRF stays enabled for cookie-authenticated writes; `GET /api/v1/auth/csrf` is the public bootstrap (§0). The browser app calls it once, then sends the returned `token` in the request header named by `headerName` on every write (`POST`, `PUT`, `PATCH`, `DELETE`). **Header name: `X-CSRF-TOKEN`** (observed in `CsrfBootstrapIT` and with `curl` through the Vite proxy, 2026-11-17). The token is kept in the gateway's HTTP session (`fc_sid`, HttpOnly, SameSite=Lax), so JavaScript never reads a cookie. A write without a valid token → `403 CSRF_TOKEN_INVALID`.
 - Every response carries an `X-Request-Id` header created by the gateway (a client-sent one is replaced); the same ID is in error bodies and in every log line of the gateway and the service.
 - The browser only talks to the gateway (port 9090, or through the Vite proxy on 9091). Routes under `/internal/**` exist only between services and are never reachable from outside.
 
 ## Endpoints
 
 Status = what exists in this repository today (not what the blueprint promises).
-Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf` and `GET /api/v1/public/games/{publicCode}` are reachable; every other route is denied (anonymous → `401 UNAUTHENTICATED`, so unknown routes are not revealed).
+Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf`, `GET /api/v1/public/games/{publicCode}`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout` and `GET /api/v1/me` are reachable; every other route is denied (anonymous → `401 UNAUTHENTICATED`, so unknown routes are not revealed).
 
 | Method and route | Caller | Contract (§13) | Status |
 |---|---|---|---|
 | `GET /auth/csrf` | Anyone | Public CSRF bootstrap for browser writes (§0). Response `{"headerName":"X-CSRF-TOKEN","token":"…"}`. | Implemented (API foundation, 2026-11-17) |
 | `GET /public/games/{publicCode}` | Anyone | Public title, venue, localizable times, court count, status; no names or match IDs. Also singles/doubles, minimum sets, price per person (OD-18…OD-20). | Implemented (Public game page, 2026-11-18) |
-| `POST /auth/login` | Pilot-provisioned account | Cookie-backed account session. Public signup is not available. | Not started |
-| `POST /auth/logout` | Signed-in account | Ends the account session. | Not started |
-| `GET /me` | Signed-in account | Returns account identity. | Not started |
+| `POST /auth/login` | Pilot-provisioned account | Cookie-backed account session. Public signup is not available. | Implemented (Account login, 2026-11-18) |
+| `POST /auth/logout` | Signed-in account | Ends the account session. | Implemented (Account login, 2026-11-18) |
+| `GET /me` | Signed-in account | Returns account identity. | Implemented (Account login, 2026-11-18) |
 | `POST /games` | Signed-in account | Create a game; creator becomes host. | Not started |
 | `POST /public/games/{publicCode}/guests` | Visitor | Submit name/assessment; create guest `PENDING`, set private guest cookie. | Not started |
 | `POST /games/{gameId}/join` | Signed-in player | Join once with member profile; return own attendance. | Not started |
@@ -70,6 +70,22 @@ Anyone, GET only. `publicCode` is trimmed and upper-cased; anything that is not 
 - `gameId` is the opaque internal id later routes use (`/games/{gameId}/...`); it grants nothing (owner decision 2026-11-18).
 - `state`: `OPEN` | `CLOSED` (closed = read-only). `matchFormat`: `SINGLES` | `DOUBLES`. `minSets`: 1–20.
 - `pricePerPerson` is `null` when no price is set; `male` or `female` is `null` when that line is not set; when only one bound of a line is set it is used as both. Shown only; players pay the host outside the app.
+
+### Account login: `POST /auth/login`, `POST /auth/logout`, `GET /me` (implemented, 2026-11-18)
+
+Answered by the gateway; the signed-in state is the gateway's HTTP session. Cookie `fc_sid` (HttpOnly, SameSite=Lax, `Secure` when `COOKIE_SECURE=true`; on HTTPS name it `__Host-fc_sid` with `SESSION_COOKIE_NAME`). Idle timeout 30 minutes, absolute timeout 8 hours. The session id changes at login. All three answers carry `Cache-Control: no-store`.
+
+| Route | Caller | Request | Response |
+|---|---|---|---|
+| `POST /auth/login` | anyone, CSRF token required | JSON only: `{"email","password"}`; email 1–254 characters, password 1–72 **bytes** | `200 {"userId","email"}` + session cookie |
+| `POST /auth/logout` | signed-in account, CSRF token required | no body | `204`, session destroyed, header `Clear-Site-Data: "cache", "cookies"` |
+| `GET /me` | signed-in account | — | `200 {"userId","email"}`; `401` when nobody is signed in |
+
+Login errors: `400 VALIDATION_FAILED` (bad body, password over 72 bytes, not JSON); `401 UNAUTHENTICATED` (wrong password **or** unknown email, identical body); `403 CSRF_TOKEN_INVALID`; `429 TOO_MANY_REQUESTS` + `Retry-After` (seconds); `503 SERVICE_UNAVAILABLE` (auth-service down).
+
+Throttling: counted per email (trimmed, case-insensitive, also for emails that do not exist). 5 failures → locked 60 s, doubling with each further failure up to 15 min; attempts older than 1 hour are forgotten (longer than the longest lock); a success clears the count. While locked even the right password gets 429. Counters are in the gateway's memory.
+
+Internal (never reachable through the gateway): `POST /internal/v1/auth/verify` on auth-service, body `{"email","password"}`, answers `200 {"userId","email"}` or `401`.
 
 ## Who may see what (§3)
 
@@ -149,6 +165,7 @@ Own assignment — `GET /api/v1/games/{id}/me`:
 | `403` | Authenticated but no permission |
 | `404` | Unknown, or private resource not visible |
 | `409` | State conflict |
+| `429` | Too many failed logins for one email |
 | `503` | A backend service did not answer in time (microservices, owner decision 2026-11-17) |
 
 Error codes (same body from the gateway and every service; messages are generic, never exception text):
@@ -157,6 +174,7 @@ Error codes (same body from the gateway and every service; messages are generic,
 |---|---|---|
 | `VALIDATION_FAILED` | 400 | Invalid body, unreadable JSON, wrong parameter type |
 | `UNAUTHENTICATED` | 401 | No identity; also any route that does not exist |
+| `TOO_MANY_REQUESTS` | 429 | Too many failed logins for one email; has a `Retry-After` header |
 | `GUEST_ACCESS_EXPIRED` | 401 | Guest cookie expired (Guest check-in) |
 | `CSRF_TOKEN_INVALID` | 403 | Write without a valid CSRF token |
 | `FORBIDDEN` | 403 | Identity known, permission missing |
@@ -173,3 +191,4 @@ Error codes (same body from the gateway and every service; messages are generic,
 - Pure matcher `com.faircourt.matching.MatchSuggester` (library `backend/libs/matching`) with unit tests. It is not exposed over HTTP yet.
 - API foundation: shared error body and codes, request ID, gateway route table (deny by default), CSRF bootstrap, `503` when a service does not answer. Services deny everything except health until a feature opens a route.
 - Public game page: `GET /public/games/{publicCode}` (playmatch-service, routed by the gateway).
+- Account login: `POST /auth/login`, `POST /auth/logout`, `GET /me` in the gateway; internal `POST /internal/v1/auth/verify` in auth-service; login throttle, idle and absolute session timeout.

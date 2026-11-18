@@ -4,6 +4,7 @@ import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -29,7 +30,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ApiException.class)
     ResponseEntity<ApiError> apiException(ApiException e) {
-        return respond(e.code(), e.getMessage());
+        ResponseEntity.BodyBuilder response = ResponseEntity.status(e.code().status());
+        if (e.retryAfterSeconds() != null) {
+            response.header(HttpHeaders.RETRY_AFTER, String.valueOf(e.retryAfterSeconds()));
+        }
+        return response.body(ApiError.of(e.code(), e.getMessage()));
     }
 
     @ExceptionHandler({
@@ -95,6 +100,7 @@ public class GlobalExceptionHandler {
             case 404 -> ErrorCode.NOT_FOUND;
             case 405 -> ErrorCode.METHOD_NOT_ALLOWED;
             case 409 -> ErrorCode.STATE_CONFLICT;
+            case 429 -> ErrorCode.TOO_MANY_REQUESTS;
             case 503 -> ErrorCode.SERVICE_UNAVAILABLE;
             default -> status.is4xxClientError() ? ErrorCode.VALIDATION_FAILED : null;
         };

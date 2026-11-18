@@ -4,6 +4,7 @@ import EmptyState from '../components/EmptyState'
 import Logo from '../components/Logo'
 import { copy } from '../copy/en'
 import HomePage from '../features/home/HomePage'
+import LoginPage from '../features/login/LoginPage'
 import PublicGamePage from '../features/public-game/PublicGamePage'
 
 // Route table (blueprint section 16, with "session" renamed to "game", OD-22). More routes come with later features.
@@ -12,6 +13,7 @@ export default function AppRoutes() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/g/:publicCode" element={<PublicGamePage />} />
+      <Route path="/login" element={<LoginPage />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   )

@@ -60,3 +60,13 @@ Whenever a status changes, update all three in the same step:
 
 - `SPRINT.md` status: `PLANNED → ACTIVE → DONE`. A sprint is `DONE` when its gate evidence table is filled with `PASS` (or owner-accepted `NOT VERIFIED`) and all its features are `DONE`.
 - Keep the demo steps runnable; update them if the implementation changed the flow.
+
+## Which model does which phase (owner decision 2026-11-18)
+
+| Phase | Model | Effort |
+|---|---|---|
+| Design, spec lookup, discussion with the owner | Opus 5.5 | Medium |
+| Implement and unit/integration tests | Sonnet 5.5 | Medium |
+| Review (`scope-guardian`, `privacy-reviewer`, `/code-review`) | Opus 5.5 | default |
+
+The owner switches the model with `/model`; Claude cannot. At each phase boundary Claude says which model the next phase is meant for, and reminds the owner once if the session runs on a different one.

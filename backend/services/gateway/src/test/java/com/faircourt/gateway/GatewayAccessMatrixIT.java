@@ -46,6 +46,14 @@ class GatewayAccessMatrixIT extends GatewayTestBase {
     }
 
     @Test
+    void accountRoutesNeedASignedInAccount() throws Exception {
+        assertUnauthenticated(get("/api/v1/me"));
+        // Login is public (CSRF token required); logout is for a signed-in account only.
+        assertThat(send("POST", "/api/v1/auth/logout", bootstrap()).statusCode())
+                .isEqualTo(401);
+    }
+
+    @Test
     void aListedPublicRouteIsForwardedToItsService() throws Exception {
         HttpResponse<String> response = get("/api/v1/test/echo");
 

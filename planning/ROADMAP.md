@@ -164,6 +164,7 @@ Nothing here enters a sprint without an owner decision. IDs are stable.
 | L-23 | Game detail page for discovery: who the host is, group name, distance (km), venue/court name, price and the facts of today's public page. Needs a privacy decision: showing the host's name publicly changes the public DTO (§3, §13) | Owner 2026-11-18 |
 | L-24 | Join request flow: player taps Join (after chatting, L-16) → the host is notified → the host accepts while slots are left → the player is notified "registered". Close to the MVP guest approval (F04 + F07: guest `PENDING` → host approves); notifications need the event/real-time work (Kafka, OD-17) | Owner 2026-11-18 |
 | L-25 | Animations, built last when the backend flows work: cinematic transition "stepping onto the court" when opening a game from the map/list; smash/defend animation with the "registered" message when the host accepts | Owner 2026-11-18 |
+| L-26 | Slow down password spraying and credential stuffing across many emails: a per-source or global limit on `/auth/login` (needs a trusted way to know the client address behind the proxy, plus a decision on the denial-of-service trade-off of a global limit); also limit concurrent password checks in auth-service | Security review of Account login, 2026-11-18 |
 
 ## 7. Risks
 

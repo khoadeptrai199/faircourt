@@ -22,6 +22,21 @@ export const copy = {
     notFoundTitle: 'Game not found',
     notFoundBody: 'Check the link from your host.',
   },
+  login: {
+    title: 'Host login',
+    email: 'Email',
+    password: 'Password',
+    submit: 'Sign in',
+    saving: 'Signing in…',
+    invalid: 'Email or password is incorrect.',
+    required: 'Enter your email and password.',
+    // Added with the login throttle (OWASP, owner asked for secure login 2026-11-18); wording awaits owner approval.
+    tooManyAttempts: 'Too many attempts. Try again later.',
+  },
+  account: {
+    signOut: 'Sign out',
+    signedInAs: (email: string) => `Signed in as ${email}`,
+  },
   common: {
     backHome: 'Back to home',
     loading: 'Loading…',

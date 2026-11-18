@@ -18,7 +18,7 @@ These rules apply to every layer. "Keep player data private and host mutations h
 
 - Never accept `hostUserId`, `playerId` or `attendanceId` from the client as proof of identity. Derive identity from the signed-in principal or the scoped guest credential (§13).
 - A nickname or the shared public code never authenticates anyone (§3, §12).
-- Members: server-side session cookie after `POST /api/v1/auth/login`. Public signup does not exist in MVP (§11, §13).
+- Members: server-side session cookie after `POST /api/v1/auth/login`. Public signup does not exist in MVP (§11, §13). Implemented in the gateway (Account login, 2026-11-18): cookie `fc_sid` (HttpOnly, SameSite=Lax, `Secure` from `COOKIE_SECURE`; `__Host-fc_sid` on HTTPS), idle timeout 30 min + absolute 8 h, session id changed at login, session destroyed at logout, login throttled per email (5 failures, then 60 s doubling to 15 min, HTTP 429), one answer for wrong password and unknown email, `Cache-Control: no-store`, JSON-only login, CSRF required, `next` redirect only to same-site paths. Standard followed: OWASP Authentication, Session Management and CSRF cheat sheets (design §12 of the feature).
 - Guests (§12):
   - Generate 32 random bytes; send only in an **HttpOnly, SameSite=Lax** cookie.
   - Store only the **SHA-256** of the secret in `guest_access.token_hash`. The raw secret never goes into the DB or logs.

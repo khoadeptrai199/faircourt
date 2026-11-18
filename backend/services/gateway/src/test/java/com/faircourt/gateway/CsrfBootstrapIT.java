@@ -21,7 +21,7 @@ class CsrfBootstrapIT extends GatewayTestBase {
         assertThat(response.body()).contains("\"headerName\":\"X-CSRF-TOKEN\"");
         assertThat(response.headers().allValues("Set-Cookie"))
                 .anySatisfy(cookie -> assertThat(cookie)
-                        .startsWith("JSESSIONID=")
+                        .startsWith("fc_sid=")
                         .containsIgnoringCase("HttpOnly")
                         .containsIgnoringCase("SameSite=Lax"));
     }

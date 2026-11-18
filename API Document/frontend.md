@@ -10,14 +10,15 @@ All API calls go to `/api/v1/...` on the same origin; locally Vite proxies `/api
 
 | Route | Screen (§6) | API call (§13) | Primary action | Empty / error states (§16) | Status |
 |---|---|---|---|---|---|
-| `/` | Home page (owner-approved 2026-11-12, not a §16 route) | none | — ("Host login" disabled, "Coming soon") | — | Implemented |
+| `/` | Home page (owner-approved 2026-11-12, not a §16 route) | `GET /me` (header: "Host login" link, or email + "Sign out") | `Host login` / `Sign out` | — | Implemented |
+| `/login` | Host login (design D-1; `?next=` same-site path only) | `GET /auth/csrf`, `POST /auth/login`, `GET /me` | `Sign in` | Empty fields, wrong credentials (one message), too many attempts (429), service down → Try again | Implemented 2026-11-18 (visual check pending) |
 | `/g/:publicCode` | Public game page | `GET /public/games/{publicCode}` | `Join game` | Unknown code → friendly 404; closed → read-only; any other failure (incl. 503) → error with Try again | Implemented 2026-11-18 (`Join game` shown disabled with "Coming soon" until guest check-in) |
 | `/g/:publicCode/join` | Visitor check-in | `GET /public/games/{publicCode}`, `POST /public/games/{publicCode}/guests` | `Join as guest` | Validation in place; pending-approval panel after submit | Not started |
 | `/my/games/:gameId` | My game | `GET /games/{gameId}/me`, `POST /games/{gameId}/me/feedback` | `View my court` / `How was the match?` | Pending, Ready/no match, Assigned, Playing, Finished/closed, expired guest access | Not started |
 | `/host/games/:gameId` | Host board | `GET /host/games/{gameId}/board`, `PATCH .../attendance/{attendanceId}`, `PATCH /host/matches/{matchId}/start\|finish\|cancel`, `POST .../assessments` | `Suggest matches` | No ready players, fewer than four, occupied courts, request failure | Not started |
 | `/host/games/:gameId/review` | Match review | `POST /host/games/{gameId}/suggestions`, `POST /host/games/{gameId}/matches` | `Start match` | Wide gap warning, stale suggestion `409`, Cancel/Confirm | Not started |
 
-Login (`POST /auth/login`, `GET /auth/csrf`) arrives with the identity slice (§17 step 2). The blueprint does not name a login route path yet.
+Login: `POST /auth/login`, `POST /auth/logout`, `GET /me` (Account login, 2026-11-18). The CSRF token is fetched from `GET /auth/csrf`, kept only in memory and sent in the header the gateway names; it is forgotten at login and logout. The blueprint does not name a login route path yet.
 
 ## Rules for API use (§16)
 

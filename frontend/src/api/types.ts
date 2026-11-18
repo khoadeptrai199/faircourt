@@ -28,6 +28,12 @@ export type PublicGame = {
   pricePerPerson: PricePerPerson | null
 }
 
+// POST /api/v1/auth/login and GET /api/v1/me: the signed-in person's own identity.
+export type Account = {
+  userId: string
+  email: string
+}
+
 export type ApiErrorBody = {
   code: string
   message: string

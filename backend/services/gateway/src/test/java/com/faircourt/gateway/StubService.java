@@ -34,7 +34,17 @@ public final class StubService {
             "{\"code\":\"MATCH_CONFLICT\",\"message\":\"A player or court is no longer available.\","
                     + "\"requestId\":\"from-service\"}";
 
-    public record Received(String method, String path, Headers headers) {}
+    /** Stand-in for auth-service's internal verify route (Account login). */
+    public static final String VERIFY_PATH = "/internal/v1/auth/verify";
+
+    public static final String ACCOUNT_PASSWORD = "right-password";
+    public static final String ACCOUNT_USER_ID = "11111111-1111-1111-1111-111111111111";
+    /** An email starting with this prefix makes the stub answer after 3 s (slower than the 1 s test timeout). */
+    public static final String SLOW_EMAIL_PREFIX = "slow-";
+
+    private record VerifyAnswer(int status, String body) {}
+
+    public record Received(String method, String path, Headers headers, String body) {}
 
     private final HttpServer server;
     private final List<Received> received = new CopyOnWriteArrayList<>();
@@ -93,13 +103,42 @@ public final class StubService {
         return new GatewayRouteTable(routes);
     }
 
+    /** Right password -> 200 with the account; anything else -> 401 like auth-service; "slow-" emails answer late. */
+    private static VerifyAnswer verifyAnswer(String requestBody) {
+        String email = jsonField(requestBody, "email");
+        String password = jsonField(requestBody, "password");
+        if (email.startsWith(SLOW_EMAIL_PREFIX)) {
+            try {
+                Thread.sleep(3_000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        if (ACCOUNT_PASSWORD.equals(password)) {
+            return new VerifyAnswer(200, "{\"userId\":\"" + ACCOUNT_USER_ID + "\",\"email\":\"" + email + "\"}");
+        }
+        return new VerifyAnswer(
+                401,
+                "{\"code\":\"UNAUTHENTICATED\",\"message\":\"Sign in or check in to continue.\",\"requestId\":\"from-service\"}");
+    }
+
+    private static String jsonField(String json, String name) {
+        java.util.regex.Matcher m =
+                java.util.regex.Pattern.compile("\"" + name + "\":\"([^\"]*)\"").matcher(json);
+        return m.find() ? m.group(1) : "";
+    }
+
     private void handle(HttpExchange exchange) throws IOException {
         String path = exchange.getRequestURI().getPath();
-        received.add(new Received(exchange.getRequestMethod(), path, exchange.getRequestHeaders()));
-        exchange.getRequestBody().readAllBytes();
+        String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+        received.add(new Received(exchange.getRequestMethod(), path, exchange.getRequestHeaders(), requestBody));
         int status = 200;
         String body = "{\"ok\":true}";
-        if (path.endsWith("/conflict")) {
+        if (path.equals(VERIFY_PATH)) {
+            VerifyAnswer answer = verifyAnswer(requestBody);
+            status = answer.status();
+            body = answer.body();
+        } else if (path.endsWith("/conflict")) {
             status = 409;
             body = CONFLICT_BODY;
         } else if (path.endsWith("/slow")) {

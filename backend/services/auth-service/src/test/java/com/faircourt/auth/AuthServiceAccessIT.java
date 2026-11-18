@@ -48,4 +48,16 @@ class AuthServiceAccessIT {
             }
         }
     }
+
+    @Test
+    void onlyTheVerifyRouteIsOpenUnderInternalAndOnlyForPost() throws Exception {
+        // Opened by Account login: POST only. The route answers 4xx for a bad request, never 401 from the security
+        // chain
+        // for POST; GET and every other internal path stay denied.
+        assertThat(send("POST", "/internal/v1/auth/verify").statusCode()).isNotEqualTo(401);
+        assertThat(send("GET", "/internal/v1/auth/verify").statusCode()).isEqualTo(401);
+        assertThat(send("POST", "/internal/v1/auth/verify/extra").statusCode()).isEqualTo(401);
+        assertThat(send("POST", "/internal/v1/auth/other").statusCode()).isEqualTo(401);
+        assertThat(send("POST", "/api/v1/auth/verify").statusCode()).isEqualTo(401);
+    }
 }

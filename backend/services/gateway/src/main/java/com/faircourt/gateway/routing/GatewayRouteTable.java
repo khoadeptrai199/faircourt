@@ -19,6 +19,11 @@ public record GatewayRouteTable(List<GatewayRoute> routes) {
     public static GatewayRouteTable production(String playmatchUrl) {
         return new GatewayRouteTable(List.of(
                 GatewayRoute.local("csrf-bootstrap", HttpMethod.GET, "/api/v1/auth/csrf", RouteAccess.PUBLIC),
+                // Account login (blueprint sections 11, 13): answered by the gateway; the signed-in state is its
+                // session.
+                GatewayRoute.local("login", HttpMethod.POST, "/api/v1/auth/login", RouteAccess.PUBLIC),
+                GatewayRoute.local("logout", HttpMethod.POST, "/api/v1/auth/logout", RouteAccess.ACCOUNT),
+                GatewayRoute.local("me", HttpMethod.GET, "/api/v1/me", RouteAccess.ACCOUNT),
                 // Public game page (blueprint sections 3, 13; OD-22): anyone, read-only.
                 new GatewayRoute(
                         "public-game",

@@ -2,7 +2,8 @@ spring:
   application:
     name: gateway
 
-  # No database. Route table and CSRF bootstrap: API foundation. Account session and identity token come with Account login (AD-14).
+  # No database. Route table, CSRF bootstrap and account login live here (AD-14); the identity token for services
+  # comes with the first feature whose service route needs the caller (Account login design D-4).
 
   http:
     clients:
@@ -13,9 +14,15 @@ spring:
 server:
   servlet:
     session:
-      # Gateway HTTP session (holds the CSRF token; later the account login): HttpOnly, SameSite=Lax,
+      # Idle timeout of the gateway HTTP session (OWASP Session Management: 15-30 minutes for a low-risk application);
+      # a login also ends after faircourt.account.absolute-timeout. Both are enforced on the server.
+      timeout: 30m
+      # Gateway HTTP session (holds the CSRF token and the signed-in account): HttpOnly, SameSite=Lax,
       # Secure from COOKIE_SECURE (blueprint section 0: false on local plain HTTP, true on HTTPS).
       cookie:
+        # Generic name, not the framework default JSESSIONID (OWASP). On HTTPS set SESSION_COOKIE_NAME=__Host-fc_sid
+        # (the __Host- prefix needs Secure, so it cannot be used on plain local HTTP).
+        name: "${SESSION_COOKIE_NAME:fc_sid}"
         http-only: true
         same-site: lax
         secure: "${COOKIE_SECURE:false}"
@@ -40,6 +47,10 @@ faircourt:
     # Where the gateway forwards each service's routes. Default = the Compose service name (services publish no host
     # port, so the gateway reaches them only inside the Compose network).
     playmatch-url: http://playmatch-service:8080
+    auth-url: http://auth-service:8080
+  account:
+    # A login ends after this time however active the person is (OWASP Session Management: 4-8 hours for a workday app).
+    absolute-timeout: 8h
   request-id:
     # The gateway always creates the request ID and replaces any client-sent X-Request-Id (API foundation AC-10).
     trust-incoming: false

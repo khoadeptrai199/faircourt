@@ -1,6 +1,6 @@
 # F03 design — Account login, logout, `GET /me`
 
-Status: `WAITING_APPROVAL` (written 2026-11-18). Waits for the owner's answers to D-1…D-6 (section 10) and the copy table (section 7).
+Status: `APPROVED` (2026-11-18, by owner: "tôi duyệt như bạn đề xuất" for D-1…D-6 incl. the internal route and the copy table). Security hardening added the same day on the owner's instruction to follow OWASP standards: see section 12 (it changes D-3 and adds items to the approved design).
 
 ## 1. Summary
 
@@ -91,15 +91,16 @@ Same look as the public game page (Look and feel): centered card up to 480px on 
 
 | Key | Text | Source | Approved |
 |---|---|---|---|
-| `login.title` | Host login | existing home button label | |
-| `login.email` | Email | NEW | |
-| `login.password` | Password | NEW | |
-| `login.submit` | Sign in | NEW | |
-| `login.saving` | Signing in… | NEW | |
-| `login.invalid` | Email or password is incorrect. | NEW (one message for both cases) | |
-| `login.required` | Enter your email and password. | NEW | |
-| `account.signOut` | Sign out | NEW | |
-| `account.signedInAs` | Signed in as {email} | NEW | |
+| `login.title` | Host login | existing home button label | yes (2026-11-18) |
+| `login.email` | Email | NEW | yes (2026-11-18) |
+| `login.password` | Password | NEW | yes (2026-11-18) |
+| `login.submit` | Sign in | NEW | yes (2026-11-18) |
+| `login.saving` | Signing in… | NEW | yes (2026-11-18) |
+| `login.invalid` | Email or password is incorrect. | NEW (one message for both cases) | yes (2026-11-18) |
+| `login.required` | Enter your email and password. | NEW | yes (2026-11-18) |
+| `account.signOut` | Sign out | NEW | yes (2026-11-18) |
+| `account.signedInAs` | Signed in as {email} | NEW | yes (2026-11-18) |
+| `login.tooManyAttempts` | Too many attempts. Try again later. | NEW, added with the login throttle (section 12); same text as the API message for 429 | **pending owner** |
 
 ## 8. Security and privacy checklist
 
@@ -133,7 +134,7 @@ Same look as the public game page (Look and feel): centered card up to 480px on 
 |---|---|---|---|
 | D-1 | Login screen route and where the person lands afterwards (OD-03) | (a) page `/login?next=…`, back to `next` or home · (b) a dialog on the home page | (a): link-able, works with the browser Back button, reused by later "sign in to continue" cases |
 | D-2 | `GET /me` fields and who answers | (a) `userId` + `email`, answered by the gateway from its session · (b) also ask auth-service each time | (a): no extra call; display name comes later with the player profile |
-| D-3 | Session idle timeout | 8 h / 12 h / 24 h | 8 h: covers an evening game with margin; the host signs in again the next day |
+| D-3 | Session idle timeout | 8 h / 12 h / 24 h | 8 h: covers an evening game with margin; the host signs in again the next day | **Changed after approval, see section 12.**
 | D-4 | Identity token for services (signed token the gateway adds to forwarded requests, system-design §5) | (a) build it with the first feature whose service route needs the caller (host board) · (b) build it now | (a): nothing in this feature uses it; it needs a new secret (`INTERNAL_TOKEN_SECRET`) and the exact format is better decided with a real consumer |
 | D-5 | Password length rule | 1–72 chars (BCrypt reads at most 72 bytes) / other | 1–72 characters |
 | D-6 | Copy table (section 7) | approve / edit | — |
@@ -144,3 +145,39 @@ Same look as the public game page (Look and feel): centered card up to 480px on 
 - Identity token for services → first feature that needs the caller (D-4)
 - Guest credential → Guest check-in
 - Navigation bar → L-20
+
+## 12. Security hardening added after approval (owner, 2026-11-18)
+
+Owner instruction: "nhớ đảm bảo các security, tôi không muốn bị lổ hổng nào xuất hiện … nên tham khảo các chuẩn". Standards read on 2026-11-18: OWASP Cheat Sheet Series — Authentication, Session Management, Cross-Site Request Forgery Prevention. What the standards say and what this feature does:
+
+| Standard (OWASP) | Done in this feature | Where |
+|---|---|---|
+| One generic message for wrong id, wrong password, unknown account; same work whether or not the account exists | One 401 body for all cases; a dummy BCrypt hash is matched when the email is unknown | `AccountVerifyService`, `AccountVerifyIT`, `AccountLoginIT` |
+| Limit attempts, count per account (not per IP), lengthen the wait after each failure | **New:** per email; every attempt is counted *before* the password is checked (so parallel guesses cannot slip through: 50 parallel guesses let exactly 5 pass, live test); 5 attempts, then 60 s lock doubling to 15 min; attempts are forgotten after 1 hour (longer than the longest lock, so a maximum lock is not wiped); answer 429 + `Retry-After`; applies to unknown emails too; at most 10,000 emails tracked | `LoginThrottle`, `LoginThrottleTest` |
+| Do not silently truncate passwords; support long passphrases | Password limit is **72 bytes** (BCrypt), longer is refused with 400, never cut. OWASP asks for ≥ 64 characters supported: 72 bytes covers 64 ASCII characters | gateway + auth-service |
+| Compare hashes in constant time | `PasswordEncoder.matches` | `AccountVerifyService` |
+| Log authentication failures and lockouts, no secrets | One WARN line per failure and per lock, with the request ID, no email, no password | `AccountController` |
+| Session cookie: Secure, HttpOnly, SameSite | HttpOnly, SameSite=Lax, Secure from `COOKIE_SECURE` (plain HTTP locally; **must be `true` on HTTPS**) | `application.yaml` |
+| Generic cookie name, `__Host-` prefix on HTTPS | Name `fc_sid` (not `JSESSIONID`); on HTTPS set `SESSION_COOKIE_NAME=__Host-fc_sid` | `application.yaml` |
+| New session id after login | `changeSessionId` at login; test proves the old id is useless | `AccountLoginIT.anOldSessionIdIsUselessAfterLogin` |
+| Idle timeout 15–30 min (low risk) and absolute timeout 4–8 h, both on the server | **Changed D-3:** idle **30 min** (was proposed 8 h), absolute **8 h** | `application.yaml`, `AbsoluteSessionTimeoutFilter` |
+| Invalidate on the server at logout; clear client state | Session invalidated; `Clear-Site-Data: "cache", "cookies"` | `AccountController.logout` |
+| `Cache-Control: no-store` on responses with session data | On login, `/me`, logout (and Spring Security's default headers `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`) | `AccountController`, live `curl` |
+| CSRF token on state-changing requests; login CSRF; reject simple content types | CSRF required on login and logout; login accepts `application/json` only; session id changes at login | `AccountLoginIT` |
+| Origin/Referer check as defence in depth | **Not done:** needs a trusted-origin setting and the Vite proxy changes the origin; SameSite=Lax + token + JSON-only already block the cases | — |
+| Serve login only over TLS | Local pilot runs plain HTTP; **HTTPS with `COOKIE_SECURE=true` is a gate before any real deployment** (backlog L-01) | docs |
+| MFA, CAPTCHA, blocked-password lists | Out of scope for the closed pilot (backlog L-11, L-17) | — |
+| Unvalidated redirects | `next` after login accepted only as a same-site path; checked again after the browser normalises it (`/.//evil.com` is refused) | `frontend/src/lib/redirect.ts` (checked with 15 attack strings in Node) |
+| Do not let anonymous routes read huge bodies | Login body capped at 4 KB, also for chunked bodies, answered 400 before parsing | `RequestBodyLimitFilter` |
+| Regenerate the CSRF token at authentication | The pre-login CSRF token is removed at login; the old token is refused afterwards | `AccountController`, `AccountLoginIT` |
+
+Other additions: `RouteAccess.ACCOUNT` and a `Clock` bean in the gateway; `ErrorCode.TOO_MANY_REQUESTS` (429) and `Retry-After` support in `ApiException` / `GlobalExceptionHandler` (shared library); frontend `apiPost` with the CSRF token kept only in memory, `useMutation`, `useAccount`, `TextField`.
+
+Residual risks the owner should know (not fixed here):
+
+- **Password spraying is not slowed down:** the lock is per email, so one common password tried against many different emails is never throttled (each try costs auth-service about 100 ms of BCrypt, so it is also a CPU denial-of-service route). A fix needs a per-source or global limit and a trusted way to know the client address behind the proxy: recorded as backlog L-26, needs an owner decision.
+- **The lock can be used against the host:** someone who knows the host's email can keep that account locked with about one request every 15 minutes (the lock after the first maximum lock does not reset: attempts are remembered for an hour). OWASP names this trade-off; "forgot password" does not exist in the MVP. The host can wait, or the gateway can be restarted (the counters are in memory).
+- The counters live in one gateway process: a restart clears them, and a second gateway instance would not share them. Fine for the pilot.
+- The password travels gateway → auth-service in plain HTTP on the private Compose network (same trust as the database link). Anyone who can run a container on that network could call `POST /internal/v1/auth/verify` directly and is not throttled. Mitigation later: a signed service-to-service token (design D-4) and TLS.
+- Sessions are in the gateway's memory: a gateway restart signs everyone out.
+- No account lockout notification, no login history for the person.
