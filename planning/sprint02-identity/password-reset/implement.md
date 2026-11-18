@@ -75,4 +75,4 @@ Not verified: the Mac; a real SMTP server (only the local catcher and a recordin
 - Names: the mail class is `ResetMailSender` (the design said `MailSender` and `ResetMails`, one class holds the texts); SMTP timeouts of 5 s were added to the mail settings; `GatewayRouteTable.production` takes the auth-service URL as a second argument.
 - The email goes from the forgot page to the reset page in router state (not in the URL), so it stays out of history and logs.
 - "Ended within a minute" means: at most one recheck interval (60 s) after the last successful check of that session.
-- Two throw-away accounts (`reset-test-17828@faircourt.local`, `reset-test-24731@faircourt.local`) (copy of the demo hash, then its password was reset by the live test) were left in the local development database; they can be deleted by the owner (a delete needs the owner's OK).
+- Two throw-away accounts (`reset-test-17828@faircourt.local`, `reset-test-24731@faircourt.local`, copies of the demo hash whose passwords the live checks reset) were created by the live checks and deleted on 2026-11-18 with the owner's OK (2 accounts and their 2 code rows; the 9 demo accounts remain).
