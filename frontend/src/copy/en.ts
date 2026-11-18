@@ -1,16 +1,19 @@
 // Every user-facing string of the new pages (conventions). Approved by the owner 2026-11-18 ("duyệt hết"),
 // with "session" replaced by "game" (OD-22); common.pageNotFoundTitle approved after implementation.
-// Design: public-game-page/design.md section 7.
+// 2026-11-18 (Look and feel, owner approved the mockup): the facts are shown as tiles, so "2 courts" is a number plus
+// the word, "At least 6 sets per player" is "6+" plus "sets per player", and "Men: 75.000 ₫–85.000 ₫" is a label
+// and a value. Same words, split for layout.
+// Design: public-game-page/design.md section 7 and look-and-feel/design.md.
 export const copy = {
   publicGame: {
     join: 'Join game',
-    courts: (n: number) => (n === 1 ? '1 court' : `${n} courts`),
+    courtWord: (n: number) => (n === 1 ? 'court' : 'courts'),
     formatSingles: 'Singles',
     formatDoubles: 'Doubles',
-    minSets: (n: number) => `At least ${n} sets per player`,
+    minSetsWord: 'sets per player',
     priceTitle: 'Price per person',
-    priceMale: (range: string) => `Men: ${range}`,
-    priceFemale: (range: string) => `Women: ${range}`,
+    priceMale: 'Men',
+    priceFemale: 'Women',
     priceNote: 'Pay the host directly.',
     statusOpen: 'Open',
     statusClosed: 'Closed',

@@ -158,6 +158,12 @@ Nothing here enters a sprint without an owner decision. IDs are stable.
 | L-18 | Discovery list: all open play sessions in Ho Chi Minh City, filter by area, level, price, travel distance (like hotel booking) | Owner 2026-11-17 |
 | L-19 | One standard error-code catalogue for every hop: browser → gateway, service → service (`/internal/v1/**`) and calls to third-party APIs (if any): code names, HTTP status, retry/timeout meaning, how a downstream error is mapped. Today `common-web` `ErrorCode` covers gateway and services only | Owner, 2026-11-18 (public game page review) |
 | L-17 | Keycloak / OIDC for accounts (signup, recovery, MFA); trigger: before public signup | Conversation 2026-11-17 |
+| L-20 | App navigation: about 5 items in a top bar on desktop, 4–5 items in a bottom bar on phones; each item is added when its feature ships (relates to F16 "bottom navigation"). Mocked up in F20 only | Owner 2026-11-18 |
+| L-21 | Home page lists open walk-in games within 3 km when the visitor allows location (about 10 items); without permission it asks first. Extends L-18. Privacy to design: location used only to sort/filter, not stored | Owner 2026-11-18 |
+| L-22 | "Find courts near you" opens the real-time map (L-14); the player picks a court on the map or from the list | Owner 2026-11-18 |
+| L-23 | Game detail page for discovery: who the host is, group name, distance (km), venue/court name, price and the facts of today's public page. Needs a privacy decision: showing the host's name publicly changes the public DTO (§3, §13) | Owner 2026-11-18 |
+| L-24 | Join request flow: player taps Join (after chatting, L-16) → the host is notified → the host accepts while slots are left → the player is notified "registered". Close to the MVP guest approval (F04 + F07: guest `PENDING` → host approves); notifications need the event/real-time work (Kafka, OD-17) | Owner 2026-11-18 |
+| L-25 | Animations, built last when the backend flows work: cinematic transition "stepping onto the court" when opening a game from the map/list; smash/defend animation with the "registered" message when the host accepts | Owner 2026-11-18 |
 
 ## 7. Risks
 

@@ -6,7 +6,7 @@
 | Status | `DONE` |
 | Blueprint | §3 (permission table row 1), §6 (Public session page), §12 (Asia/Ho_Chi_Minh), §13 (`GET /public/sessions/{publicCode}`, here `/public/games/...`), §16 (`/s/:publicCode`, here `/g/:publicCode`); OD-01, OD-02, OD-13, OD-18…OD-20, OD-22 |
 | Depends on | F01, F19 (Game rename) |
-| Waiting for | Visual check at 320/375/1280px by the owner (AC-06 `NOT VERIFIED`) |
+| Waiting for | — |
 | Branch | `feature/public-game-page` |
 | Last updated | 2026-11-18 |
 
@@ -55,3 +55,5 @@ Anyone with the shared link opens `/g/<code>` and sees the game's title, venue, 
 | 2026-11-18 | **APPROVED**: whole design incl. copy table and the rename plan; implement on a new branch ("duyệt hết, triển khai implement đi. nhớ checkout branch mới đừng làm trên main"). Folder renamed `public-session-page` → `public-game-page` | Owner, conversation 2026-11-18 |
 | 2026-11-18 | Implemented; status `IN_REVIEW` (review agents not run yet) | implement.md |
 | 2026-11-18 | Review: no open high/medium finding (low findings fixed; "Page not found" and one-bound price approved by the owner). Pipeline green. Owner: "mọi thứ ok thì build + test + commit + push" → `DONE`, committed and pushed on `feature/public-game-page` | review.md, owner |
+| 2026-11-18 | Status moved back from `DONE` to `IN_REVIEW`: it was set to `DONE` before the page had been looked at; the owner then hit a Vite "react-router" error (stale `node_modules` volume, fixed, see implement.md). `DONE` needs the page checked in a browser or an owner-accepted `NOT VERIFIED` | Claude, honesty rule |
+| 2026-11-18 | Owner checked the page in Edge (desktop): game page and "Game not found" correct (screenshots). Owner accepted the rest as `NOT VERIFIED` (closed game page, error + Try again page, 320/375px) and confirmed `DONE`; those are checked again with the new UI design | Owner, conversation 2026-11-18 |

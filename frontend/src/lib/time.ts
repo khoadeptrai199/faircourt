@@ -15,15 +15,19 @@ const clockFormat = new Intl.DateTimeFormat('en-GB', {
   hourCycle: 'h23',
 })
 
-// e.g. "Tue 17 Nov · 18:00–21:00"; the end date is added when the game ends on another day.
-export function formatGameWindow(startsAt: string, endsAt: string): string {
-  const start = new Date(startsAt)
-  const end = new Date(endsAt)
-  const startDay = dayFormat.format(start).replace(',', '')
-  const endDay = dayFormat.format(end).replace(',', '')
-  const endText =
-    endDay === startDay
-      ? clockFormat.format(end)
-      : `${endDay} ${clockFormat.format(end)}`
-  return `${startDay} · ${clockFormat.format(start)}–${endText}`
+// e.g. { day: "Wed 18 Nov", start: "18:00", end: "21:00" }; the end gets its day when the game ends on another day.
+export function formatGameTime(
+  startsAt: string,
+  endsAt: string,
+): { day: string; start: string; end: string } {
+  const startDate = new Date(startsAt)
+  const endDate = new Date(endsAt)
+  const startDay = dayFormat.format(startDate).replace(',', '')
+  const endDay = dayFormat.format(endDate).replace(',', '')
+  const endClock = clockFormat.format(endDate)
+  return {
+    day: startDay,
+    start: clockFormat.format(startDate),
+    end: endDay === startDay ? endClock : `${endDay} ${endClock}`,
+  }
 }

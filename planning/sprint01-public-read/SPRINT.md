@@ -16,8 +16,9 @@
 | F01 | [API foundation: shared lib + gateway](api-foundation/README.md) | `DONE` |
 | F19 | [Game rename ("session" → "game")](game-rename/README.md) | `DONE` |
 | F02 | [Public game page + frontend foundation](public-game-page/README.md) | `DONE` |
+| F20 | [Look and feel ("Court lines")](look-and-feel/README.md) | `IN_REVIEW` |
 
-Order: F18 → F01 → F19 → F02 (backend first, then F02's frontend).
+Order: F18 → F01 → F19 → F02 (backend first, then F02's frontend) → F20.
 
 ## Why this sprint first
 
@@ -42,3 +43,4 @@ Read-only and anonymous: no login, no transactions, no state machine. It still e
 
 - 2026-11-17: sprint re-scoped for microservices (OD-17). F18 added to this sprint as part of the owner-approved sprint plan rewrite ("oke" to rewriting the planning documents, conversation 2026-11-17). Folder name `sprint01-public-read` kept to avoid moving files.
 - 2026-11-18: F19 Game rename added to this sprint before F02 (owner approved the rename plan as a separate feature, "duyệt hết"). F19 and F02 built on one branch `feature/public-game-page`.
+- 2026-11-18: F20 Look and feel added at the owner's request ("UI bạn tự vẽ … chất riêng").
