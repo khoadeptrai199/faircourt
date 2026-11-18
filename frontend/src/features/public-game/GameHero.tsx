@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
+import { Link, useParams } from 'react-router'
 import type { PublicGame } from '../../api/types'
-import Button from '../../components/Button'
 import CourtLines from '../../components/CourtLines'
 import StatusBadge from '../../components/StatusBadge'
 import { copy } from '../../copy/en'
@@ -18,6 +18,7 @@ export default function GameHero({ game }: { game: PublicGame }) {
   const price = game.pricePerPerson
   const time = formatGameTime(game.startsAt, game.endsAt)
   const open = game.state === 'OPEN'
+  const { publicCode = '' } = useParams()
 
   return (
     <div className="flex flex-col gap-3 md:grid md:grid-cols-12 md:gap-5">
@@ -149,22 +150,15 @@ export default function GameHero({ game }: { game: PublicGame }) {
         )}
 
         {open ? (
-          // Joining comes with guest check-in; until then the button is shown disabled (OD-13, owner 2026-11-18).
           // Phone: fixed to the bottom of the screen so it is always within reach (owner 2026-11-18).
+          // The Join button leads to the guest check-in page (Guest check-in; replaces the disabled button of OD-13).
           <div className="fixed inset-x-0 bottom-0 z-10 border-t border-ink/10 bg-background/95 px-4 pt-3.5 pb-5 md:static md:border-0 md:bg-transparent md:p-0">
-            <Button
-              disabled
-              aria-describedby="join-soon"
-              className="min-h-14 w-full text-lg md:min-h-16 md:rounded-[20px] md:text-xl"
+            <Link
+              to={`/g/${encodeURIComponent(publicCode)}/join`}
+              className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-action px-4 text-lg font-extrabold text-white hover:bg-action-dark focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-action md:min-h-16 md:rounded-[20px] md:text-xl"
             >
               {t.join}
-              <span
-                id="join-soon"
-                className="rounded-full bg-accent px-2.5 py-0.5 text-[13px] font-extrabold text-ink md:px-3 md:py-1 md:text-sm"
-              >
-                {copy.common.comingSoon}
-              </span>
-            </Button>
+            </Link>
           </div>
         ) : (
           <p

@@ -50,3 +50,13 @@ faircourt:
   request-id:
     # Keep the request ID the gateway forwarded (services are reachable only from the gateway).
     trust-incoming: true
+  services:
+    # Where playmatch-service calls the services it orchestrates (Guest check-in). Default = the Compose service name.
+    player-url: "${PLAYER_URL:http://player-service:8080}"
+    auth-url: "${AUTH_URL:http://auth-service:8080}"
+    # A service that does not answer in time -> 503 SERVICE_UNAVAILABLE (owner decision 2026-11-17: 2 s / 5 s).
+    connect-timeout: 2s
+    read-timeout: 5s
+  guest:
+    # A guest credential ends this long after the game ends (design D-1: max(endsAt, now) + 12 h).
+    cookie-grace: 12h

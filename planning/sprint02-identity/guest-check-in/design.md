@@ -1,6 +1,6 @@
 # F04 design — Guest check-in + guest cookie
 
-Status: `WAITING_APPROVAL` (written 2026-11-18). Waits for the owner's answers to D-1…D-10 (section 10), including 4 new internal routes and the copy table. Security standard: OWASP Session Management and Authentication cheat sheets (the guest cookie is a session credential) plus the lessons of Account login and Password reset. Naming: the play event is a **game** (OD-22).
+Status: `APPROVED` 2026-11-18: the owner approved D-1…D-10 as recommended (section 10), including the 4 new internal routes and the copy table. Security standard: OWASP Session Management and Authentication cheat sheets (the guest cookie is a session credential) plus the lessons of Account login and Password reset. Naming: the play event is a **game** (OD-22).
 
 ## 1. Summary
 
@@ -121,21 +121,21 @@ Flow: step 0 name → steps 1–4 questions (Back / Next, "Question n of 4") →
 
 | Key | Text | Source | Approved |
 |---|---|---|---|
-| `join.title` | Join game | blueprint §6 button text, reused | |
-| `join.nameLabel` | Your name | NEW | |
-| `join.nameHelp` | The host sees this name. | NEW | |
-| `join.progress` | Question {n} of 4 | NEW (§16 "progress label") | |
-| `join.next` / `join.back` | Next / Back | NEW | |
-| `join.q.serve` | How often does your serve land in? | blueprint §4 | |
-| `join.q.rally` | Can you sustain a rally with players at your usual level? | blueprint §4 | |
-| `join.q.movement` | How comfortable are you moving backward and recovering? | blueprint §4 | |
-| `join.q.positioning` | When your partner is at the net, do you know where to cover? | blueprint §4 | |
-| `join.a.0…3` | Still learning / Sometimes / Usually / Consistently | blueprint §4 anchors (0, 1, 2, 3) | |
-| `join.notSure` | I'm not sure about my level | NEW (blueprint allows unknown answers) | |
-| `join.submit` | Send | NEW | |
-| `join.pending` | Waiting for host approval | blueprint §13 | |
-| `join.pendingBody` | The host will confirm you. Keep your phone handy. | NEW | |
-| `join.nameRequired` | Enter your name. | NEW | |
+| `join.title` | Join game | blueprint §6 button text, reused | yes (2026-11-18) |
+| `join.nameLabel` | Your name | NEW | yes (2026-11-18) |
+| `join.nameHelp` | The host sees this name. | NEW | yes (2026-11-18) |
+| `join.progress` | Question {n} of 4 | NEW (§16 "progress label") | yes (2026-11-18) |
+| `join.next` / `join.back` | Next / Back | NEW | yes (2026-11-18) |
+| `join.q.serve` | How often does your serve land in? | blueprint §4 | yes (2026-11-18) |
+| `join.q.rally` | Can you sustain a rally with players at your usual level? | blueprint §4 | yes (2026-11-18) |
+| `join.q.movement` | How comfortable are you moving backward and recovering? | blueprint §4 | yes (2026-11-18) |
+| `join.q.positioning` | When your partner is at the net, do you know where to cover? | blueprint §4 | yes (2026-11-18) |
+| `join.a.0…3` | Still learning / Sometimes / Usually / Consistently | blueprint §4 anchors (0, 1, 2, 3) | yes (2026-11-18) |
+| `join.notSure` | I'm not sure about my level | NEW (blueprint allows unknown answers) | yes (2026-11-18) |
+| `join.submit` | Send | NEW | yes (2026-11-18) |
+| `join.pending` | Waiting for host approval | blueprint §13 | yes (2026-11-18) |
+| `join.pendingBody` | The host will confirm you. Keep your phone handy. | NEW | yes (2026-11-18) |
+| `join.nameRequired` | Enter your name. | NEW | yes (2026-11-18) |
 | `join.closed` | This game is closed. | reuses `publicGame.closedNote` | yes |
 | `join.error` | Something went wrong. | reuses `common.errorTitle` | yes |
 

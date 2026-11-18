@@ -56,6 +56,27 @@ export const copy = {
     success: 'Your password was changed. Sign in with the new password.',
     toLogin: 'Sign in',
   },
+  // Guest check-in (owner approved the copy table 2026-11-18, design section 7).
+  join: {
+    title: 'Join game',
+    nameLabel: 'Your name',
+    nameHelp: 'The host sees this name.',
+    progress: (n: number) => `Question ${n} of 4`,
+    next: 'Next',
+    back: 'Back',
+    questions: [
+      'How often does your serve land in?',
+      'Can you sustain a rally with players at your usual level?',
+      'How comfortable are you moving backward and recovering?',
+      'When your partner is at the net, do you know where to cover?',
+    ],
+    answers: ['Still learning', 'Sometimes', 'Usually', 'Consistently'],
+    notSure: "I'm not sure about my level",
+    submit: 'Send',
+    pending: 'Waiting for host approval',
+    pendingBody: 'The host will confirm you. Keep your phone handy.',
+    nameRequired: 'Enter your name.',
+  },
   account: {
     signOut: 'Sign out',
     signedInAs: (email: string) => `Signed in as ${email}`,

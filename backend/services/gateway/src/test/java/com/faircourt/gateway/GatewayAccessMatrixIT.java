@@ -87,6 +87,24 @@ class GatewayAccessMatrixIT extends GatewayTestBase {
     }
 
     @Test
+    void guestCheckInIsOpenForAnyoneAsPostWithACsrfTokenAndNeverForwardedWithoutOne() throws Exception {
+        String path = "/api/v1/public/games/FRI7Q2K9/guests";
+
+        HttpResponse<String> noToken = send("POST", path, Map.of());
+        // An empty JSON object is invalid: 400 from the route itself proves the rule let the caller in.
+        HttpResponse<String> withToken = send("POST", path, bootstrap());
+
+        assertThat(noToken.statusCode()).as("without token").isEqualTo(403);
+        assertThat(withToken.statusCode()).as("with token").isEqualTo(400);
+        assertThat(withToken.body()).contains("\"code\":\"VALIDATION_FAILED\"");
+        // Only POST: everything else is refused before it reaches any service.
+        for (String method : new String[] {"GET", "PUT", "PATCH", "DELETE"}) {
+            assertThat(send(method, path, bootstrap()).statusCode()).as(method).isEqualTo(401);
+        }
+        assertThat(STUB.received()).isEmpty();
+    }
+
+    @Test
     void accountRoutesNeedASignedInAccount() throws Exception {
         assertUnauthenticated(get("/api/v1/me"));
         // Login is public (CSRF token required); logout is for a signed-in account only.

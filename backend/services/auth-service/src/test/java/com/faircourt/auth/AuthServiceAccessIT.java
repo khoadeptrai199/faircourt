@@ -68,6 +68,21 @@ class AuthServiceAccessIT {
     }
 
     @Test
+    void guestCredentialRoutesAreInternalAndOpenForPostOnly() throws Exception {
+        // Opened by Guest check-in. An empty body is a 4xx from the route, never 401 from the security chain.
+        for (String path :
+                new String[] {"/internal/v1/auth/guest-credentials", "/internal/v1/auth/guest-credentials/resolve"}) {
+            assertThat(send("POST", path).statusCode()).as("POST " + path).isNotEqualTo(401);
+            assertThat(send("GET", path).statusCode()).as("GET " + path).isEqualTo(401);
+            assertThat(send("PUT", path).statusCode()).as("PUT " + path).isEqualTo(401);
+            assertThat(send("POST", path + "/extra").statusCode())
+                    .as("POST " + path + "/extra")
+                    .isEqualTo(401);
+        }
+        assertThat(send("POST", "/api/v1/auth/guest-credentials").statusCode()).isEqualTo(401);
+    }
+
+    @Test
     void onlyTheVerifyRouteIsOpenUnderInternalAndOnlyForPost() throws Exception {
         // Opened by Account login: POST only. The route answers 4xx for a bad request, never 401 from the security
         // chain

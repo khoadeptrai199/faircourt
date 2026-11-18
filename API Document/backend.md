@@ -17,7 +17,7 @@ Naming (owner decision 2026-11-18): the blueprint's "session" (the play event) i
 ## Endpoints
 
 Status = what exists in this repository today (not what the blueprint promises).
-Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf`, `GET /api/v1/public/games/{publicCode}`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/me`, `POST /api/v1/auth/password/forgot` and `POST /api/v1/auth/password/reset` are reachable; every other route is denied (anonymous → `401 UNAUTHENTICATED`, so unknown routes are not revealed).
+Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf`, `GET /api/v1/public/games/{publicCode}`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/me`, `POST /api/v1/auth/password/forgot`, `POST /api/v1/auth/password/reset` and `POST /api/v1/public/games/{publicCode}/guests` are reachable; every other route is denied (anonymous → `401 UNAUTHENTICATED`, so unknown routes are not revealed).
 
 | Method and route | Caller | Contract (§13) | Status |
 |---|---|---|---|
@@ -29,7 +29,7 @@ Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf`, `GET /api/v1/pub
 | `POST /auth/password/forgot` | Anyone | Asks for a one-time code by email (owner-approved addition, 2026-11-18). | Implemented (Password reset, 2026-11-18) |
 | `POST /auth/password/reset` | Anyone | Code + new password (owner-approved addition, 2026-11-18). | Implemented (Password reset, 2026-11-18) |
 | `POST /games` | Signed-in account | Create a game; creator becomes host. | Not started |
-| `POST /public/games/{publicCode}/guests` | Visitor | Submit name/assessment; create guest `PENDING`, set private guest cookie. | Not started |
+| `POST /public/games/{publicCode}/guests` | Visitor | Submit name/assessment; create guest `PENDING`, set private guest cookie. | Implemented, backend (Guest check-in, 2026-11-18) |
 | `POST /games/{gameId}/join` | Signed-in player | Join once with member profile; return own attendance. | Not started |
 | `GET /games/{gameId}/me` | Member or scoped guest | Own attendance state, optional own `matchNo`, `courtNo`, `matchState`; no other players. | Not started |
 | `GET /host/games/{gameId}/board` | This game's host | Full attendance list, private bands, current matches and courts. | Not started |
@@ -80,7 +80,7 @@ Answered by the gateway; the signed-in state is the gateway's HTTP session. Cook
 | Route | Caller | Request | Response |
 |---|---|---|---|
 | `POST /auth/login` | anyone, CSRF token required | JSON only: `{"email","password"}`; email 1–254 characters, password 1–72 **bytes** | `200 {"userId","email"}` + session cookie |
-| `POST /auth/logout` | signed-in account, CSRF token required | no body | `204`, session destroyed, header `Clear-Site-Data: "cache", "cookies"` |
+| `POST /auth/logout` | signed-in account, CSRF token required | no body | `204`, session destroyed, header `Clear-Site-Data: "cache"` and only the account cookie `fc_sid` expired (since Guest check-in: the directive `"cookies"` would also delete the guest cookie) |
 | `GET /me` | signed-in account | — | `200 {"userId","email"}`; `401` when nobody is signed in |
 
 Login errors: `400 VALIDATION_FAILED` (bad body, password over 72 bytes, not JSON); `401 UNAUTHENTICATED` (wrong password **or** unknown email, identical body); `403 CSRF_TOKEN_INVALID`; `429 TOO_MANY_REQUESTS` + `Retry-After` (seconds); `503 SERVICE_UNAVAILABLE` (auth-service down).
@@ -103,6 +103,31 @@ Code: 8 random digits, valid 10 minutes, one use, 5 wrong tries then dead, a new
 Internal (never reachable through the gateway): `GET /internal/v1/auth/accounts/{userId}/session-check?since=<instant>` on auth-service → `{"valid":true|false}` (false when the password changed after `since` or the account does not exist).
 
 Mail: sent by auth-service over SMTP (`MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASSWORD`, `MAIL_FROM`, `MAIL_SMTP_AUTH`, `MAIL_STARTTLS`). Locally the Compose service `mailpit` catches every mail; read them at http://localhost:9094. Plain text, no links, never a password.
+
+### Guest check-in: `POST /public/games/{publicCode}/guests` (backend implemented, 2026-11-18)
+
+Anyone; answered by the gateway (it owns the cookie); CSRF token required; JSON only; request body capped at 4 KB.
+
+| Item | Value |
+|---|---|
+| Request | `{"displayName","answers":{"serve","rally","movement","positioning"}}`; `displayName` trimmed, 1–80 chars, no control characters; the four answers are each 0–3, or all `null`, or `answers` is `null` / missing (unknown level) |
+| `201` | `{"attendanceState":"PENDING","message":"Waiting for host approval"}` and `Set-Cookie` guest cookie |
+| `200` | The same browser again (a valid guest cookie of this game): `{"attendanceState":"<state now>","message":…}`; `message` is only set for `PENDING`; no new rows, no new cookie |
+| Errors | `400 VALIDATION_FAILED` (name, partial or out-of-range answers, body over 4 KB, not JSON); `403 CSRF_TOKEN_INVALID`; `404 NOT_FOUND` (unknown or malformed code); `409 STATE_CONFLICT` (game `CLOSED`); `503 SERVICE_UNAVAILABLE` (a service of the check-in does not answer; if auth-service failed after the entry was created, the entry is withdrawn) |
+| Headers | `Cache-Control: no-store`. The answer holds no id, name or band |
+
+Guest cookie: name `fc_guest` (`GUEST_COOKIE_NAME`; on HTTPS `__Host-fc_guest`), value = 32 random bytes base64url (43 characters), HttpOnly, SameSite=Lax, `Secure` from `COOKIE_SECURE`, Path=/, no Domain, Max-Age until the credential ends = `max(game end, now) + 12 h`. Only its SHA-256 is stored (`auth.guest_access.token_hash`). A cookie of another game, or an unknown, expired or revoked one, is ignored (the person checks in as a new guest and the cookie is replaced). The cookie never leaves the gateway: services receive the resolved attendance id as an explicit argument.
+
+Internal (never reachable through the gateway):
+
+| Service | Route | Called by | Request → response |
+|---|---|---|---|
+| playmatch | `POST /internal/v1/games/by-code/{publicCode}/guest-check-ins` | gateway | `{displayName, answers, existingAttendanceId\|null}` → `{attendanceState, created, credential:{token, expiresAt}\|null}`; 404 / 409 / 400 / 503 |
+| auth | `POST /internal/v1/auth/guest-credentials` | playmatch | `{gameId, attendanceId, expiresAt}` → `201 {token, expiresAt}` |
+| auth | `POST /internal/v1/auth/guest-credentials/resolve` | gateway | `{token}` → `200 {gameId, attendanceId}` or `401` (one answer for unknown, expired and revoked) |
+| player | `POST /internal/v1/players/guests` | playmatch | `{displayName, gameId, answers\|null}` → `201 {playerId}`; `400` for partial or out-of-range answers |
+
+Band mapping (blueprint §13): total of the four answers 0–3 → band 1, 4–6 → 2, 7–9 → 3, 10–12 → 4; all unknown → no band.
 
 ## Who may see what (§3)
 
@@ -209,4 +234,5 @@ Error codes (same body from the gateway and every service; messages are generic,
 - API foundation: shared error body and codes, request ID, gateway route table (deny by default), CSRF bootstrap, `503` when a service does not answer. Services deny everything except health until a feature opens a route.
 - Public game page: `GET /public/games/{publicCode}` (playmatch-service, routed by the gateway).
 - Account login: `POST /auth/login`, `POST /auth/logout`, `GET /me` in the gateway; internal `POST /internal/v1/auth/verify` in auth-service; login throttle, idle and absolute session timeout.
+- Guest check-in (backend): `POST /public/games/{publicCode}/guests` in the gateway, saga across playmatch, player and auth (4 internal routes), guest cookie `fc_guest`; logout no longer clears it.
 - Password reset: `POST /auth/password/forgot`, `POST /auth/password/reset` (forwarded to auth-service), internal session check, Flyway `V3` (table `password_reset`, column `password_changed_at`), mail through SMTP (local catcher `mailpit`).

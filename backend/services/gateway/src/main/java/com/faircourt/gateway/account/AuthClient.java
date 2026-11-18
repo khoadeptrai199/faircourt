@@ -4,6 +4,7 @@ import com.faircourt.common.web.ApiException;
 import com.faircourt.common.web.ErrorCode;
 import com.faircourt.common.web.RequestIdFilter;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -47,6 +48,37 @@ public class AuthClient {
             if (e.getStatusCode().isSameCodeAs(HttpStatus.BAD_REQUEST)) {
                 // The gateway and auth-service disagree about what a valid login is: not "service down".
                 throw new ApiException(ErrorCode.VALIDATION_FAILED);
+            }
+            throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE);
+        } catch (RestClientResponseException | ResourceAccessException e) {
+            throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE);
+        }
+    }
+
+    private record ResolveRequest(String token) {}
+
+    private record ResolveResponse(UUID gameId, UUID attendanceId) {}
+
+    /**
+     * The attendance a guest cookie belongs to ({@code POST /internal/v1/auth/guest-credentials/resolve}, Guest
+     * check-in). Empty for an unknown, expired or revoked token (one answer: 401); 503 when auth-service does not
+     * answer. The token is never logged.
+     */
+    public Optional<UUID> resolveGuest(String token) {
+        try {
+            ResolveResponse answer = client.post()
+                    .uri("/internal/v1/auth/guest-credentials/resolve")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(RequestIdFilter.HEADER, RequestIdFilter.currentRequestId())
+                    .body(new ResolveRequest(token))
+                    .retrieve()
+                    .body(ResolveResponse.class);
+            return answer == null ? Optional.empty() : Optional.ofNullable(answer.attendanceId());
+        } catch (HttpClientErrorException e) {
+            // 401 = not a valid credential; 400 = a value that cannot be a credential (also "no cookie").
+            if (e.getStatusCode().isSameCodeAs(HttpStatus.UNAUTHORIZED)
+                    || e.getStatusCode().isSameCodeAs(HttpStatus.BAD_REQUEST)) {
+                return Optional.empty();
             }
             throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE);
         } catch (RestClientResponseException | ResourceAccessException e) {

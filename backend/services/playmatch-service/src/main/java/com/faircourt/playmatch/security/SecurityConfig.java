@@ -13,6 +13,7 @@ import org.springframework.security.web.SecurityFilterChain;
  *
  * <ul>
  *   <li>Public game page: {@code GET /api/v1/public/games/*} for anyone, GET only (blueprint sections 3, 13).
+ *   <li>Guest check-in: {@code POST /internal/v1/games/by-code/*}{@code /guest-check-ins}, internal, gateway only.
  * </ul>
  */
 @Configuration
@@ -20,9 +21,11 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return ServiceSecurityDefaults.build(
-                http,
-                auth -> auth.requestMatchers(HttpMethod.GET, "/api/v1/public/games/*")
-                        .permitAll());
+        return ServiceSecurityDefaults.build(http, auth -> {
+            auth.requestMatchers(HttpMethod.GET, "/api/v1/public/games/*").permitAll();
+            // Guest check-in: internal, called by the gateway only (AD-15).
+            auth.requestMatchers(HttpMethod.POST, "/internal/v1/games/by-code/*/guest-check-ins")
+                    .permitAll();
+        });
     }
 }

@@ -12,8 +12,11 @@ import java.util.List;
 import java.util.OptionalLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -47,13 +50,22 @@ public class AccountController {
     private final LoginThrottle throttle;
     private final SecurityContextRepository contextRepository;
     private final Clock clock;
+    private final String sessionCookieName;
+    private final boolean sessionCookieSecure;
 
     public AccountController(
-            AuthClient authClient, LoginThrottle throttle, SecurityContextRepository contextRepository, Clock clock) {
+            AuthClient authClient,
+            LoginThrottle throttle,
+            SecurityContextRepository contextRepository,
+            Clock clock,
+            @Value("${server.servlet.session.cookie.name}") String sessionCookieName,
+            @Value("${server.servlet.session.cookie.secure}") boolean sessionCookieSecure) {
         this.authClient = authClient;
         this.throttle = throttle;
         this.contextRepository = contextRepository;
         this.clock = clock;
+        this.sessionCookieName = sessionCookieName;
+        this.sessionCookieSecure = sessionCookieSecure;
     }
 
     @PostMapping(value = "/api/v1/auth/login", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -97,10 +109,19 @@ public class AccountController {
             session.invalidate();
         }
         SecurityContextHolder.clearContext();
-        // Tell the browser to drop cookies and cached responses for this site (OWASP Session Management).
+        // Drop cached responses and expire only the account session cookie. The directive "cookies" would also delete
+        // the guest cookie of the same browser (Guest check-in design D-10).
+        ResponseCookie expired = ResponseCookie.from(sessionCookieName, "")
+                .httpOnly(true)
+                .secure(sessionCookieSecure)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(0)
+                .build();
         return ResponseEntity.noContent()
                 .cacheControl(CacheControl.noStore())
-                .header("Clear-Site-Data", "\"cache\", \"cookies\"")
+                .header("Clear-Site-Data", "\"cache\"")
+                .header(HttpHeaders.SET_COOKIE, expired.toString())
                 .build();
     }
 
