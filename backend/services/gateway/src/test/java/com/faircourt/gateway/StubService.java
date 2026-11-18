@@ -48,6 +48,10 @@ public final class StubService {
 
     private final HttpServer server;
     private final List<Received> received = new CopyOnWriteArrayList<>();
+    /** What the stand-in for auth-service answers to the session check (Password reset). */
+    private volatile boolean sessionValid = true;
+
+    private volatile boolean sessionCheckFails = false;
 
     private StubService() {
         try {
@@ -59,6 +63,15 @@ public final class StubService {
         // One thread per request: the slow case must not block the next test's request.
         server.setExecutor(Executors.newCachedThreadPool());
         server.start();
+    }
+
+    public void sessionValid(boolean valid) {
+        this.sessionValid = valid;
+    }
+
+    /** Makes the session check answer 500, like an auth-service that is up but failing. */
+    public void sessionCheckFails(boolean fails) {
+        this.sessionCheckFails = fails;
     }
 
     public static StubService start() {
@@ -75,6 +88,8 @@ public final class StubService {
 
     public void clear() {
         received.clear();
+        sessionValid = true;
+        sessionCheckFails = false;
     }
 
     /** A port on which nothing listens, for the "service is down" case. */
@@ -92,7 +107,7 @@ public final class StubService {
      */
     public GatewayRouteTable routeTable() {
         List<GatewayRoute> routes =
-                new ArrayList<>(GatewayRouteTable.production(url()).routes());
+                new ArrayList<>(GatewayRouteTable.production(url(), url()).routes());
         Set<HttpMethod> all =
                 Set.of(HttpMethod.GET, HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH, HttpMethod.DELETE);
         routes.add(new GatewayRoute("test-stub", all, "/api/v1/test/**", RouteAccess.PUBLIC, url()));
@@ -134,7 +149,10 @@ public final class StubService {
         received.add(new Received(exchange.getRequestMethod(), path, exchange.getRequestHeaders(), requestBody));
         int status = 200;
         String body = "{\"ok\":true}";
-        if (path.equals(VERIFY_PATH)) {
+        if (path.endsWith("/session-check")) {
+            status = sessionCheckFails ? 500 : 200;
+            body = "{\"valid\":" + sessionValid + "}";
+        } else if (path.equals(VERIFY_PATH)) {
             VerifyAnswer answer = verifyAnswer(requestBody);
             status = answer.status();
             body = answer.body();

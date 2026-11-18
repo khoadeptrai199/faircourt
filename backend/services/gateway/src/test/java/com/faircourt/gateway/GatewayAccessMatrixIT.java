@@ -46,6 +46,47 @@ class GatewayAccessMatrixIT extends GatewayTestBase {
     }
 
     @Test
+    void passwordResetRoutesAreForwardedForAnyoneAsPostWithACsrfToken() throws Exception {
+        for (String path : new String[] {"/api/v1/auth/password/forgot", "/api/v1/auth/password/reset"}) {
+            STUB.clear();
+
+            HttpResponse<String> noToken = send("POST", path, Map.of());
+            HttpResponse<String> withToken = send("POST", path, bootstrap());
+
+            assertThat(noToken.statusCode()).as(path + " without token").isEqualTo(403);
+            assertThat(withToken.statusCode()).as(path + " with token").isEqualTo(200);
+            assertThat(STUB.received())
+                    .extracting(StubService.Received::method, StubService.Received::path)
+                    .containsExactly(tuple("POST", path));
+            // Only POST: everything else is refused before it reaches auth-service.
+            STUB.clear();
+            assertThat(get(path).statusCode()).as("GET " + path).isEqualTo(401);
+            assertThat(send("DELETE", path, bootstrap()).statusCode())
+                    .as("DELETE " + path)
+                    .isEqualTo(401);
+            assertThat(STUB.received()).isEmpty();
+        }
+    }
+
+    @Test
+    void anOversizedPasswordResetBodyIsRefusedBeforeItIsForwarded() throws Exception {
+        for (String path : new String[] {"/api/v1/auth/password/forgot", "/api/v1/auth/password/reset"}) {
+            STUB.clear();
+            java.net.http.HttpRequest.Builder request = java.net.http.HttpRequest.newBuilder(
+                            java.net.URI.create("http://localhost:" + port + path))
+                    .header("Content-Type", "application/json")
+                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(
+                            "{\"email\":\"" + "a".repeat(10_000) + "\"}"));
+            bootstrap().forEach(request::header);
+
+            HttpResponse<String> response = browser.send(request.build(), HttpResponse.BodyHandlers.ofString());
+
+            assertThat(response.statusCode()).as(path).isEqualTo(400);
+            assertThat(STUB.received()).as(path).isEmpty();
+        }
+    }
+
+    @Test
     void accountRoutesNeedASignedInAccount() throws Exception {
         assertUnauthenticated(get("/api/v1/me"));
         // Login is public (CSRF token required); logout is for a signed-in account only.

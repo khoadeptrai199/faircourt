@@ -17,7 +17,7 @@ Naming (owner decision 2026-11-18): the blueprint's "session" (the play event) i
 ## Endpoints
 
 Status = what exists in this repository today (not what the blueprint promises).
-Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf`, `GET /api/v1/public/games/{publicCode}`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout` and `GET /api/v1/me` are reachable; every other route is denied (anonymous → `401 UNAUTHENTICATED`, so unknown routes are not revealed).
+Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf`, `GET /api/v1/public/games/{publicCode}`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/me`, `POST /api/v1/auth/password/forgot` and `POST /api/v1/auth/password/reset` are reachable; every other route is denied (anonymous → `401 UNAUTHENTICATED`, so unknown routes are not revealed).
 
 | Method and route | Caller | Contract (§13) | Status |
 |---|---|---|---|
@@ -26,6 +26,8 @@ Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf`, `GET /api/v1/pub
 | `POST /auth/login` | Pilot-provisioned account | Cookie-backed account session. Public signup is not available. | Implemented (Account login, 2026-11-18) |
 | `POST /auth/logout` | Signed-in account | Ends the account session. | Implemented (Account login, 2026-11-18) |
 | `GET /me` | Signed-in account | Returns account identity. | Implemented (Account login, 2026-11-18) |
+| `POST /auth/password/forgot` | Anyone | Asks for a one-time code by email (owner-approved addition, 2026-11-18). | Implemented (Password reset, 2026-11-18) |
+| `POST /auth/password/reset` | Anyone | Code + new password (owner-approved addition, 2026-11-18). | Implemented (Password reset, 2026-11-18) |
 | `POST /games` | Signed-in account | Create a game; creator becomes host. | Not started |
 | `POST /public/games/{publicCode}/guests` | Visitor | Submit name/assessment; create guest `PENDING`, set private guest cookie. | Not started |
 | `POST /games/{gameId}/join` | Signed-in player | Join once with member profile; return own attendance. | Not started |
@@ -86,6 +88,21 @@ Login errors: `400 VALIDATION_FAILED` (bad body, password over 72 bytes, not JSO
 Throttling: counted per email (trimmed, case-insensitive, also for emails that do not exist). 5 failures → locked 60 s, doubling with each further failure up to 15 min; attempts older than 1 hour are forgotten (longer than the longest lock); a success clears the count. While locked even the right password gets 429. Counters are in the gateway's memory.
 
 Internal (never reachable through the gateway): `POST /internal/v1/auth/verify` on auth-service, body `{"email","password"}`, answers `200 {"userId","email"}` or `401`.
+
+### Password reset: `POST /auth/password/forgot`, `POST /auth/password/reset` (implemented, 2026-11-18)
+
+Anyone; the gateway forwards both to auth-service; CSRF token required; JSON only; request body capped at 4 KB. Nothing in any answer says whether an email has an account.
+
+| Route | Request | Response |
+|---|---|---|
+| `POST /auth/password/forgot` | `{"email"}` (1–254 chars) | `202 {}` **always**. A mail with an 8-digit code is sent only if the account exists, at least 60 s passed since the last code and fewer than 3 codes were sent in the last hour; otherwise nothing is sent and the answer is the same |
+| `POST /auth/password/reset` | `{"email","code","newPassword"}`; code exactly 8 digits; password 12–72 **bytes**, not the email, not a very common password | `204`; `401 UNAUTHENTICATED` (same body for wrong, expired, used, replaced and unknown-email); `400 VALIDATION_FAILED` (malformed code or refused password) |
+
+Code: 8 random digits, valid 10 minutes, one use, 5 wrong tries then dead, a newer code cancels the older ones, stored only as a BCrypt hash. After a reset: every code of the account is cancelled, a "your password was changed" mail is sent, no automatic login, and every existing session of the account ends within about a minute (the gateway asks auth-service once per minute per session). The account is never locked by reset attempts.
+
+Internal (never reachable through the gateway): `GET /internal/v1/auth/accounts/{userId}/session-check?since=<instant>` on auth-service → `{"valid":true|false}` (false when the password changed after `since` or the account does not exist).
+
+Mail: sent by auth-service over SMTP (`MAIL_HOST`, `MAIL_PORT`, `MAIL_USER`, `MAIL_PASSWORD`, `MAIL_FROM`, `MAIL_SMTP_AUTH`, `MAIL_STARTTLS`). Locally the Compose service `mailpit` catches every mail; read them at http://localhost:9094. Plain text, no links, never a password.
 
 ## Who may see what (§3)
 
@@ -192,3 +209,4 @@ Error codes (same body from the gateway and every service; messages are generic,
 - API foundation: shared error body and codes, request ID, gateway route table (deny by default), CSRF bootstrap, `503` when a service does not answer. Services deny everything except health until a feature opens a route.
 - Public game page: `GET /public/games/{publicCode}` (playmatch-service, routed by the gateway).
 - Account login: `POST /auth/login`, `POST /auth/logout`, `GET /me` in the gateway; internal `POST /internal/v1/auth/verify` in auth-service; login throttle, idle and absolute session timeout.
+- Password reset: `POST /auth/password/forgot`, `POST /auth/password/reset` (forwarded to auth-service), internal session check, Flyway `V3` (table `password_reset`, column `password_changed_at`), mail through SMTP (local catcher `mailpit`).

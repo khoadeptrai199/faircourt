@@ -3,6 +3,8 @@ package com.faircourt.gateway.account;
 import com.faircourt.common.web.ApiException;
 import com.faircourt.common.web.ErrorCode;
 import com.faircourt.common.web.RequestIdFilter;
+import java.time.Instant;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -26,6 +28,8 @@ public class AuthClient {
         this.client = builder.baseUrl(authUrl).build();
     }
 
+    private record SessionCheckResponse(boolean valid) {}
+
     /** The account the credentials belong to; 401 when they are wrong; 503 when auth-service does not answer. */
     public AccountResponse verify(String email, String password) {
         try {
@@ -45,6 +49,20 @@ public class AuthClient {
                 throw new ApiException(ErrorCode.VALIDATION_FAILED);
             }
             throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE);
+        } catch (RestClientResponseException | ResourceAccessException e) {
+            throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE);
+        }
+    }
+
+    /** Whether a session that logged in at {@code since} is still valid (the password has not changed since). */
+    public boolean sessionCheck(UUID userId, Instant since) {
+        try {
+            SessionCheckResponse answer = client.get()
+                    .uri("/internal/v1/auth/accounts/{id}/session-check?since={since}", userId, since.toString())
+                    .header(RequestIdFilter.HEADER, RequestIdFilter.currentRequestId())
+                    .retrieve()
+                    .body(SessionCheckResponse.class);
+            return answer != null && answer.valid();
         } catch (RestClientResponseException | ResourceAccessException e) {
             throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE);
         }

@@ -72,6 +72,31 @@ services:
       <<: *db-env
       DEMO_HOST_EMAIL: ${DEMO_HOST_EMAIL}
       DEMO_PASSWORD: ${DEMO_PASSWORD}
+      # Mail for the password reset codes (Password reset). Defaults = the local mail catcher below; for a real SMTP
+      # server set these in .env (see .env.example). The password only ever comes from the environment.
+      MAIL_HOST: ${MAIL_HOST:-mailpit}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@faircourt.local}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-false}
+      MAIL_STARTTLS: ${MAIL_STARTTLS:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  # LOCAL DEVELOPMENT ONLY: this container has no password and shows every mail (including reset codes) to anyone who can
+  # open the page. Never deploy it; a real deployment sets MAIL_HOST to a real SMTP server with MAIL_STARTTLS=true.
+  # Local mail catcher (Password reset): auth-service sends its mails here and nothing leaves the machine. The web page
+  # shows them at http://localhost:9094. SMTP (1025) is reachable only inside Compose. Image checked for linux/amd64 and
+  # linux/arm64 on 2026-11-18 (docker buildx imagetools inspect axllent/mailpit:v1.33.1).
+  mailpit:
+    image: axllent/mailpit:v1.33.1
+    ports:
+      - "127.0.0.1:${MAILPIT_PORT:-9094}:8025"
+    restart: unless-stopped
 
   player-service:
     <<: *db-service

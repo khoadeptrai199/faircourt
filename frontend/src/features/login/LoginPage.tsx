@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Navigate, useNavigate, useSearchParams } from 'react-router'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router'
 import { login } from '../../api/account'
 import { ApiError } from '../../api/errors'
+import AuthPageShell from '../../components/AuthPageShell'
 import Button from '../../components/Button'
-import CourtLines from '../../components/CourtLines'
 import ErrorBanner from '../../components/ErrorBanner'
-import Logo from '../../components/Logo'
 import TextField from '../../components/TextField'
 import { copy } from '../../copy/en'
 import { useAccount } from '../../hooks/useAccount'
@@ -98,78 +97,58 @@ export default function LoginPage() {
   const message = missing ? t.required : shown.message
 
   return (
-    <div className="min-h-dvh bg-background text-ink">
-      <header className="mx-auto flex max-w-[1080px] items-center px-5 pt-4 pb-2 md:px-6 md:pt-6 md:pb-3">
-        <Logo />
-      </header>
-      <main className="mx-auto max-w-[480px] px-4 pt-2 pb-12 md:pt-8">
-        <section
-          aria-labelledby="login-title"
-          className="overflow-hidden rounded-3xl bg-surface shadow-[0_1px_0_rgb(16_32_42/0.06)]"
-        >
-          <div className="relative overflow-hidden bg-action px-6 py-6 text-white">
-            <CourtLines className="pointer-events-none absolute -top-2 -right-10 h-40 w-64 opacity-20" />
-            <h1
-              id="login-title"
-              className="relative text-[32px] leading-none font-black tracking-[-0.03em]"
-            >
-              {t.title}
-            </h1>
-          </div>
+    <AuthPageShell titleId="login-title" title={t.title}>
+      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+        <TextField
+          id="login-email"
+          label={t.email}
+          type="email"
+          name="email"
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
+          inputMode="email"
+          maxLength={254}
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          disabled={saving}
+        />
+        <TextField
+          id="login-password"
+          label={t.password}
+          type="password"
+          name="password"
+          autoComplete="current-password"
+          maxLength={128}
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          disabled={saving}
+        />
 
-          <form
-            onSubmit={onSubmit}
-            noValidate
-            className="flex flex-col gap-4 p-6"
+        {message && (
+          <p
+            role="alert"
+            className="rounded-xl bg-error-soft px-3.5 py-3 text-sm font-bold text-error"
           >
-            <TextField
-              id="login-email"
-              label={t.email}
-              type="email"
-              name="email"
-              autoComplete="username"
-              autoCapitalize="none"
-              spellCheck={false}
-              inputMode="email"
-              maxLength={254}
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              disabled={saving}
-            />
-            <TextField
-              id="login-password"
-              label={t.password}
-              type="password"
-              name="password"
-              autoComplete="current-password"
-              maxLength={128}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              disabled={saving}
-            />
+            {message}
+          </p>
+        )}
+        {shown.unavailable && <ErrorBanner onRetry={() => void attempt()} />}
 
-            {message && (
-              <p
-                role="alert"
-                className="rounded-xl bg-error-soft px-3.5 py-3 text-sm font-bold text-error"
-              >
-                {message}
-              </p>
-            )}
-            {shown.unavailable && (
-              <ErrorBanner onRetry={() => void attempt()} />
-            )}
-
-            <Button
-              type="submit"
-              disabled={saving}
-              className="min-h-[52px] text-[17px]"
-            >
-              {saving ? t.saving : t.submit}
-            </Button>
-          </form>
-        </section>
-      </main>
-    </div>
+        <Button
+          type="submit"
+          disabled={saving}
+          className="min-h-[52px] text-[17px]"
+        >
+          {saving ? t.saving : t.submit}
+        </Button>
+        <Link
+          to="/forgot-password"
+          className="self-start text-sm font-bold text-action underline-offset-2 hover:underline focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-action"
+        >
+          {copy.forgot.link}
+        </Link>
+      </form>
+    </AuthPageShell>
   )
 }

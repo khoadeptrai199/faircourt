@@ -2,7 +2,9 @@ package com.faircourt.gateway.security;
 
 import com.faircourt.common.web.JsonSecurityHandlers;
 import com.faircourt.gateway.account.AbsoluteSessionTimeoutFilter;
+import com.faircourt.gateway.account.AuthClient;
 import com.faircourt.gateway.account.RequestBodyLimitFilter;
+import com.faircourt.gateway.account.SessionRevalidationFilter;
 import com.faircourt.gateway.routing.GatewayRoute;
 import com.faircourt.gateway.routing.GatewayRouteTable;
 import java.time.Clock;
@@ -46,7 +48,9 @@ public class GatewaySecurityConfig {
             GatewayRouteTable table,
             SecurityContextRepository contextRepository,
             Clock clock,
-            @Value("${faircourt.account.absolute-timeout}") Duration absoluteTimeout)
+            AuthClient authClient,
+            @Value("${faircourt.account.absolute-timeout}") Duration absoluteTimeout,
+            @Value("${faircourt.account.session-recheck-interval}") Duration recheckInterval)
             throws Exception {
         JsonSecurityHandlers handlers = new JsonSecurityHandlers();
         http.authorizeHttpRequests(auth -> {
@@ -71,8 +75,16 @@ public class GatewaySecurityConfig {
                 // Ends a login after the absolute time; runs before the session's security context is read.
                 .addFilterBefore(
                         new AbsoluteSessionTimeoutFilter(clock, absoluteTimeout), SecurityContextHolderFilter.class)
-                // The anonymous login request has a small body limit, checked before anything is parsed.
-                .addFilterBefore(new RequestBodyLimitFilter("/api/v1/auth/login"), CsrfFilter.class)
+                // The anonymous login and password reset requests have a small body limit, checked before anything is
+                // parsed.
+                .addFilterBefore(
+                        new RequestBodyLimitFilter(
+                                "/api/v1/auth/login", "/api/v1/auth/password/forgot", "/api/v1/auth/password/reset"),
+                        CsrfFilter.class)
+                // After a password change the account's sessions end: asked of auth-service at most once per interval.
+                .addFilterAfter(
+                        new SessionRevalidationFilter(clock, authClient, recheckInterval),
+                        SecurityContextHolderFilter.class)
                 // API only: never save a denied request into a new session (no login redirect to replay).
                 .requestCache(cache -> cache.disable())
                 .exceptionHandling(e -> e.authenticationEntryPoint(handlers).accessDeniedHandler(handlers));

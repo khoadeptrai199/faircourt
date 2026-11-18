@@ -51,6 +51,8 @@ faircourt:
   account:
     # A login ends after this time however active the person is (OWASP Session Management: 4-8 hours for a workday app).
     absolute-timeout: 8h
+    # How often a signed-in session is checked against auth-service (a password reset ends the account's sessions).
+    session-recheck-interval: 1m
   request-id:
     # The gateway always creates the request ID and replaces any client-sent X-Request-Id (API foundation AC-10).
     trust-incoming: false

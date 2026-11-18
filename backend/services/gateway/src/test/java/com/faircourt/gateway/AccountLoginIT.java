@@ -335,6 +335,42 @@ class AccountLoginIT extends LoginTestBase {
     }
 
     @Test
+    void aSessionEndsWhenAuthServiceSaysThePasswordChanged() throws Exception {
+        login(uniqueEmail(), StubService.ACCOUNT_PASSWORD);
+        assertThat(get("/api/v1/me").statusCode()).isEqualTo(200);
+
+        STUB.sessionValid(false);
+
+        assertThat(get("/api/v1/me").statusCode()).isEqualTo(401);
+        STUB.sessionValid(true);
+        // The session is gone for good, not just for one request.
+        assertThat(get("/api/v1/me").statusCode()).isEqualTo(401);
+    }
+
+    @Test
+    void aSessionIsKeptWhenTheSessionCheckFails() throws Exception {
+        login(uniqueEmail(), StubService.ACCOUNT_PASSWORD);
+
+        STUB.sessionCheckFails(true);
+
+        assertThat(get("/api/v1/me").statusCode()).isEqualTo(200);
+    }
+
+    @Test
+    void theSessionCheckAsksAboutTheRightAccountAndLoginTime() throws Exception {
+        login(uniqueEmail(), StubService.ACCOUNT_PASSWORD);
+        get("/api/v1/me");
+
+        StubService.Received check = STUB.received().stream()
+                .filter(r -> r.path().endsWith("/session-check"))
+                .findFirst()
+                .orElseThrow();
+        assertThat(check.path())
+                .isEqualTo("/internal/v1/auth/accounts/" + StubService.ACCOUNT_USER_ID + "/session-check");
+        assertThat(check.headers().getFirst("Cookie")).isNull();
+    }
+
+    @Test
     void theInternalVerifyRouteIsNeverReachableThroughTheGateway() throws Exception {
         assertThat(get(StubService.VERIFY_PATH).statusCode()).isEqualTo(401);
         assertThat(postJson(StubService.VERIFY_PATH, loginJson("a@b.c", StubService.ACCOUNT_PASSWORD), bootstrap())

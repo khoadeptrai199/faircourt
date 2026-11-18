@@ -11,11 +11,12 @@ import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Set;
 import org.springframework.http.MediaType;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Caps the body of the anonymous login request (OWASP: an unauthenticated route must not let anyone make the server
+ * Caps the body of the anonymous login and password reset requests (OWASP: an unauthenticated route must not let anyone make the server
  * read huge bodies). A login body is a few hundred bytes; anything over the limit is refused with 400 before it is
  * parsed. Works for chunked bodies too: the stream is counted while it is read.
  */
@@ -24,15 +25,15 @@ public class RequestBodyLimitFilter extends OncePerRequestFilter {
     /** Enough for an email of 254 characters and a password of 72 bytes, with JSON overhead and escapes. */
     public static final int MAX_BODY_BYTES = 4096;
 
-    private final String path;
+    private final Set<String> paths;
 
-    public RequestBodyLimitFilter(String path) {
-        this.path = path;
+    public RequestBodyLimitFilter(String... paths) {
+        this.paths = Set.of(paths);
     }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !path.equals(request.getRequestURI());
+        return !paths.contains(request.getRequestURI());
     }
 
     @Override

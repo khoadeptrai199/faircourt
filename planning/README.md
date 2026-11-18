@@ -32,7 +32,7 @@ Last updated: 2026-11-18
 | F02 | Public game page (+ format, minimum sets, price) + frontend foundation | S01 | DONE | F01, F19 | — | [README](sprint01-public-read/public-game-page/README.md) · [design](sprint01-public-read/public-game-page/design.md) · [implement](sprint01-public-read/public-game-page/implement.md) |
 | F20 | Look and feel ("Court lines"): own visual identity for home + public game page | S01 | IN_REVIEW | F02 | owner looks at the pages (320/375/1280px) | [README](sprint01-public-read/look-and-feel/README.md) · [design](sprint01-public-read/look-and-feel/design.md) |
 | F03 | Account login, logout, `GET /me` | S02 | IN_REVIEW | F01 | visual check of /login (owner) | [README](sprint02-identity/account-login/README.md) |
-| F21 | Password reset (forgot password, OTP by email) | S02 | WAITING_APPROVAL | F03 | design D-1…D-9 | [README](sprint02-identity/password-reset/README.md) · [design](sprint02-identity/password-reset/design.md) |
+| F21 | Password reset (forgot password, OTP by email) | S02 | IN_REVIEW | F03 | owner OK on review.md items, visual check | [README](sprint02-identity/password-reset/README.md) · [design](sprint02-identity/password-reset/design.md) |
 | F04 | Guest check-in + guest cookie | S02 | BACKLOG | F02 | OD-02, OD-06 | [README](sprint02-identity/guest-check-in/README.md) |
 | F05 | Own attendance status + member join | S02 | BACKLOG | F03, F04 | OD-02, OD-11 | [README](sprint02-identity/my-attendance-status/README.md) |
 | F06 | Host board | S03 | BACKLOG | F03 | OD-04, OD-14 | [README](sprint03-host-board/host-board/README.md) |

@@ -13,7 +13,7 @@
 | ID | Feature | Status |
 |---|---|---|
 | F03 | [Account login](account-login/README.md) | `IN_REVIEW` |
-| F21 | [Password reset (OTP by email)](password-reset/README.md) | `WAITING_APPROVAL` |
+| F21 | [Password reset (OTP by email)](password-reset/README.md) | `IN_REVIEW` |
 | F04 | [Guest check-in](guest-check-in/README.md) | `BACKLOG` |
 | F05 | [Own attendance status + member join](my-attendance-status/README.md) | `BACKLOG` |
 

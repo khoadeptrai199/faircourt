@@ -13,6 +13,30 @@ spring:
     hikari:
       schema: auth
 
+  # Mail for the password reset codes (Password reset feature). Defaults point at the local mail catcher (Compose
+  # service "mailpit"). For a real server set MAIL_HOST, MAIL_PORT, MAIL_USER, MAIL_PASSWORD, MAIL_FROM,
+  # MAIL_SMTP_AUTH=true and MAIL_STARTTLS=true in the environment. The password is never written in a file.
+  mail:
+    host: "${MAIL_HOST:localhost}"
+    port: "${MAIL_PORT:1025}"
+    username: "${MAIL_USER:}"
+    password: "${MAIL_PASSWORD:}"
+    properties:
+      mail:
+        smtp:
+          auth: "${MAIL_SMTP_AUTH:false}"
+          starttls:
+            enable: "${MAIL_STARTTLS:false}"
+            # With a real server TLS is required, not optional: a network attacker must not be able to strip it.
+            required: "${MAIL_STARTTLS:false}"
+          ssl:
+            # Check that the server certificate belongs to the host name (JavaMail does not by default).
+            checkserveridentity: "${MAIL_STARTTLS:false}"
+          # A mail server that does not answer must not hold a thread for long.
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
   # One schema per service, one shared DB user (AD-12). This service owns only the "auth" schema:
   # Flyway creates it and keeps its history table there; every connection uses it as its search path.
   flyway:
@@ -32,6 +56,10 @@ spring:
     open-in-view: false
 
 management:
+  health:
+    mail:
+      # A mail server that is down must not make this service report DOWN (login keeps working; only the codes are late).
+      enabled: false
   endpoints:
     web:
       exposure:
@@ -47,6 +75,9 @@ logging:
     level: "%5p [%X{requestId:-}]"
 
 faircourt:
+  mail:
+    # Sender address of the password mails (a real address on HTTPS deployments).
+    from: "${MAIL_FROM:no-reply@faircourt.local}"
   request-id:
     # Keep the request ID the gateway forwarded (services are reachable only from the gateway).
     trust-incoming: true

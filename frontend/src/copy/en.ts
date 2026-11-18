@@ -33,6 +33,29 @@ export const copy = {
     // Added with the login throttle (OWASP, owner asked for secure login 2026-11-18); wording awaits owner approval.
     tooManyAttempts: 'Too many attempts. Try again later.',
   },
+  // Password reset (owner approved the copy table 2026-11-18, design section 7). A password equal to the email uses
+  // the tooCommon message.
+  forgot: {
+    link: 'Forgot password?',
+    title: 'Reset your password',
+    submit: 'Send code',
+    sent: 'If that email has an account, we sent a code. It is valid for 10 minutes.',
+    haveCode: 'I have a code',
+  },
+  reset: {
+    title: 'Enter your code',
+    code: 'Code',
+    newPassword: 'New password',
+    repeat: 'Repeat new password',
+    submit: 'Change password',
+    invalidCode: 'The code is wrong or has expired.',
+    mismatch: 'The two passwords are different.',
+    tooShort: 'Use at least 12 characters.',
+    tooLong: 'Use at most 72 characters.',
+    tooCommon: 'Choose a less common password.',
+    success: 'Your password was changed. Sign in with the new password.',
+    toLogin: 'Sign in',
+  },
   account: {
     signOut: 'Sign out',
     signedInAs: (email: string) => `Signed in as ${email}`,

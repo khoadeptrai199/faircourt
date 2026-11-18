@@ -15,8 +15,11 @@ public record GatewayRouteTable(List<GatewayRoute> routes) {
         routes = List.copyOf(routes);
     }
 
-    /** @param playmatchUrl base URL of playmatch-service ({@code faircourt.services.playmatch-url}) */
-    public static GatewayRouteTable production(String playmatchUrl) {
+    /**
+     * @param playmatchUrl base URL of playmatch-service ({@code faircourt.services.playmatch-url})
+     * @param authUrl base URL of auth-service ({@code faircourt.services.auth-url})
+     */
+    public static GatewayRouteTable production(String playmatchUrl, String authUrl) {
         return new GatewayRouteTable(List.of(
                 GatewayRoute.local("csrf-bootstrap", HttpMethod.GET, "/api/v1/auth/csrf", RouteAccess.PUBLIC),
                 // Account login (blueprint sections 11, 13): answered by the gateway; the signed-in state is its
@@ -24,6 +27,20 @@ public record GatewayRouteTable(List<GatewayRoute> routes) {
                 GatewayRoute.local("login", HttpMethod.POST, "/api/v1/auth/login", RouteAccess.PUBLIC),
                 GatewayRoute.local("logout", HttpMethod.POST, "/api/v1/auth/logout", RouteAccess.ACCOUNT),
                 GatewayRoute.local("me", HttpMethod.GET, "/api/v1/me", RouteAccess.ACCOUNT),
+                // Password reset (owner approved 2026-11-18): anyone, POST only, forwarded to auth-service (CSRF token
+                // still required).
+                new GatewayRoute(
+                        "password-forgot",
+                        Set.of(HttpMethod.POST),
+                        "/api/v1/auth/password/forgot",
+                        RouteAccess.PUBLIC,
+                        authUrl),
+                new GatewayRoute(
+                        "password-reset",
+                        Set.of(HttpMethod.POST),
+                        "/api/v1/auth/password/reset",
+                        RouteAccess.PUBLIC,
+                        authUrl),
                 // Public game page (blueprint sections 3, 13; OD-22): anyone, read-only.
                 new GatewayRoute(
                         "public-game",

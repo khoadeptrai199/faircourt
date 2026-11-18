@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.OptionalLong;
 import org.slf4j.Logger;
@@ -69,6 +70,9 @@ public class AccountController {
                     locked.getAsLong());
         }
 
+        // The login time is taken before the password is checked: a password change that commits while this login runs
+        // is then later than the login, and the session ends at the next check (no gap between check and session).
+        Instant startedAt = clock.instant();
         AccountResponse account;
         try {
             account = authClient.verify(body.email().strip(), body.password());
@@ -82,7 +86,7 @@ public class AccountController {
             throw e;
         }
         throttle.recordSuccess(key);
-        startSession(account, request, response);
+        startSession(account, startedAt, request, response);
         return noStore(account);
     }
 
@@ -122,13 +126,14 @@ public class AccountController {
             "org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository.CSRF_TOKEN";
 
     /** A new session id at login (session fixation); the old id stops working. */
-    private void startSession(AccountResponse account, HttpServletRequest request, HttpServletResponse response) {
+    private void startSession(
+            AccountResponse account, Instant startedAt, HttpServletRequest request, HttpServletResponse response) {
         if (request.getSession(false) != null) {
             request.changeSessionId();
         } else {
             request.getSession(true);
         }
-        request.getSession().setAttribute(AbsoluteSessionTimeoutFilter.LOGIN_AT, clock.instant());
+        request.getSession().setAttribute(AbsoluteSessionTimeoutFilter.LOGIN_AT, startedAt);
         // A new CSRF token for the new session (OWASP: regenerate the token at authentication); the client fetches it
         // again.
         request.getSession().removeAttribute(CSRF_ATTRIBUTE);

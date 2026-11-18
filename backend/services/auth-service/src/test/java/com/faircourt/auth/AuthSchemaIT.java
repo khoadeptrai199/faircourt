@@ -54,7 +54,7 @@ class AuthSchemaIT {
         assertThat(jdbc.sql("""
 						SELECT table_name FROM information_schema.tables
 						WHERE table_schema = 'auth' ORDER BY table_name""").query(String.class).list())
-                .containsExactly("app_user", "flyway_schema_history", "guest_access");
+                .containsExactly("app_user", "flyway_schema_history", "guest_access", "password_reset");
     }
 
     @Test

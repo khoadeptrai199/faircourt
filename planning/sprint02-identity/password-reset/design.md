@@ -1,6 +1,6 @@
 # F21 design — Password reset by emailed one-time code
 
-Status: `WAITING_APPROVAL` (written 2026-11-18). Waits for the owner's answers to D-1…D-9 (section 10). Standard followed: OWASP Forgot Password Cheat Sheet (read 2026-11-18), plus the Authentication and Session Management cheat sheets already used for Account login.
+Status: `APPROVED` (2026-11-18, by owner: "đồng ý đề xuất" for D-1…D-9, including the new dependency, the mail-catcher container, the new routes, migration V3, the copy table and the mail texts).
 
 ## 1. Summary
 
@@ -88,23 +88,23 @@ States: idle / saving / success / error for both forms; wrong or expired code �
 
 | Key | Text | Approved |
 |---|---|---|
-| `login.forgot` | Forgot password? | |
-| `forgot.title` | Reset your password | |
-| `forgot.email` | Email | (reuses `login.email`) |
-| `forgot.submit` | Send code | |
-| `forgot.sent` | If that email has an account, we sent a code. It is valid for 10 minutes. | |
-| `forgot.haveCode` | I have a code | |
-| `reset.title` | Enter your code | |
-| `reset.code` | Code | |
-| `reset.newPassword` | New password | |
-| `reset.repeat` | Repeat new password | |
-| `reset.submit` | Change password | |
-| `reset.invalidCode` | The code is wrong or has expired. | |
-| `reset.mismatch` | The two passwords are different. | |
-| `reset.tooShort` | Use at least 12 characters. | |
-| `reset.tooLong` | Use at most 72 characters. | |
-| `reset.tooCommon` | Choose a less common password. | |
-| `reset.success` | Your password was changed. Sign in with the new password. | |
+| `login.forgot` | Forgot password? | yes (2026-11-18) |
+| `forgot.title` | Reset your password | yes (2026-11-18) |
+| `forgot.email` | Email | (reuses `login.email`) yes |
+| `forgot.submit` | Send code | yes (2026-11-18) |
+| `forgot.sent` | If that email has an account, we sent a code. It is valid for 10 minutes. | yes (2026-11-18) |
+| `forgot.haveCode` | I have a code | yes (2026-11-18) |
+| `reset.title` | Enter your code | yes (2026-11-18) |
+| `reset.code` | Code | yes (2026-11-18) |
+| `reset.newPassword` | New password | yes (2026-11-18) |
+| `reset.repeat` | Repeat new password | yes (2026-11-18) |
+| `reset.submit` | Change password | yes (2026-11-18) |
+| `reset.invalidCode` | The code is wrong or has expired. | yes (2026-11-18) |
+| `reset.mismatch` | The two passwords are different. | yes (2026-11-18) |
+| `reset.tooShort` | Use at least 12 characters. | yes (2026-11-18) |
+| `reset.tooLong` | Use at most 72 characters. | yes (2026-11-18) |
+| `reset.tooCommon` | Choose a less common password. | yes (2026-11-18) |
+| `reset.success` | Your password was changed. Sign in with the new password. | yes (2026-11-18) |
 | `reset.toLogin` | Sign in | (reuses `login.submit`) |
 
 Mail texts (section 5) also need approval: [CODE MAIL] "Your FairCourt code is {code}. It is valid for 10 minutes. If you did not ask for it, ignore this mail." / [CHANGED MAIL] "Your FairCourt password was changed at {time}. If this was not you, tell your host."
@@ -151,6 +151,16 @@ Mail texts (section 5) also need approval: [CODE MAIL] "Your FairCourt code is {
 | D-7 | Routes and tables above (two public routes, one internal route, migration V3) | approve / change | approve |
 | D-8 | Copy and mail texts (section 7) | approve / edit | — |
 | D-9 | Where in the plan | in S02 right after Account login (before Guest check-in) / later | in S02 |
+
+## 12. Review result and residual risks (2026-11-18)
+
+See [review.md](review.md). Fixed after the security review: equal hashing work in `reset`, comparison outside the row lock, STARTTLS required with a real server, login time taken before the password check, `no-store`, `Referrer-Policy`. Residual risks the owner should know:
+
+- **Denial of recovery:** someone who knows an email can ask for a code and burn it with 5 wrong tries, repeatedly (at most 3 codes per hour per email), so the real owner cannot reset. The login itself is never locked. A per-source limit would help (backlog L-26).
+- **Inbox flooding is limited, not zero:** up to 3 mails per hour per email.
+- **Sessions after a reset end within about a minute, and not at all while auth-service is down** (idle 30 min and absolute 8 h still apply).
+- **Mail travels as plain text by email** (the code is visible to anyone who can read the inbox); with a real server TLS to the mail server is required.
+- **The local mail catcher shows every code to anyone who opens http://localhost:9094**: local development only, never deploy it.
 
 ## 11. Out of scope
 

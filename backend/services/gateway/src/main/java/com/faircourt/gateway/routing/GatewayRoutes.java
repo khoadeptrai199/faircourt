@@ -19,8 +19,10 @@ import org.springframework.web.servlet.function.ServerResponse;
 public class GatewayRoutes {
 
     @Bean
-    GatewayRouteTable gatewayRouteTable(@Value("${faircourt.services.playmatch-url}") String playmatchUrl) {
-        return GatewayRouteTable.production(playmatchUrl);
+    GatewayRouteTable gatewayRouteTable(
+            @Value("${faircourt.services.playmatch-url}") String playmatchUrl,
+            @Value("${faircourt.services.auth-url}") String authUrl) {
+        return GatewayRouteTable.production(playmatchUrl, authUrl);
     }
 
     @Bean

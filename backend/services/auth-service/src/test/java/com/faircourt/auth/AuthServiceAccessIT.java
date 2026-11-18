@@ -50,6 +50,24 @@ class AuthServiceAccessIT {
     }
 
     @Test
+    void passwordResetRoutesAreOpenForPostOnlyAndSessionCheckForGetOnly() throws Exception {
+        // Opened by Password reset. A request without a body is a 4xx from the route, never 401 from the security
+        // chain.
+        assertThat(send("POST", "/api/v1/auth/password/forgot").statusCode()).isNotEqualTo(401);
+        assertThat(send("POST", "/api/v1/auth/password/reset").statusCode()).isNotEqualTo(401);
+        assertThat(send("GET", "/api/v1/auth/password/forgot").statusCode()).isEqualTo(401);
+        assertThat(send("PUT", "/api/v1/auth/password/reset").statusCode()).isEqualTo(401);
+        assertThat(send("POST", "/api/v1/auth/password/other").statusCode()).isEqualTo(401);
+
+        String check = "/internal/v1/auth/accounts/" + java.util.UUID.randomUUID() + "/session-check";
+        assertThat(send("GET", check + "?since=2026-11-18T10:00:00Z").statusCode())
+                .isEqualTo(200);
+        assertThat(send("POST", check).statusCode()).isEqualTo(401);
+        assertThat(send("GET", "/internal/v1/auth/accounts/x/other").statusCode())
+                .isEqualTo(401);
+    }
+
+    @Test
     void onlyTheVerifyRouteIsOpenUnderInternalAndOnlyForPost() throws Exception {
         // Opened by Account login: POST only. The route answers 4xx for a bad request, never 401 from the security
         // chain
