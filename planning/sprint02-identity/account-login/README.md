@@ -3,12 +3,13 @@
 | Field | Value |
 |---|---|
 | Sprint | S02 Identity |
-| Status | `BACKLOG` |
+| Status | `WAITING_APPROVAL` |
 | Blueprint | §0 (demo login, cookies), §7 (access), §11 (host, regular player), §13 (`POST /auth/login`, `POST /auth/logout`, `GET /me`), §15 (auth baseline) |
 | Depends on | F01 |
-| Waiting for | OD-03 (login route and landing page) |
+| Waiting for | Owner answers to D-1…D-6 in [design.md](design.md) (D-1 is OD-03) |
 | Suggested branch | `feature/account-login` |
-| Last updated | 2026-11-17 |
+| Last updated | 2026-11-18 |
+Docs: [design.md](design.md)
 
 ## Goal
 
@@ -42,5 +43,6 @@ Pilot-provisioned accounts (seeded host and players) sign in with email and pass
 | ID | Question | Status |
 |---|---|---|
 | OD-03 | Login route and landing page | Open |
-| — | `GET /me` response fields | Decide in design |
-| — | Session timeout value | Decide in design |
+| D-2 | `GET /me` response fields | Proposed in design: userId + email |
+| D-3 | Session timeout value | Proposed in design: 8 h |
+| 2026-11-18 | Design written (internal route `POST /internal/v1/auth/verify`, gateway session, `/me` from the session, login page); waiting for the owner on D-1…D-6 | Claude |
