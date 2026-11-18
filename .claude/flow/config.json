@@ -1,0 +1,73 @@
+{
+  "project": "FairCourt",
+  "spec": {
+    "sources": ["FairCourt_Project_Blueprint.md"],
+    "precedence": "Blueprint §0 local delivery contract -> Part II (§11-17) -> Part I (§1-10); CLAUDE.md owner decisions override the blueprint where they say so. Use /spec-lookup."
+  },
+  "tracker": {
+    "adapter": ".claude/flow/tracker.md"
+  },
+  "rules": {
+    "always": [
+      "CLAUDE.md",
+      ".claude/rules/conventions.md",
+      ".claude/rules/planning-workflow.md",
+      ".claude/rules/privacy-auth.md"
+    ]
+  },
+  "maps": [".claude/flow/maps/index.md", ".claude/flow/maps/api-routes.md"],
+  "templates": {
+    "spec": "planning/_templates/feature/design.md",
+    "plan": "planning/_templates/feature/implement.md",
+    "report": "planning/_templates/feature/review.md"
+  },
+  "agents": {
+    "implementer": "flow-implementer",
+    "reviewers": ["scope-guardian", "privacy-reviewer"]
+  },
+  "models": {
+    "orchestrator": "opus",
+    "implementer": "sonnet",
+    "reviewer": "opus"
+  },
+  "runner": {
+    "default": "bash -lc",
+    "windows": "wsl.exe -e bash -lc"
+  },
+  "validators": {
+    "fast": [
+      "docker compose --profile test run --rm --build backend-test mvn -B -pl <module> -am verify",
+      "docker compose run --rm --no-deps frontend sh -c \"npm run format:check && npm run build\""
+    ],
+    "full": ["scripts/precommit.sh"]
+  },
+  "oracles": [
+    {
+      "path": ".claude/flow/golden/matcher-cases.md",
+      "appliesTo": ["backend/libs/matching/**", "backend/services/playmatch-service/**"]
+    }
+  ],
+  "review": {
+    "passScore": 90,
+    "overrideGates": [
+      "A public or player response contains names, bands, attendance or match IDs, roster or guest tokens of other players (privacy-auth.md).",
+      "A host route or host mutation has no service-level AccessPolicy.requireHost check, or identity comes from path/body/headers instead of CallerIdentity.",
+      "A new route has no rows in GatewayAccessMatrixIT and the owning service's AccessMatrixIT; a non-host response has no JsonAllowlist assertion.",
+      "A service reads or writes another service's schema, or SQL concatenates values.",
+      "An already-applied Flyway migration was edited, renamed or deleted.",
+      "CSRF disabled, CORS wildcard, or guest secret stored or logged in raw form.",
+      "A dependency, endpoint, screen, config or copy string not approved in the design was added.",
+      "A mutation that can conflict (the design lists a 409 outcome) has no 409 test that also checks row counts are unchanged.",
+      "Note: an exact whole-body equality assertion counts as a JsonAllowlist assertion."
+    ]
+  },
+  "docs": [
+    "the feature implement.md (commands executed, acceptance evidence)",
+    "the feature review.md",
+    "API Document/*.md when a route or error changes",
+    ".claude/flow/maps/*.md when a route, table, service or test class is added",
+    "planning/README.md and the sprint SPRINT.md row when the status changes"
+  ],
+  "limits": { "fixAttempts": 3, "reviewRounds": 2 },
+  "git": { "base": "main" }
+}

@@ -16,7 +16,7 @@ Default scope: `git diff HEAD` plus untracked files; or files/commit range the c
 
 **Data exposure**
 - Public summary DTO: no names, bands, attendance/match IDs, roster, guest tokens.
-- `/sessions/{id}/me` DTO: only own attendance state + own `matchNo`, `courtNo`, `matchState`. No opponents/partners/bands.
+- `/games/{id}/me` DTO: only own attendance state + own `matchNo`, `courtNo`, `matchState`. No opponents/partners/bands.
 - Host board DTO never returned from a non-host route; no shared DTO class reused across audiences.
 - Frontend player pages never call host endpoints and hide fields with CSS.
 - Logs/exceptions/error bodies do not include tokens, password hashes, or other players' data.
@@ -24,10 +24,10 @@ Default scope: `git diff HEAD` plus untracked files; or files/commit range the c
 **Identity**
 - Identity derived only from principal or guest cookie — never from `hostUserId` / `playerId` / `attendanceId` in body, query or path.
 - Public code or display name never used as authentication.
-- Guest secret: 32 random bytes from a secure RNG, only SHA-256 stored, HttpOnly + SameSite=Lax, `Secure` from `COOKIE_SECURE`, scoped to session + attendance, has expiry, revocation respected.
+- Guest secret: 32 random bytes from a secure RNG, only SHA-256 stored, HttpOnly + SameSite=Lax, `Secure` from `COOKIE_SECURE`, scoped to game + attendance, has expiry, revocation respected.
 
 **Authorization**
-- Every host mutation calls the ownership check `(principalUserId, sessionId)` in the service, not only a route matcher. For `/host/matches/{matchId}/...` the session is resolved from the match and then checked.
+- Every host mutation calls the ownership check `(principalUserId, gameId)` in the service, not only a route matcher. For `/host/matches/{matchId}/...` the game is resolved from the match and then checked.
 - Feedback only from a participant of a finished match, once.
 - Correct codes: 401 vs 403 vs 404 (§13); private resources of others return 404/403 without leaking existence details beyond the spec.
 

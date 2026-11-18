@@ -8,8 +8,15 @@
   --color-accent: #f9c94d; /* not for small body text; never the only carrier of meaning */
   --color-error: #b64243;
 
-  /* "Inter or system sans" — system sans for now, no web font loaded. */
+  /* Added by the "Look and feel" feature (owner approved 2026-11-18, design.md section 2). */
+  --color-muted: #33424b; /* closed-game card, secondary text */
+  --color-subtle: #4a5a63; /* labels, disabled text */
+  --color-disabled: #e4e9e5; /* disabled button, loading skeleton */
+  --color-action-dark: #0f5e4b; /* link hover, small headings on mint */
+  --color-error-soft: #fbe9e9; /* error icon background */
+
+  /* Inter, bundled with the app through @fontsource/inter (no request to a font server). */
   --font-sans:
-    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    sans-serif;
+    'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+    Arial, sans-serif;
 }

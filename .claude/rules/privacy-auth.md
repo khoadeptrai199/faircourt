@@ -6,24 +6,24 @@ These rules apply to every layer. "Keep player data private and host mutations h
 
 | Action / information | Anyone | Joined player | Court host |
 |---|---:|---:|---:|
-| View public session page (time, venue, number of courts, basic status) | Yes | Yes | Yes |
+| View public game page (time, venue, number of courts, basic status) | Yes | Yes | Yes |
 | Check in as a player | Via join flow | Yes | Can assist |
 | View **own** match number, court number and start status | No | Yes | Yes |
 | View another player's assignment, private skill evidence or full ready pool | No | No | Yes |
 | Generate suggestions; assign, swap, start or finish a match | No | No | **Only host** |
 
-"Court host" = creator of **this** play session, checked via `play_session.host_user_id` — never a global `ADMIN` flag (§11).
+"Court host" = creator of **this** game, checked via `game.host_user_id` — never a global `ADMIN` flag (§11).
 
 ## Identity
 
 - Never accept `hostUserId`, `playerId` or `attendanceId` from the client as proof of identity. Derive identity from the signed-in principal or the scoped guest credential (§13).
 - A nickname or the shared public code never authenticates anyone (§3, §12).
-- Members: server-side session cookie after `POST /api/v1/auth/login`. Public signup does not exist in MVP (§11, §13).
+- Members: server-side session cookie after `POST /api/v1/auth/login`. Public signup does not exist in MVP (§11, §13). Implemented in the gateway (Account login, 2026-11-18): cookie `fc_sid` (HttpOnly, SameSite=Lax, `Secure` from `COOKIE_SECURE`; `__Host-fc_sid` on HTTPS), idle timeout 30 min + absolute 8 h, session id changed at login, session destroyed at logout, login throttled per email (5 failures, then 60 s doubling to 15 min, HTTP 429), one answer for wrong password and unknown email, `Cache-Control: no-store`, JSON-only login, CSRF required, `next` redirect only to same-site paths. Standard followed: OWASP Authentication, Session Management and CSRF cheat sheets (design §12 of the feature).
 - Guests (§12):
   - Generate 32 random bytes; send only in an **HttpOnly, SameSite=Lax** cookie.
   - Store only the **SHA-256** of the secret in `guest_access.token_hash`. The raw secret never goes into the DB or logs.
-  - Credential is scoped to its recorded session + attendance and expires shortly after the session.
-  - One active guest identity per browser per session; re-joining with a valid cookie returns the existing attendance.
+  - Credential is scoped to its recorded game + attendance and expires shortly after the game.
+  - One active guest identity per browser per game; re-joining with a valid cookie returns the existing attendance.
   - React never reads or stores the secret (§16).
 - Cookie `Secure` flag comes from `COOKIE_SECURE` (`false` on local plain HTTP, `true` on HTTPS) (§0).
 
@@ -37,15 +37,15 @@ These rules apply to every layer. "Keep player data private and host mutations h
 
 | Endpoint | May contain | Must NOT contain |
 |---|---|---|
-| `GET /public/sessions/{publicCode}` | title, venue, times, court count, status | names, bands, attendance/match IDs, roster, guest tokens |
-| `GET /sessions/{id}/me` | own `attendanceState`, optional own `matchNo`, `courtNo`, `matchState` | opponents, partners, bands, other players, full board |
-| `GET /host/sessions/{id}/board` | names, private bands, all attendance, matches, courts | — (host only; never returned to a player) |
+| `GET /public/games/{publicCode}` | title, venue, times, court count, status | names, bands, attendance/match IDs, roster, guest tokens |
+| `GET /games/{id}/me` | own `attendanceState`, optional own `matchNo`, `courtNo`, `matchState` | opponents, partners, bands, other players, full board |
+| `GET /host/games/{id}/board` | names, private bands, all attendance, matches, courts | — (host only; never returned to a player) |
 
 The player page calls its own `/me` endpoint. It must **not** load the host board and hide fields in CSS (§16).
 
 ## Enforcement
 
-- Spring Security route rules are the first gate; **service-level** ownership check `(principalUserId, sessionId)` runs for **every** host mutation (§15).
+- Spring Security route rules are the first gate; **service-level** ownership check `(principalUserId, gameId)` runs for **every** host mutation (§15).
 - Status codes (§13): `401` missing/expired identity, `403` authenticated but no permission, `404` unknown or private resource not visible.
 - Feedback: only a participant of that **finished** match, one answer per player/match (§13).
 - Store only necessary personal data (§7).

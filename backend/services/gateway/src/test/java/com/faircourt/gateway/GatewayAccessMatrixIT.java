@@ -1,10 +1,12 @@
 package com.faircourt.gateway;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import com.faircourt.gateway.routing.GatewayRoute;
 import com.faircourt.gateway.routing.RouteAccess;
 import java.net.http.HttpResponse;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
@@ -30,7 +32,7 @@ class GatewayAccessMatrixIT extends GatewayTestBase {
     @Test
     void anyRouteNotInTheTableIs401ForAnonymous() throws Exception {
         assertUnauthenticated(get("/api/v1/anything"));
-        assertUnauthenticated(get("/api/v1/public/sessions/ANYCODE"));
+        assertUnauthenticated(get("/api/v1/public/games/ANYCODE/guests"));
         assertUnauthenticated(get("/"));
     }
 
@@ -44,12 +46,91 @@ class GatewayAccessMatrixIT extends GatewayTestBase {
     }
 
     @Test
+    void passwordResetRoutesAreForwardedForAnyoneAsPostWithACsrfToken() throws Exception {
+        for (String path : new String[] {"/api/v1/auth/password/forgot", "/api/v1/auth/password/reset"}) {
+            STUB.clear();
+
+            HttpResponse<String> noToken = send("POST", path, Map.of());
+            HttpResponse<String> withToken = send("POST", path, bootstrap());
+
+            assertThat(noToken.statusCode()).as(path + " without token").isEqualTo(403);
+            assertThat(withToken.statusCode()).as(path + " with token").isEqualTo(200);
+            assertThat(STUB.received())
+                    .extracting(StubService.Received::method, StubService.Received::path)
+                    .containsExactly(tuple("POST", path));
+            // Only POST: everything else is refused before it reaches auth-service.
+            STUB.clear();
+            assertThat(get(path).statusCode()).as("GET " + path).isEqualTo(401);
+            assertThat(send("DELETE", path, bootstrap()).statusCode())
+                    .as("DELETE " + path)
+                    .isEqualTo(401);
+            assertThat(STUB.received()).isEmpty();
+        }
+    }
+
+    @Test
+    void anOversizedPasswordResetBodyIsRefusedBeforeItIsForwarded() throws Exception {
+        for (String path : new String[] {"/api/v1/auth/password/forgot", "/api/v1/auth/password/reset"}) {
+            STUB.clear();
+            java.net.http.HttpRequest.Builder request = java.net.http.HttpRequest.newBuilder(
+                            java.net.URI.create("http://localhost:" + port + path))
+                    .header("Content-Type", "application/json")
+                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(
+                            "{\"email\":\"" + "a".repeat(10_000) + "\"}"));
+            bootstrap().forEach(request::header);
+
+            HttpResponse<String> response = browser.send(request.build(), HttpResponse.BodyHandlers.ofString());
+
+            assertThat(response.statusCode()).as(path).isEqualTo(400);
+            assertThat(STUB.received()).as(path).isEmpty();
+        }
+    }
+
+    @Test
+    void accountRoutesNeedASignedInAccount() throws Exception {
+        assertUnauthenticated(get("/api/v1/me"));
+        // Login is public (CSRF token required); logout is for a signed-in account only.
+        assertThat(send("POST", "/api/v1/auth/logout", bootstrap()).statusCode())
+                .isEqualTo(401);
+    }
+
+    @Test
     void aListedPublicRouteIsForwardedToItsService() throws Exception {
         HttpResponse<String> response = get("/api/v1/test/echo");
 
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).isEqualTo("{\"ok\":true}");
         assertThat(STUB.received()).extracting(StubService.Received::path).containsExactly("/api/v1/test/echo");
+    }
+
+    @Test
+    void publicGamePageIsForwardedToPlaymatchForAnonymousGet() throws Exception {
+        HttpResponse<String> response = get("/api/v1/public/games/FRI7Q2K9");
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(STUB.received())
+                .extracting(StubService.Received::method, StubService.Received::path)
+                .containsExactly(tuple("GET", "/api/v1/public/games/FRI7Q2K9"));
+        // Reading the public page never starts a gateway session.
+        assertThat(response.headers().allValues("Set-Cookie")).isEmpty();
+    }
+
+    @Test
+    void writesOnThePublicGamePathAreNeverForwarded() throws Exception {
+        for (String method : new String[] {"POST", "PUT", "PATCH", "DELETE"}) {
+            HttpResponse<String> response = send(method, "/api/v1/public/games/FRI7Q2K9", Map.of());
+
+            // No CSRF token → refused before the route rule.
+            assertThat(response.statusCode()).as(method).isIn(401, 403);
+        }
+        // With a valid CSRF token, the GET-only route rule itself refuses the write.
+        Map<String, String> csrfHeader = bootstrap();
+        for (String method : new String[] {"POST", "PUT", "PATCH", "DELETE"}) {
+            assertThat(send(method, "/api/v1/public/games/FRI7Q2K9", csrfHeader).statusCode())
+                    .as(method + " with CSRF token")
+                    .isEqualTo(401);
+        }
+        assertThat(STUB.received()).isEmpty();
     }
 
     @Test

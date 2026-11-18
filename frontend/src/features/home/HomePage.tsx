@@ -1,14 +1,23 @@
 // Home page at "/" (owner-approved 2026-11-12; not part of blueprint section 16 routes).
-// Only blueprint copy plus short explanatory text. "Host login" stays disabled until the
-// identity slice (blueprint section 17, step 2) ships the real login.
+// 2026-11-18: "session" -> "game" and a single contest -> "match" (owner decision, OD-22); restyled with the
+// "Court lines" look (Look and feel feature). Only existing copy; navigation and "games near you" are mocked up
+// in the design file and come with their own features (backlog L-20…L-22).
+// "Host login" links to /login (Account login feature); when signed in the header shows the email and "Sign out".
+import { Link } from 'react-router'
+import { logout } from '../../api/account'
+import Button from '../../components/Button'
+import CourtLines from '../../components/CourtLines'
+import Logo from '../../components/Logo'
+import { copy } from '../../copy/en'
+import { useAccount } from '../../hooks/useAccount'
 
 const steps = [
   {
-    title: 'Join a session',
+    title: 'Join a game',
     body: 'Open the link your host shares and check in.',
   },
   {
-    title: 'Find a fair game',
+    title: 'Find a fair match',
     body: 'Matches are suggested by level and by who has waited longest.',
   },
   {
@@ -20,62 +29,59 @@ const steps = [
 export default function HomePage() {
   return (
     <div className="min-h-dvh bg-background text-ink">
-      <header className="mx-auto flex max-w-[1080px] items-center justify-between gap-4 px-4 py-4 md:px-6">
-        <a
-          href="/"
-          className="flex items-center gap-2 rounded-xl text-xl font-extrabold tracking-tight focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-action"
-        >
-          <ShuttleMark className="h-9 w-9" />
-          FairCourt
-        </a>
-        <HostLoginButton />
+      <header className="mx-auto flex max-w-[1080px] items-center justify-between gap-3 px-4 pt-4 pb-2 pl-5 md:px-6 md:pt-6 md:pb-3">
+        <Logo />
+        <AccountMenu />
       </header>
 
-      <main className="mx-auto max-w-[1080px] px-4 pb-12 md:px-6">
+      <main className="mx-auto max-w-[1080px] px-4 pt-2 pb-12 md:px-6 md:pt-3">
         <section
           aria-labelledby="home-title"
-          className="relative overflow-hidden rounded-3xl bg-action px-6 py-10 text-white md:px-12 md:py-16"
+          className="relative overflow-hidden rounded-[28px] bg-action px-[22px] py-[26px] text-white md:rounded-[32px] md:px-12 md:py-16"
         >
-          <CourtLines className="pointer-events-none absolute -right-16 -bottom-10 h-72 w-[28rem] opacity-25 md:right-0 md:h-96 md:w-[36rem]" />
+          <CourtLines className="pointer-events-none absolute -right-12 -bottom-8 h-64 w-[26rem] text-white opacity-20 md:right-0 md:h-96 md:w-[36rem]" />
           <div className="relative max-w-[560px]">
-            <p className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1 text-sm font-bold text-ink">
-              <span aria-hidden="true">🏸</span> Badminton doubles, made fair
-            </p>
             <h1
               id="home-title"
-              className="mt-5 text-4xl leading-[1.1] font-extrabold tracking-tight md:text-6xl"
+              className="text-[42px] leading-[1.02] font-black tracking-[-0.04em] md:text-7xl md:leading-none md:tracking-[-0.045em]"
             >
-              Join a session.
+              Join a game.
               <br />
-              Find a fair game.
+              Find a fair match.
               <br />
               <span className="text-accent">Keep playing.</span>
             </h1>
-            <p className="mt-5 text-lg leading-relaxed text-white md:text-xl">
+            <p className="mt-4 max-w-[300px] text-base leading-normal font-medium md:mt-5 md:max-w-none md:text-lg">
               FairCourt helps your badminton group form fair doubles matches, so
-              everyone gets a good game.
+              everyone gets a good match.
             </p>
           </div>
         </section>
 
-        <section aria-labelledby="how-title" className="mt-10 md:mt-14">
+        <section aria-labelledby="how-title" className="mt-8 md:mt-12">
           <h2
             id="how-title"
-            className="text-[28px] leading-tight font-extrabold tracking-tight"
+            className="px-1 text-[22px] font-black tracking-tight md:text-[28px]"
           >
             How it works
           </h2>
-          <ol className="mt-5 grid gap-4 md:grid-cols-3 md:gap-6">
+          <ol className="mt-3 grid gap-2 md:mt-5 md:grid-cols-3 md:gap-5">
             {steps.map((step, index) => (
               <li
                 key={step.title}
-                className="rounded-2xl bg-surface p-4 shadow-sm ring-1 ring-ink/5 md:p-6"
+                className="flex items-start gap-3.5 rounded-[18px] bg-surface px-4 py-3.5 shadow-[0_1px_0_rgb(16_32_42/0.06)] md:flex-col md:gap-4 md:rounded-[22px] md:p-6"
               >
-                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-highlight text-xl font-extrabold text-action">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-highlight text-lg font-black text-action md:h-11 md:w-11 md:text-xl">
                   {index + 1}
                 </span>
-                <h3 className="mt-4 text-xl font-bold">{step.title}</h3>
-                <p className="mt-2 text-base leading-relaxed">{step.body}</p>
+                <div>
+                  <h3 className="text-base font-extrabold md:text-xl">
+                    {step.title}
+                  </h3>
+                  <p className="mt-0.5 text-sm leading-relaxed text-muted md:mt-2 md:text-base">
+                    {step.body}
+                  </p>
+                </div>
               </li>
             ))}
           </ol>
@@ -83,21 +89,32 @@ export default function HomePage() {
 
         <section
           aria-labelledby="link-title"
-          className="mt-10 flex flex-col gap-3 rounded-2xl bg-highlight p-6 md:mt-14 md:flex-row md:items-center md:gap-6 md:p-8"
+          className="mt-8 flex items-center gap-3.5 rounded-[20px] bg-ink p-4 text-white md:mt-12 md:gap-6 md:rounded-[24px] md:p-8"
         >
           <span
             aria-hidden="true"
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-surface text-3xl"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-accent text-ink md:h-14 md:w-14 md:rounded-2xl"
           >
-            🔗
+            <svg
+              viewBox="0 0 24 24"
+              className="h-[22px] w-[22px] md:h-7 md:w-7"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1" />
+              <path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1" />
+            </svg>
           </span>
           <div>
-            <h2 id="link-title" className="text-xl font-bold">
-              Got a session link?
+            <h2 id="link-title" className="text-base font-extrabold md:text-xl">
+              Got a game link?
             </h2>
-            <p className="mt-1 text-base leading-relaxed">
-              Open the link from your host's message to see tonight's session
-              and check in.
+            <p className="mt-0.5 text-sm leading-relaxed text-white/85 md:mt-1 md:text-base">
+              Open the link from your host's message to see tonight's game and
+              check in.
             </p>
           </div>
         </section>
@@ -106,58 +123,44 @@ export default function HomePage() {
   )
 }
 
-function HostLoginButton() {
-  return (
-    <button
-      type="button"
-      disabled
-      aria-describedby="host-login-soon"
-      className="inline-flex min-h-11 cursor-not-allowed items-center gap-2 rounded-xl border-2 border-ink/20 bg-surface px-4 text-base font-bold text-ink/70"
-    >
-      Host login
-      <span
-        id="host-login-soon"
-        className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-ink"
-      >
-        Coming soon
-      </span>
-    </button>
-  )
-}
+function AccountMenu() {
+  const account = useAccount()
 
-function ShuttleMark({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 40 40" className={className} aria-hidden="true">
-      <rect width="40" height="40" rx="12" fill="#157B63" />
-      <path d="M13 11 L20 25 L27 11 Z" fill="#FFFFFF" />
-      <path
-        d="M17 11 L20 25 M23 11 L20 25"
-        stroke="#157B63"
-        strokeWidth="1.5"
-      />
-      <circle cx="20" cy="28" r="4" fill="#F9C94D" />
-    </svg>
-  )
-}
-
-function CourtLines({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 440 300"
-      className={className}
-      fill="none"
-      stroke="#FFFFFF"
-      strokeWidth="4"
-      aria-hidden="true"
-    >
-      <rect x="10" y="10" width="420" height="280" rx="6" />
-      <line x1="10" y1="40" x2="430" y2="40" />
-      <line x1="10" y1="260" x2="430" y2="260" />
-      <line x1="220" y1="10" x2="220" y2="290" strokeDasharray="10 8" />
-      <line x1="150" y1="40" x2="150" y2="260" />
-      <line x1="290" y1="40" x2="290" y2="260" />
-      <line x1="10" y1="150" x2="150" y2="150" />
-      <line x1="290" y1="150" x2="430" y2="150" />
-    </svg>
-  )
+  switch (account.status) {
+    case 'loading':
+      // Keeps the space so the header does not jump when the answer arrives.
+      return <span className="inline-block min-h-11" aria-hidden="true" />
+    case 'signedIn':
+      return (
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="hidden max-w-[240px] truncate text-sm font-bold text-muted sm:inline">
+            {copy.account.signedInAs(account.account.email)}
+          </span>
+          <Button
+            variant="secondary"
+            className="min-h-11 rounded-xl px-3 text-sm md:px-4 md:text-base"
+            onClick={async () => {
+              await logout().catch(() => undefined)
+              account.reload()
+            }}
+          >
+            {copy.account.signOut}
+          </Button>
+        </div>
+      )
+    case 'signedOut':
+    case 'error':
+      return (
+        <Link
+          to="/login"
+          className="inline-flex min-h-11 items-center rounded-xl border-2 border-ink/15 bg-surface px-3 text-sm font-extrabold text-ink hover:bg-highlight focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-action md:px-4 md:text-base"
+        >
+          {copy.login.title}
+        </Link>
+      )
+    default: {
+      const unreachable: never = account
+      return unreachable
+    }
+  }
 }

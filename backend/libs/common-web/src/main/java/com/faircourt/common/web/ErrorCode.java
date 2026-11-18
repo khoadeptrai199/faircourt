@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
     VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "The request is invalid."),
     UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "Sign in or check in to continue."),
+    // Login throttling (OWASP Authentication Cheat Sheet); the answer carries a Retry-After header.
+    TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "Too many attempts. Try again later."),
     GUEST_ACCESS_EXPIRED(HttpStatus.UNAUTHORIZED, "Your guest access has expired."),
     CSRF_TOKEN_INVALID(HttpStatus.FORBIDDEN, "The security token is missing or invalid. Reload and try again."),
     FORBIDDEN(HttpStatus.FORBIDDEN, "You do not have permission for this action."),

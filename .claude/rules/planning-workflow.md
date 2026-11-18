@@ -21,11 +21,19 @@
 | `BACKLOG → DESIGN` | Owner asks for the design, or `/feature FNN` | Claude |
 | `DESIGN → WAITING_APPROVAL` | `design.md` complete from the template: API, data, rules, components, copy table, test plan, open decisions | Claude |
 | `WAITING_APPROVAL → APPROVED` | The owner explicitly approves in the conversation; record date + scope of the approval in the feature decision log | **Owner only** |
-| `APPROVED → IN_PROGRESS` | Definition of Ready on `planning/README.md` is met | Claude |
+| `APPROVED → IN_PROGRESS` | Definition of Ready on `planning/README.md` is met, including **Gate 2**: the owner approved the plan and test cases in `implement.md` (decision-log line "Gate 2 (plan)") | Claude, after the owner's Gate 2 approval |
 | `IN_PROGRESS → IN_REVIEW` | All tasks `DONE`/`SKIPPED (reason)`; every AC has evidence in `implement.md`; pre-commit pipeline run | Claude |
 | `IN_REVIEW → CHANGES_REQUESTED` | Any open high/medium finding | Claude |
 | `IN_REVIEW → DONE` | Definition of Done met and the owner confirms (owner commits) | Owner confirms |
 | any → `BLOCKED` | A named decision or prerequisite is missing | anyone |
+
+### Three human gates (owner decision 2026-11-18)
+
+1. **Gate 1 — spec:** the owner approves `design.md` → `APPROVED`.
+2. **Gate 2 — plan:** the owner approves the tasks and test cases in `implement.md` → `IN_PROGRESS`.
+3. **Gate 3 — result:** after implement, validators, fresh-session review, fixes and docs, Claude reports and sets `IN_REVIEW`; the owner reviews and commits → `DONE`.
+
+Between two gates Claude works without stopping, except for the stop rules (spec silent, unapproved addition, deletion, a validator that cannot run). `/flow <feature>` runs this loop (`.claude/flow/`); `/feature` still runs one phase at a time. Each gate is one decision-log line in the feature `README.md`: `<date> — Gate <n> (<spec|plan>) approved by the owner: <scope>`.
 
 Never skip `APPROVED`. An explicit owner instruction such as "implement F04 as designed" counts as approval; record it.
 
@@ -60,3 +68,13 @@ Whenever a status changes, update all three in the same step:
 
 - `SPRINT.md` status: `PLANNED → ACTIVE → DONE`. A sprint is `DONE` when its gate evidence table is filled with `PASS` (or owner-accepted `NOT VERIFIED`) and all its features are `DONE`.
 - Keep the demo steps runnable; update them if the implementation changed the flow.
+
+## Which model does which phase (owner decision 2026-11-18)
+
+| Phase | Model | Effort |
+|---|---|---|
+| Design, spec lookup, discussion with the owner | Opus 5.5 | Medium |
+| Implement and unit/integration tests | Sonnet 5.5 | Medium |
+| Review (`scope-guardian`, `privacy-reviewer`, `/code-review`) | Opus 5.5 | default |
+
+The owner switches the model with `/model`; Claude cannot. At each phase boundary Claude says which model the next phase is meant for, and reminds the owner once if the session runs on a different one.

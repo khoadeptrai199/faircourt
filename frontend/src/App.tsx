@@ -1,7 +1,11 @@
-// Real routes (/s/:publicCode, /my/..., /host/...) arrive in later slices (blueprint section 16).
-// Until a router is approved, the app renders the home page only.
-import HomePage from './features/home/HomePage'
+import { BrowserRouter } from 'react-router'
+import AppRoutes from './routes/AppRoutes'
 
+// Router: react-router, basic declarative use only (owner decision 2026-11-18, OD-01).
 export default function App() {
-  return <HomePage />
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  )
 }

@@ -22,12 +22,12 @@ Prerequisite: stack running and healthy (use `/run-local status`). If not runnin
 
 | # | Check | Evidence to capture |
 |---|---|---|
-| 1 | Anonymous `GET /api/v1/public/sessions/{code}` shows time, venue, 2 courts; response has **no** names, bands, attendance/match IDs, tokens | status, full JSON, grep for any name/UUID fields |
-| 2 | Host logs in; board shows the seeded READY players. Separate jar joins as guest via `POST /public/sessions/{code}/guests`; response says `Waiting for host approval`, sets HttpOnly cookie | board count, guest response body, `Set-Cookie` flags |
+| 1 | Anonymous `GET /api/v1/public/games/{code}` shows time, venue, 2 courts; response has **no** names, bands, attendance/match IDs, tokens (`gameId` is the only allowed UUID, OD-02) | status, full JSON, grep for any name/UUID fields |
+| 2 | Host logs in; board shows the seeded READY players. Separate jar joins as guest via `POST /public/games/{code}/guests`; response says `Waiting for host approval`, sets HttpOnly cookie | board count, guest response body, `Set-Cookie` flags |
 | 3 | Host approves guest, requests suggestions (nothing persisted), optionally swaps guest in, confirms one 4-player match on Court 1 → `201` `PLANNED`. Guest `/me` shows **only** own `matchNo`, `courtNo: 1`, `PLANNED` | confirm response, guest `/me` body |
 | 4 | Host starts then finishes the match; guest `/me` status changes accordingly; host can suggest again; the four are never in two unfinished matches | state transitions, second suggestion |
 | 5 | Anonymous and a different signed-in account cannot read the guest's assignment or call host write routes (expect 401/403/404 per §13). Stale/invalid confirm → `409` with `{"code","message","requestId"}` and no partial rows | status codes, DB row count before/after |
-| 6 | `docker compose down` then `up -d` (no `-v`): session and finished match still exist; host and guest pages load; guest cookie still valid | before/after queries |
+| 6 | `docker compose down` then `up -d` (no `-v`): game and finished match still exist; host and guest pages load; guest cookie still valid | before/after queries |
 
 The "different signed-in account" in step 5 requires a second provisioned account. If the seed has none, report NOT VERIFIED and ask the owner — do not add an account without approval.
 

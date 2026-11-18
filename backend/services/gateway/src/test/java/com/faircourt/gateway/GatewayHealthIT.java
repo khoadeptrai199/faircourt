@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 
-/** F18 gateway shell: health is reachable and UP; no route is open yet (routes come in F01/F02). */
+/** Gateway with its real route table: health is reachable and UP; a path not in the table is refused. */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class GatewayHealthIT {
 
@@ -37,7 +37,7 @@ class GatewayHealthIT {
 
     @Test
     void everyOtherPathIsRefused() throws Exception {
-        HttpResponse<String> response = get("/api/v1/public/sessions/ANYCODE");
+        HttpResponse<String> response = get("/api/v1/anything");
 
         assertThat(response.statusCode()).isIn(401, 403);
     }

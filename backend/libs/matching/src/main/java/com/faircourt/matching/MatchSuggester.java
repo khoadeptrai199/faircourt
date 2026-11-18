@@ -25,8 +25,8 @@ public final class MatchSuggester {
     private static final Comparator<ReadyPlayer> BY_ID =
             Comparator.comparing(p -> p.attendanceId().toString());
 
-    /** Selection priority: fewer games first, then waiting longer, then attendance UUID. */
-    private static final Comparator<ReadyPlayer> PRIORITY = Comparator.comparingInt(ReadyPlayer::gamesPlayed)
+    /** Selection priority: fewer matches played first, then waiting longer, then attendance UUID. */
+    private static final Comparator<ReadyPlayer> PRIORITY = Comparator.comparingInt(ReadyPlayer::matchesPlayed)
             .thenComparing(ReadyPlayer::availableSince)
             .thenComparing(BY_ID);
 
