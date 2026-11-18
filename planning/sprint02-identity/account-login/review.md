@@ -22,9 +22,9 @@ Missing tests the reviewer listed and what was done: concurrent attempts (added)
 
 | # | Severity | Finding | Resolution |
 |---|---|---|---|
-| G1 | high | Login throttle, HTTP 429 and `TOO_MANY_REQUESTS` are not in the approved design (design §11 had lockout out of scope) | Added on the owner's instruction "đảm bảo các security … tham khảo các chuẩn"; recorded in design §12; **owner to confirm** the throttle, the numbers and the 429 code |
-| G2 | high | New string `login.tooManyAttempts` | Marked pending in the copy table; **owner to approve** |
-| G3 | medium | Idle timeout 30 min + absolute 8 h differs from approved D-3 (8 h) | Recorded in design §12; **owner to confirm** the values |
+| G1 | high | Login throttle, HTTP 429 and `TOO_MANY_REQUESTS` are not in the approved design (design §11 had lockout out of scope) | Added on the owner's instruction "đảm bảo các security … tham khảo các chuẩn"; recorded in design §12; owner approved 2026-11-18 |
+| G2 | high | New string `login.tooManyAttempts` | Marked pending in the copy table; owner approved 2026-11-18 |
+| G3 | medium | Idle timeout 30 min + absolute 8 h differs from approved D-3 (8 h) | Recorded in design §12; owner approved 2026-11-18 |
 | G4 | medium | Cookie `fc_sid` and `SESSION_COOKIE_NAME` | Recorded; works with the default, nothing to set locally |
 | G5 | medium | Password limit in bytes, not characters | Recorded (D-5 amended in design §12) |
 | G6 | medium | `no-store`, `Clear-Site-Data` (clears every cookie of the site, check again when the guest cookie arrives), JSON-only login | Recorded in design §12 |
@@ -36,4 +36,4 @@ No new dependency, no migration, no deletion, `README.md` untouched, only `POST 
 
 ## Gate
 
-Open for the owner: G1, G2, G3 (explicit approval), S3 (decision on L-26). No open high or medium finding that is a defect.
+All owner items approved 2026-11-18 (G1, G2, G3); S3 stays as L-26. Open: visual check of `/login`, second review under Opus 5.5.

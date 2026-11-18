@@ -100,7 +100,7 @@ Same look as the public game page (Look and feel): centered card up to 480px on 
 | `login.required` | Enter your email and password. | NEW | yes (2026-11-18) |
 | `account.signOut` | Sign out | NEW | yes (2026-11-18) |
 | `account.signedInAs` | Signed in as {email} | NEW | yes (2026-11-18) |
-| `login.tooManyAttempts` | Too many attempts. Try again later. | NEW, added with the login throttle (section 12); same text as the API message for 429 | **pending owner** |
+| `login.tooManyAttempts` | Too many attempts. Try again later. | NEW, added with the login throttle (section 12); same text as the API message for 429 | yes (2026-11-18) |
 
 ## 8. Security and privacy checklist
 
