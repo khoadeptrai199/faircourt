@@ -45,6 +45,10 @@ public record GatewayRouteTable(List<GatewayRoute> routes) {
                 // owns the guest cookie); CSRF token required.
                 GatewayRoute.local(
                         "guest-check-in", HttpMethod.POST, "/api/v1/public/games/*/guests", RouteAccess.PUBLIC),
+                // Member join and "my game" (blueprint section 13; My attendance design): answered by the gateway.
+                // Join needs a signed-in account (CSRF token required); /me is for an account or a guest cookie.
+                GatewayRoute.local("member-join", HttpMethod.POST, "/api/v1/games/*/join", RouteAccess.ACCOUNT),
+                GatewayRoute.local("my-attendance", HttpMethod.GET, "/api/v1/games/*/me", RouteAccess.PLAYER),
                 // Public game page (blueprint sections 3, 13; OD-22): anyone, read-only.
                 new GatewayRoute(
                         "public-game",

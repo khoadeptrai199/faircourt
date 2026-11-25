@@ -61,3 +61,14 @@ export type GuestCheckIn = {
   attendanceState: AttendanceState
   message: string | null
 }
+
+// GET /api/v1/games/{gameId}/me: the caller's own entry only. `assignment` is always null until the own-assignment
+// feature. POST /api/v1/games/{gameId}/join answers with `attendanceState` only.
+export type MyAttendance = {
+  attendanceState: AttendanceState
+  assignment: null
+}
+
+export type MemberJoin = {
+  attendanceState: AttendanceState
+}

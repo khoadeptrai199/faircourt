@@ -76,6 +76,25 @@ export const copy = {
     pending: 'Waiting for host approval',
     pendingBody: 'The host will confirm you. Keep your phone handy.',
     nameRequired: 'Enter your name.',
+    // Own attendance status (owner approved 2026-11-20, design section 7).
+    seeStatus: 'See my status',
+    joining: 'Joining…',
+  },
+  // My game page (Own attendance status, design section 7; owner approved the copy table 2026-11-20).
+  myGame: {
+    title: 'My game',
+    pending: 'Waiting for host approval',
+    pendingBody: 'The host will confirm you. Keep your phone handy.',
+    ready: "You're in.",
+    readyBody: 'Waiting for a match.',
+    resting: 'Resting',
+    left: 'You left this game.',
+    inMatch: 'You have a match.',
+    refresh: 'Refresh',
+    notJoined: "You haven't joined this game yet.",
+    expired: 'Check in again and tell the host to remove your old entry.',
+    checkInAgain: 'Check in again',
+    backToGame: 'Back to the game',
   },
   account: {
     signOut: 'Sign out',

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Link, useParams } from 'react-router'
+import { useParams } from 'react-router'
 import type { PublicGame } from '../../api/types'
 import CourtLines from '../../components/CourtLines'
 import StatusBadge from '../../components/StatusBadge'
@@ -7,6 +7,7 @@ import { copy } from '../../copy/en'
 import { formatVndRange } from '../../lib/money'
 import { GAME_STATUS, MATCH_FORMAT } from '../../lib/status'
 import { formatGameTime } from '../../lib/time'
+import JoinButton from './JoinButton'
 
 const t = copy.publicGame
 
@@ -153,12 +154,7 @@ export default function GameHero({ game }: { game: PublicGame }) {
           // Phone: fixed to the bottom of the screen so it is always within reach (owner 2026-11-18).
           // The Join button leads to the guest check-in page (Guest check-in; replaces the disabled button of OD-13).
           <div className="fixed inset-x-0 bottom-0 z-10 border-t border-ink/10 bg-background/95 px-4 pt-3.5 pb-5 md:static md:border-0 md:bg-transparent md:p-0">
-            <Link
-              to={`/g/${encodeURIComponent(publicCode)}/join`}
-              className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-action px-4 text-lg font-extrabold text-white hover:bg-action-dark focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-action md:min-h-16 md:rounded-[20px] md:text-xl"
-            >
-              {t.join}
-            </Link>
+            <JoinButton gameId={game.gameId} publicCode={publicCode} />
           </div>
         ) : (
           <p

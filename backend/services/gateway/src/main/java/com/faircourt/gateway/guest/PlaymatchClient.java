@@ -37,6 +37,81 @@ public class PlaymatchClient {
 
     private record Request(String displayName, GuestCheckInRequest.Answers answers, UUID existingAttendanceId) {}
 
+    /** What playmatch-service answers to a member join: the state now and whether this call created the entry. */
+    public record MemberJoin(AttendanceState attendanceState, boolean created) {}
+
+    private record MemberRequest(UUID userId, String displayName) {}
+
+    private record MyAttendanceAnswer(AttendanceState attendanceState) {}
+
+    /**
+     * Member join: {@code POST /internal/v1/games/{gameId}/member-attendances}. The account id is the one the gateway
+     * resolved from its session. 404 unknown game, 409 closed game or removed player, 503 a service is down. Never
+     * retried.
+     */
+    public MemberJoin joinMember(UUID gameId, UUID userId, String displayName) {
+        try {
+            MemberJoin answer = client.post()
+                    .uri("/internal/v1/games/{gameId}/member-attendances", gameId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header(RequestIdFilter.HEADER, RequestIdFilter.currentRequestId())
+                    .body(new MemberRequest(userId, displayName))
+                    .retrieve()
+                    .body(MemberJoin.class);
+            if (answer == null || answer.attendanceState() == null) {
+                throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE);
+            }
+            return answer;
+        } catch (HttpClientErrorException e) {
+            throw mapClientError(e);
+        } catch (RestClientResponseException | ResourceAccessException e) {
+            throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE);
+        }
+    }
+
+    /**
+     * The caller's own state: {@code GET /internal/v1/games/{gameId}/my-attendance} with exactly one of {@code userId}
+     * (a signed-in account) or {@code attendanceId} (a guest the gateway resolved from the cookie). 404 when it is not
+     * this caller's entry in this game.
+     */
+    public AttendanceState myAttendance(UUID gameId, UUID userId, UUID attendanceId) {
+        try {
+            MyAttendanceAnswer answer = (userId != null
+                            ? client.get()
+                                    .uri("/internal/v1/games/{gameId}/my-attendance?userId={userId}", gameId, userId)
+                            : client.get()
+                                    .uri(
+                                            "/internal/v1/games/{gameId}/my-attendance?attendanceId={attendanceId}",
+                                            gameId,
+                                            attendanceId))
+                    .header(RequestIdFilter.HEADER, RequestIdFilter.currentRequestId())
+                    .retrieve()
+                    .body(MyAttendanceAnswer.class);
+            if (answer == null || answer.attendanceState() == null) {
+                throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE);
+            }
+            return answer.attendanceState();
+        } catch (HttpClientErrorException e) {
+            throw mapClientError(e);
+        } catch (RestClientResponseException | ResourceAccessException e) {
+            throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE);
+        }
+    }
+
+    private static ApiException mapClientError(HttpClientErrorException e) {
+        HttpStatus status = HttpStatus.resolve(e.getStatusCode().value());
+        if (status == HttpStatus.BAD_REQUEST) {
+            return new ApiException(ErrorCode.VALIDATION_FAILED);
+        }
+        if (status == HttpStatus.NOT_FOUND) {
+            return new ApiException(ErrorCode.NOT_FOUND);
+        }
+        if (status == HttpStatus.CONFLICT) {
+            return new ApiException(ErrorCode.STATE_CONFLICT);
+        }
+        return new ApiException(ErrorCode.SERVICE_UNAVAILABLE);
+    }
+
     public CheckIn checkIn(
             String publicCode, String displayName, GuestCheckInRequest.Answers answers, UUID existingAttendanceId) {
         try {

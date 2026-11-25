@@ -65,6 +65,10 @@ public class GatewaySecurityConfig {
                                 case ACCOUNT ->
                                     auth.requestMatchers(method, route.pathPattern())
                                             .authenticated();
+                                // Account or guest cookie: the controller reads the cookie and answers 401 itself.
+                                case PLAYER ->
+                                    auth.requestMatchers(method, route.pathPattern())
+                                            .permitAll();
                             }
                         }
                     }
