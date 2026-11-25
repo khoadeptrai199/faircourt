@@ -3,12 +3,12 @@
 | Field | Value |
 |---|---|
 | Sprint | S02 Identity |
-| Status | `IN_REVIEW` |
+| Status | `DONE` |
 | Blueprint | §3, §4 (checklist prompts and anchors), §11 (guest `PENDING`), §12 (`guest_access`, token rules), §13 (`POST /public/sessions/{publicCode}/guests`, here `/public/games/...`; band mapping), §16 (`/s/:publicCode/join`, here `/g/:publicCode/join`); OD-02 (decided), OD-06, OD-22 |
 | Depends on | F02 (Public game page), F18 (services) |
-| Waiting for | Gate 3: owner looks at the join page at 320 / 375 / 1280px (AC-08 `NOT VERIFIED`) and confirms `DONE` |
+| Waiting for | — |
 | Suggested branch | `feature/guest-check-in` |
-| Last updated | 2026-11-18 |
+| Last updated | 2026-11-20 |
 
 Docs: [design.md](design.md) · [implement.md](implement.md) · [review.md](review.md)
 
@@ -55,3 +55,4 @@ A visitor opens the public link, presses Join game, enters a display name, answe
 | 2026-11-18 | Branch brought up to date: `origin/main` (PR #1, Agentic workflow) merged in; corrupted Password reset README repaired with the owner's OK | Owner, conversation 2026-11-18 |
 | 2026-11-18 | Build loop finished: implemented, pipeline `PIPELINE OK`, live check on Docker, three reviewers, one fix round (flow-reviewer 67 → 94/100). Status `IN_REVIEW` | Claude, review.md |
 | 2026-11-18 | Owner approved all three open points of review.md (one cookie name per browser; success panel text for non-PENDING states later; nested timeouts / possible duplicate guest) and asked Claude to recommend: accepted as they are, no code change; owner asked Claude to commit and push this branch | Owner, conversation 2026-11-18 |
+| 2026-11-20 | Owner asked for a multi-case test run and, if it ran fine, `DONE`. Agent run on main (4f3fd7d): `mvn verify` 0 failures, frontend format+build OK, many live curl cases PASS. NOT VERIFIED and accepted by that instruction: the visual AC (page look at 320/375/1280px), live idle/absolute timeouts. Status `DONE` | Owner, conversation 2026-11-20 |

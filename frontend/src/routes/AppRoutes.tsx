@@ -8,6 +8,7 @@ import JoinPage from '../features/join/JoinPage'
 import LoginPage from '../features/login/LoginPage'
 import ForgotPasswordPage from '../features/password-reset/ForgotPasswordPage'
 import ResetPasswordPage from '../features/password-reset/ResetPasswordPage'
+import MyGamePage from '../features/my-game/MyGamePage'
 import PublicGamePage from '../features/public-game/PublicGamePage'
 
 // Route table (blueprint section 16, with "session" renamed to "game", OD-22). More routes come with later features.
@@ -17,6 +18,7 @@ export default function AppRoutes() {
       <Route path="/" element={<HomePage />} />
       <Route path="/g/:publicCode" element={<PublicGamePage />} />
       <Route path="/g/:publicCode/join" element={<JoinPage />} />
+      <Route path="/my/games/:gameId" element={<MyGamePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />

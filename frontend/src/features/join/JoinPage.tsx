@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
-import { useParams } from 'react-router'
+import { Link, useParams } from 'react-router'
 import { ApiError } from '../../api/errors'
+import { getPublicGame } from '../../api/games'
 import { checkInAsGuest } from '../../api/guests'
 import type { GuestCheckInRequest, SkillAnswers } from '../../api/types'
 import AuthPageShell from '../../components/AuthPageShell'
@@ -10,6 +11,7 @@ import Button from '../../components/Button'
 import ErrorBanner from '../../components/ErrorBanner'
 import TextField from '../../components/TextField'
 import { copy } from '../../copy/en'
+import { useAsync } from '../../hooks/useAsync'
 import { useMutation } from '../../hooks/useMutation'
 import QuestionStep from './QuestionStep'
 
@@ -50,6 +52,13 @@ export default function JoinPage() {
     Array(QUESTION_COUNT).fill(null),
   )
   const join = useMutation(send)
+  // The public summary gives the game id for the "See my status" link (loaded once; the link shows when it arrives).
+  const loadGame = useCallback(
+    (signal: AbortSignal) => getPublicGame(publicCode, signal),
+    [publicCode],
+  )
+  const game = useAsync(loadGame)
+  const gameId = game.status === 'success' ? game.data.gameId : null
   const saving = join.status === 'saving'
   // A 400 means the server refused the name (the answers always come from the cards), so show the name step again.
   const refused = join.status === 'error' && statusOf(join.error) === 400
@@ -168,6 +177,14 @@ export default function JoinPage() {
                   {t.pending}
                 </Notice>
                 <p className="text-base">{t.pendingBody}</p>
+                {gameId && (
+                  <Link
+                    to={`/my/games/${encodeURIComponent(gameId)}?code=${encodeURIComponent(publicCode)}`}
+                    className="inline-flex min-h-[52px] items-center justify-center rounded-2xl bg-action px-6 text-[17px] font-extrabold text-white hover:bg-action-dark focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-action"
+                  >
+                    {t.seeStatus}
+                  </Link>
+                )}
                 <BackHomeLink />
               </>
             )

@@ -12,10 +12,10 @@
 
 | ID | Feature | Status |
 |---|---|---|
-| F03 | [Account login](account-login/README.md) | `IN_REVIEW` |
-| F21 | [Password reset (OTP by email)](password-reset/README.md) | `IN_REVIEW` |
-| F04 | [Guest check-in](guest-check-in/README.md) | `IN_REVIEW` |
-| F05 | [Own attendance status + member join](my-attendance-status/README.md) | `BACKLOG` |
+| F03 | [Account login](account-login/README.md) | `DONE` |
+| F21 | [Password reset (OTP by email)](password-reset/README.md) | `DONE` |
+| F04 | [Guest check-in](guest-check-in/README.md) | `DONE` |
+| F05 | [Own attendance status + member join](my-attendance-status/README.md) | `IN_REVIEW` |
 
 F21 was added at the owner's request on 2026-11-18 (forgot password with an emailed code), after F03 and before F04.
 

@@ -49,6 +49,25 @@ class PlayerServiceAccessIT {
     }
 
     @Test
+    void memberProfileRoutesAreInternalAndOpenForTheirOwnMethodOnly() throws Exception {
+        String members = "/internal/v1/players/members";
+        String byUser = "/internal/v1/players/by-user/" + java.util.UUID.randomUUID();
+
+        // Opened by My attendance. An empty body is a 4xx from the route, never 401 from the security chain.
+        assertThat(send("POST", members).statusCode()).isNotEqualTo(401);
+        assertThat(send("GET", members).statusCode()).isEqualTo(401);
+        assertThat(send("PUT", members).statusCode()).isEqualTo(401);
+        assertThat(send("POST", members + "/extra").statusCode()).isEqualTo(401);
+        assertThat(send("POST", "/api/v1/players/members").statusCode()).isEqualTo(401);
+        // An unknown account is the route's own 404, not the chain's 401.
+        assertThat(send("GET", byUser).statusCode()).isEqualTo(404);
+        assertThat(send("POST", byUser).statusCode()).isEqualTo(401);
+        assertThat(send("DELETE", byUser).statusCode()).isEqualTo(401);
+        assertThat(send("GET", byUser + "/extra").statusCode()).isEqualTo(401);
+        assertThat(send("GET", "/api/v1/players/by-user/x").statusCode()).isEqualTo(401);
+    }
+
+    @Test
     void routesNoFeatureOpenedAre401JsonWithoutASession() throws Exception {
         for (String path : new String[] {"/api/v1/anything", "/internal/v1/anything"}) {
             for (String method : new String[] {"GET", "POST"}) {

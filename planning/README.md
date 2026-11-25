@@ -7,7 +7,7 @@ The one place to create features, track their status, and read each feature's de
 - System design: [architecture/system-design.md](architecture/system-design.md) · Decision log: [architecture/decisions.md](architecture/decisions.md)
 - Rules for agents: [.claude/rules/planning-workflow.md](../.claude/rules/planning-workflow.md), [.claude/rules/conventions.md](../.claude/rules/conventions.md)
 
-Last updated: 2026-11-18
+Last updated: 2026-11-20
 
 ## Sprints
 
@@ -31,10 +31,10 @@ Last updated: 2026-11-18
 | F19 | Game rename ("session" → "game": tables, routes, names, copy) | S01 | DONE | F18, F01 | — | [README](sprint01-public-read/game-rename/README.md) · [design](sprint01-public-read/game-rename/design.md) · [implement](sprint01-public-read/game-rename/implement.md) |
 | F02 | Public game page (+ format, minimum sets, price) + frontend foundation | S01 | DONE | F01, F19 | — | [README](sprint01-public-read/public-game-page/README.md) · [design](sprint01-public-read/public-game-page/design.md) · [implement](sprint01-public-read/public-game-page/implement.md) |
 | F20 | Look and feel ("Court lines"): own visual identity for home + public game page | S01 | IN_REVIEW | F02 | owner looks at the pages (320/375/1280px) | [README](sprint01-public-read/look-and-feel/README.md) · [design](sprint01-public-read/look-and-feel/design.md) |
-| F03 | Account login, logout, `GET /me` | S02 | IN_REVIEW | F01 | visual check of /login (owner) | [README](sprint02-identity/account-login/README.md) |
-| F21 | Password reset (forgot password, OTP by email) | S02 | IN_REVIEW | F03 | visual check of both pages (owner) | [README](sprint02-identity/password-reset/README.md) · [design](sprint02-identity/password-reset/design.md) |
-| F04 | Guest check-in + guest cookie | S02 | IN_REVIEW | F02 | — | [README](sprint02-identity/guest-check-in/README.md) |
-| F05 | Own attendance status + member join | S02 | BACKLOG | F03, F04 | OD-02, OD-11 | [README](sprint02-identity/my-attendance-status/README.md) |
+| F03 | Account login, logout, `GET /me` | S02 | DONE | F01 | — | [README](sprint02-identity/account-login/README.md) |
+| F21 | Password reset (forgot password, OTP by email) | S02 | DONE | F03 | — | [README](sprint02-identity/password-reset/README.md) · [design](sprint02-identity/password-reset/design.md) |
+| F04 | Guest check-in + guest cookie | S02 | DONE | F02 | — | [README](sprint02-identity/guest-check-in/README.md) |
+| F05 | Own attendance status + member join | S02 | IN_REVIEW | F03, F04 | owner visual check + 3 points in review.md | [README](sprint02-identity/my-attendance-status/README.md) · [design](sprint02-identity/my-attendance-status/design.md) |
 | F06 | Host board | S03 | BACKLOG | F03 | OD-04, OD-14 | [README](sprint03-host-board/host-board/README.md) |
 | F07 | Attendance management (approve, rest, leave) | S03 | BACKLOG | F06 | OD-07, OD-15 | [README](sprint03-host-board/attendance-management/README.md) |
 | F08 | Create game | S03 | BACKLOG | F03 | OD-05, OD-10 | [README](sprint03-host-board/create-game/README.md) |

@@ -46,6 +46,17 @@ class GatewayAccessMatrixIT extends GatewayTestBase {
     }
 
     @Test
+    void theInternalMemberJoinAndMyAttendanceRoutesSentToTheGatewayAre401AndNeverForwarded() throws Exception {
+        String game = "66666666-6666-6666-6666-666666666666";
+        String user = "11111111-1111-1111-1111-111111111111";
+
+        assertUnauthenticated(get("/internal/v1/games/" + game + "/my-attendance?userId=" + user));
+        assertUnauthenticated(send("POST", "/internal/v1/games/" + game + "/member-attendances", bootstrap()));
+
+        assertThat(STUB.received()).noneMatch(r -> r.path().startsWith("/internal/v1/games/"));
+    }
+
+    @Test
     void passwordResetRoutesAreForwardedForAnyoneAsPostWithACsrfToken() throws Exception {
         for (String path : new String[] {"/api/v1/auth/password/forgot", "/api/v1/auth/password/reset"}) {
             STUB.clear();
@@ -99,6 +110,33 @@ class GatewayAccessMatrixIT extends GatewayTestBase {
         assertThat(withToken.body()).contains("\"code\":\"VALIDATION_FAILED\"");
         // Only POST: everything else is refused before it reaches any service.
         for (String method : new String[] {"GET", "PUT", "PATCH", "DELETE"}) {
+            assertThat(send(method, path, bootstrap()).statusCode()).as(method).isEqualTo(401);
+        }
+        assertThat(STUB.received()).isEmpty();
+    }
+
+    @Test
+    void memberJoinNeedsACsrfTokenAndASignedInAccountAndIsNeverForwardedOtherwise() throws Exception {
+        String path = "/api/v1/games/" + StubService.OPEN_GAME_ID + "/join";
+
+        HttpResponse<String> noToken = send("POST", path, Map.of());
+        HttpResponse<String> anonymous = send("POST", path, bootstrap());
+
+        assertThat(noToken.statusCode()).as("without token").isEqualTo(403);
+        assertUnauthenticated(anonymous);
+        for (String method : new String[] {"GET", "PUT", "PATCH", "DELETE"}) {
+            assertThat(send(method, path, bootstrap()).statusCode()).as(method).isEqualTo(401);
+        }
+        assertThat(STUB.received()).isEmpty();
+    }
+
+    @Test
+    void myAttendanceIsReachableByAnonymousOnlyToAnswer401AndNothingIsForwarded() throws Exception {
+        String path = "/api/v1/games/" + StubService.OPEN_GAME_ID + "/me";
+
+        // The PLAYER rule lets the controller decide; without any credential it answers 401 itself.
+        assertUnauthenticated(get(path));
+        for (String method : new String[] {"POST", "PUT", "PATCH", "DELETE"}) {
             assertThat(send(method, path, bootstrap()).statusCode()).as(method).isEqualTo(401);
         }
         assertThat(STUB.received()).isEmpty();

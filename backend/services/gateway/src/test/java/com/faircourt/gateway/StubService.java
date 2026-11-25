@@ -46,6 +46,10 @@ public final class StubService {
 
     public static final String ACCOUNT_PASSWORD = "right-password";
     public static final String ACCOUNT_USER_ID = "11111111-1111-1111-1111-111111111111";
+    /** An email starting with this prefix signs in as a second account with its own user id. */
+    public static final String OTHER_EMAIL_PREFIX = "other-";
+
+    public static final String OTHER_ACCOUNT_USER_ID = "99999999-9999-9999-9999-999999999999";
     /** An email starting with this prefix makes the stub answer after 3 s (slower than the 1 s test timeout). */
     public static final String SLOW_EMAIL_PREFIX = "slow-";
 
@@ -59,13 +63,26 @@ public final class StubService {
     public static final String CLOSED_GAME_CODE = "CLOSED001";
     public static final String FAILING_GAME_CODE = "FAILING1";
 
+    /** Game ids that make the member-join stub answer 404, 409 or 500 (My attendance). */
+    public static final String UNKNOWN_GAME_ID = "33333333-3333-3333-3333-333333333333";
+
+    public static final String CLOSED_GAME_ID = "44444444-4444-4444-4444-444444444444";
+    public static final String FAILING_GAME_ID = "55555555-5555-5555-5555-555555555555";
+    /** An open game for member join and my-attendance. */
+    public static final String OPEN_GAME_ID = "66666666-6666-6666-6666-666666666666";
+
+    /** "gameId|userId" to state of the members who joined through the stub. */
+    private final Map<String, String> members = new ConcurrentHashMap<>();
+
+    private volatile boolean failingMyAttendance = false;
+
     private final Map<String, String> guestTokens = new ConcurrentHashMap<>();
     private final AtomicInteger guestTokenCounter = new AtomicInteger();
     private volatile boolean resolveFails = false;
 
     private record VerifyAnswer(int status, String body) {}
 
-    public record Received(String method, String path, Headers headers, String body) {}
+    public record Received(String method, String path, String query, Headers headers, String body) {}
 
     private final HttpServer server;
     private final List<Received> received = new CopyOnWriteArrayList<>();
@@ -123,6 +140,13 @@ public final class StubService {
         sessionCheckFails = false;
         guestTokens.clear();
         resolveFails = false;
+        members.clear();
+        failingMyAttendance = false;
+    }
+
+    /** Makes the my-attendance stub answer 500, like a playmatch-service that is up but failing. */
+    public void myAttendanceFails(boolean fails) {
+        this.failingMyAttendance = fails;
     }
 
     /** A port on which nothing listens, for the "service is down" case. */
@@ -163,7 +187,8 @@ public final class StubService {
             }
         }
         if (ACCOUNT_PASSWORD.equals(password)) {
-            return new VerifyAnswer(200, "{\"userId\":\"" + ACCOUNT_USER_ID + "\",\"email\":\"" + email + "\"}");
+            String userId = email.startsWith(OTHER_EMAIL_PREFIX) ? OTHER_ACCOUNT_USER_ID : ACCOUNT_USER_ID;
+            return new VerifyAnswer(200, "{\"userId\":\"" + userId + "\",\"email\":\"" + email + "\"}");
         }
         return new VerifyAnswer(
                 401,
@@ -178,7 +203,12 @@ public final class StubService {
     private void handle(HttpExchange exchange) throws IOException {
         String path = exchange.getRequestURI().getPath();
         String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
-        received.add(new Received(exchange.getRequestMethod(), path, exchange.getRequestHeaders(), requestBody));
+        received.add(new Received(
+                exchange.getRequestMethod(),
+                path,
+                exchange.getRequestURI().getQuery(),
+                exchange.getRequestHeaders(),
+                requestBody));
         int status = 200;
         String body = "{\"ok\":true}";
         if (path.endsWith("/session-check")) {
@@ -218,6 +248,45 @@ public final class StubService {
                 String token = String.format("%043d", guestTokenCounter.incrementAndGet());
                 body = "{\"attendanceState\":\"PENDING\",\"created\":true,\"credential\":{\"token\":\"" + token
                         + "\",\"expiresAt\":\"" + Instant.now().plus(Duration.ofHours(14)) + "\"}}";
+            }
+        } else if (path.startsWith("/internal/v1/games/") && path.endsWith("/member-attendances")) {
+            String gameId =
+                    path.substring("/internal/v1/games/".length(), path.length() - "/member-attendances".length());
+            String userId = jsonField(requestBody, "userId");
+            if (gameId.equals(UNKNOWN_GAME_ID)) {
+                status = 404;
+                body = "{\"code\":\"NOT_FOUND\",\"message\":\"Not found.\",\"requestId\":\"from-service\"}";
+            } else if (gameId.equals(CLOSED_GAME_ID)) {
+                status = 409;
+                body = "{\"code\":\"STATE_CONFLICT\",\"message\":\"This game is closed.\","
+                        + "\"requestId\":\"from-service\"}";
+            } else if (gameId.equals(FAILING_GAME_ID)) {
+                status = 500;
+            } else {
+                boolean created = members.putIfAbsent(gameId + "|" + userId, "READY") == null;
+                body = "{\"attendanceState\":\"READY\",\"created\":" + created + "}";
+            }
+        } else if (path.startsWith("/internal/v1/games/") && path.endsWith("/my-attendance")) {
+            String gameId = path.substring("/internal/v1/games/".length(), path.length() - "/my-attendance".length());
+            String query = exchange.getRequestURI().getQuery() == null
+                    ? ""
+                    : exchange.getRequestURI().getQuery();
+            String state = null;
+            if (query.startsWith("userId=")) {
+                state = members.get(gameId + "|" + query.substring("userId=".length()));
+            } else if (query.startsWith("attendanceId=")
+                    && gameId.equals(GUEST_GAME_ID)
+                    && guestTokens.containsValue(query.substring("attendanceId=".length()))) {
+                // The guest's game is GUEST_GAME_ID: playmatch-service applies the game check (design section 3).
+                state = "PENDING";
+            }
+            if (failingMyAttendance) {
+                status = 500;
+            } else if (state == null) {
+                status = 404;
+                body = "{\"code\":\"NOT_FOUND\",\"message\":\"Not found.\",\"requestId\":\"from-service\"}";
+            } else {
+                body = "{\"attendanceState\":\"" + state + "\"}";
             }
         } else if (path.endsWith("/conflict")) {
             status = 409;

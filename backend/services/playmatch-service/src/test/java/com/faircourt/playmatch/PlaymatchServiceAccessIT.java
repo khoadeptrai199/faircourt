@@ -63,6 +63,34 @@ class PlaymatchServiceAccessIT {
     }
 
     @Test
+    void memberJoinRouteIsInternalAndOpenForPostOnly() throws Exception {
+        String path = "/internal/v1/games/22222222-2222-2222-2222-222222222222/member-attendances";
+        // Opened by My attendance. An empty body is a 4xx from the route, never 401 from the security chain.
+        assertThat(send("POST", path).statusCode()).isNotEqualTo(401);
+        assertThat(send("GET", path).statusCode()).isEqualTo(401);
+        assertThat(send("PUT", path).statusCode()).isEqualTo(401);
+        assertThat(send("DELETE", path).statusCode()).isEqualTo(401);
+        assertThat(send("POST", path + "/extra").statusCode()).isEqualTo(401);
+        assertThat(send("POST", "/api/v1/games/22222222-2222-2222-2222-222222222222/member-attendances")
+                        .statusCode())
+                .isEqualTo(401);
+    }
+
+    @Test
+    void myAttendanceRouteIsInternalAndOpenForGetOnly() throws Exception {
+        String path = "/internal/v1/games/22222222-2222-2222-2222-222222222222/my-attendance";
+        // Opened by My attendance. Without a parameter the route's own 400, never 401 from the security chain.
+        assertThat(send("GET", path).statusCode()).isEqualTo(400);
+        assertThat(send("POST", path).statusCode()).isEqualTo(401);
+        assertThat(send("PUT", path).statusCode()).isEqualTo(401);
+        assertThat(send("DELETE", path).statusCode()).isEqualTo(401);
+        assertThat(send("GET", path + "/extra").statusCode()).isEqualTo(401);
+        assertThat(send("GET", "/api/v1/games/22222222-2222-2222-2222-222222222222/my-attendance")
+                        .statusCode())
+                .isEqualTo(401);
+    }
+
+    @Test
     void publicGamePageIsOpenToAnonymousForGetOnly() throws Exception {
         // Unknown code: the route is open, so the answer is the controller's 404, not the security chain's 401.
         HttpResponse<String> get = send("GET", "/api/v1/public/games/UNKNOWN1");
