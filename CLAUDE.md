@@ -64,6 +64,8 @@ FairCourt is a responsive web app that helps badminton groups (a host who rents 
 
 - 2026-11-18 — **Agentic workflow with three human gates.** Gate 1 spec (`design.md`) → Gate 2 plan + test cases (`implement.md`) → build loop without stopping (implement on a Sonnet subagent, validators, fresh-session review on Opus, fix, docs) → Gate 3 report; the owner commits. The generic engine is user-level (`/flow` skill and `flow-implementer` / `flow-reviewer` agents in the Claude config folder, not in git); this repo holds only the project layer in `.claude/flow/` (config, tracker adapter, discovery maps, golden cases) and `scripts/precommit.sh` (the pre-commit pipeline as a script, plus a guard against editing applied migrations). Not tracked as a feature in `planning/`.
 
+- 2026-11-25 — **AI output style "Caveman Technical Architect"** for every AI assistant in this repo, from now on (owner request). Chat replies, progress updates and handoffs: ultra-concise, no pleasantries, `Key: Value` / bullets, code-only when the answer is code. Does not change code, comments, repo docs, UI copy, commit/PR text or questions to the owner. Hard rules above still win (commands + PASS/FAIL + NOT VERIFIED in every handoff). Rule: `.claude/rules/output-style.md`; Claude Code output style `.claude/output-styles/caveman.md` enabled in `.claude/settings.json`; Codex `AGENTS.md`; Windsurf `.windsurfrules`.
+
 ## Unrelated existing files
 
 `README.md` is the project README. It is an empty file by owner request since 2026-11-17 (see "Owner decisions"); do not fill it unasked. (`nana/tesst.txt` was deleted by the owner on 2026-11-17.)
@@ -88,7 +90,7 @@ Until F18 is implemented, the code is still the single app in `backend/src/`.
 
 ## Project guidance files
 
-- Rules: [.claude/rules/](.claude/rules/) — `privacy-auth.md`, `backend-db.md`, `frontend-matching.md`, `docker-crossplatform.md`, `conventions.md` (naming, structure, patterns for every task), `planning-workflow.md` (feature status and evidence)
+- Rules: [.claude/rules/](.claude/rules/) — `privacy-auth.md`, `backend-db.md`, `frontend-matching.md`, `docker-crossplatform.md`, `conventions.md` (naming, structure, patterns for every task), `planning-workflow.md` (feature status and evidence), `output-style.md` (how AI replies are written)
 - Agentic loop: `/flow <feature> [design|plan|build|status]` (user-level engine) with project config [.claude/flow/config.json](.claude/flow/config.json); validator `scripts/precommit.sh`
 - Skills: `/feature` (create a feature / run its next phase / check the board), `/spec-lookup`, `/acceptance-check`, `/run-local`, `/new-endpoint`
 - Planning: [planning/README.md](planning/README.md) (board), [planning/ROADMAP.md](planning/ROADMAP.md), [planning/architecture/system-design.md](planning/architecture/system-design.md)
