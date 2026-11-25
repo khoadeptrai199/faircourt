@@ -3,12 +3,12 @@
 | Field | Value |
 |---|---|
 | Sprint | S01 Services + public read |
-| Status | `IN_REVIEW` |
+| Status | `DONE` |
 | Blueprint | §6 (colors, typography, tone), §16 (layout, components, page states); applies to the home page and the public game page |
 | Depends on | F02 (Public game page) |
-| Waiting for | Owner looks at the pages at 320 / 375 / 1280px (AC-01, AC-02 `NOT VERIFIED`) |
+| Waiting for | — |
 | Suggested branch | `feature/look-and-feel` |
-| Last updated | 2026-11-18 |
+| Last updated | 2026-11-25 |
 
 Docs: [design.md](design.md) · [implement.md](implement.md)
 
@@ -37,3 +37,4 @@ FairCourt has its own recognisable look ("chất riêng"): young, lively, clear,
 | 2026-11-18 | Owner: "UI bạn tự vẽ. Năng động trẻ trung trực quan và thu hút là được, không cần quá cầu kì màu mè … ấn tượng ngay lần đầu tiên", with its own identity ("chất riêng"). Feature created in S01 at the owner's request; mockup made, waiting for approval | Owner, conversation 2026-11-18 |
 | 2026-11-18 | Owner approved the look as shown in the mockup "for now" ("ok tạm thời UI như ảnh đi, sau này sẽ sửa UI lại"): covers D-2 (new color tokens), D-3 ("6+ / sets per player" tile), D-4 (Join bar fixed at the bottom on phones). D-1 (font loading) still open. Owner also described navigation (5 items desktop top bar, 4–5 phone bottom bar) and the discovery → detail → join flow: mocked up as LATER artboards (home with nav + games near you), ideas recorded as L-20…L-25 in ROADMAP | Owner, conversation 2026-11-18 |
 | 2026-11-18 | D-1 = (a): Inter bundled through `@fontsource/inter` 5.3.0 (exact, checked on npm). Implemented; status `IN_REVIEW`. Owner asked to commit and push when done | Owner, conversation 2026-11-18 |
+| 2026-11-25 | Owner looked at the pages and approved ("I approved. mark it done"): AC-01, AC-02 accepted by the owner. Status `DONE` | Owner, conversation 2026-11-25 |

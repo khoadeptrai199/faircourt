@@ -7,7 +7,7 @@ The one place to create features, track their status, and read each feature's de
 - System design: [architecture/system-design.md](architecture/system-design.md) · Decision log: [architecture/decisions.md](architecture/decisions.md)
 - Rules for agents: [.claude/rules/planning-workflow.md](../.claude/rules/planning-workflow.md), [.claude/rules/conventions.md](../.claude/rules/conventions.md)
 
-Last updated: 2026-11-20
+Last updated: 2026-11-25
 
 ## Sprints
 
@@ -30,7 +30,7 @@ Last updated: 2026-11-20
 | F01 | API foundation: shared error lib, gateway route table, request ID, CSRF bootstrap, test harness | S01 | DONE | F18 | — | [README](sprint01-public-read/api-foundation/README.md) · [design](sprint01-public-read/api-foundation/design.md) · [implement](sprint01-public-read/api-foundation/implement.md) |
 | F19 | Game rename ("session" → "game": tables, routes, names, copy) | S01 | DONE | F18, F01 | — | [README](sprint01-public-read/game-rename/README.md) · [design](sprint01-public-read/game-rename/design.md) · [implement](sprint01-public-read/game-rename/implement.md) |
 | F02 | Public game page (+ format, minimum sets, price) + frontend foundation | S01 | DONE | F01, F19 | — | [README](sprint01-public-read/public-game-page/README.md) · [design](sprint01-public-read/public-game-page/design.md) · [implement](sprint01-public-read/public-game-page/implement.md) |
-| F20 | Look and feel ("Court lines"): own visual identity for home + public game page | S01 | IN_REVIEW | F02 | owner looks at the pages (320/375/1280px) | [README](sprint01-public-read/look-and-feel/README.md) · [design](sprint01-public-read/look-and-feel/design.md) |
+| F20 | Look and feel ("Court lines"): own visual identity for home + public game page | S01 | DONE | F02 | — | [README](sprint01-public-read/look-and-feel/README.md) · [design](sprint01-public-read/look-and-feel/design.md) |
 | F03 | Account login, logout, `GET /me` | S02 | DONE | F01 | — | [README](sprint02-identity/account-login/README.md) |
 | F21 | Password reset (forgot password, OTP by email) | S02 | DONE | F03 | — | [README](sprint02-identity/password-reset/README.md) · [design](sprint02-identity/password-reset/design.md) |
 | F04 | Guest check-in + guest cookie | S02 | DONE | F02 | — | [README](sprint02-identity/guest-check-in/README.md) |

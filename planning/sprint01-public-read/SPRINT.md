@@ -16,7 +16,7 @@
 | F01 | [API foundation: shared lib + gateway](api-foundation/README.md) | `DONE` |
 | F19 | [Game rename ("session" → "game")](game-rename/README.md) | `DONE` |
 | F02 | [Public game page + frontend foundation](public-game-page/README.md) | `DONE` |
-| F20 | [Look and feel ("Court lines")](look-and-feel/README.md) | `IN_REVIEW` |
+| F20 | [Look and feel ("Court lines")](look-and-feel/README.md) | `DONE` |
 
 Order: F18 → F01 → F19 → F02 (backend first, then F02's frontend) → F20.
 
