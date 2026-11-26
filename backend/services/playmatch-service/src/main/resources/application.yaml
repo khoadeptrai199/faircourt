@@ -47,6 +47,9 @@ logging:
     level: "%5p [%X{requestId:-}]"
 
 faircourt:
+  internal-token:
+    # Checks the identity token from the gateway (AD-14). From the environment only; at least 32 bytes, else startup fails.
+    secret: "${INTERNAL_TOKEN_SECRET}"
   request-id:
     # Keep the request ID the gateway forwarded (services are reachable only from the gateway).
     trust-incoming: true

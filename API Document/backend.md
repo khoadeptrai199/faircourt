@@ -17,7 +17,7 @@ Naming (owner decision 2026-11-18): the blueprint's "session" (the play event) i
 ## Endpoints
 
 Status = what exists in this repository today (not what the blueprint promises).
-Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf`, `GET /api/v1/public/games/{publicCode}`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/me`, `POST /api/v1/auth/password/forgot`, `POST /api/v1/auth/password/reset` and `POST /api/v1/public/games/{publicCode}/guests` are reachable; every other route is denied (anonymous → `401 UNAUTHENTICATED`, so unknown routes are not revealed).
+Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf`, `GET /api/v1/public/games/{publicCode}`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/me`, `POST /api/v1/auth/password/forgot`, `POST /api/v1/auth/password/reset`, `POST /api/v1/public/games/{publicCode}/guests`, `POST /api/v1/games/{gameId}/join`, `GET /api/v1/games/{gameId}/me`, `GET /api/v1/host/games/{gameId}/board` and `GET /api/v1/host/games` are reachable; every other route is denied (anonymous → `401 UNAUTHENTICATED`, so unknown routes are not revealed).
 
 | Method and route | Caller | Contract (§13) | Status |
 |---|---|---|---|
@@ -30,9 +30,10 @@ Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf`, `GET /api/v1/pub
 | `POST /auth/password/reset` | Anyone | Code + new password (owner-approved addition, 2026-11-18). | Implemented (Password reset, 2026-11-18) |
 | `POST /games` | Signed-in account | Create a game; creator becomes host. | Not started |
 | `POST /public/games/{publicCode}/guests` | Visitor | Submit name/assessment; create guest `PENDING`, set private guest cookie. | Implemented, backend (Guest check-in, 2026-11-18) |
-| `POST /games/{gameId}/join` | Signed-in player | Join once with member profile; return own attendance. | Not started |
-| `GET /games/{gameId}/me` | Member or scoped guest | Own attendance state, optional own `matchNo`, `courtNo`, `matchState`; no other players. | Not started |
-| `GET /host/games/{gameId}/board` | This game's host | Full attendance list, private bands, current matches and courts. | Not started |
+| `POST /games/{gameId}/join` | Signed-in player | Join once with member profile; return own attendance. | Implemented (Own attendance status, 2026-11-20; row updated 2026-11-25, details in that feature's design) |
+| `GET /games/{gameId}/me` | Member or scoped guest | Own attendance state, optional own `matchNo`, `courtNo`, `matchState`; no other players. | Implemented for the attendance state (Own attendance status, 2026-11-20); `assignment` is always `null` until the own-assignment feature |
+| `GET /host/games/{gameId}/board` | This game's host | Full attendance list, private bands, current matches and courts. | Implemented (Host board, 2026-11-25) |
+| `GET /host/games` | Signed-in account | Games the caller hosts (owner-approved addition, OD-04, 2026-11-25). | Implemented (Host board, 2026-11-25) |
 | `PATCH /host/games/{gameId}/attendance/{attendanceId}` | Host | Approve guest, set Ready/Resting/Left with state validation. | Not started |
 | `POST /host/games/{gameId}/suggestions` | Host | Compute one or more proposed courts; read-only, no match persistence. | Not started (pure matcher exists, see below) |
 | `POST /host/games/{gameId}/matches` | Host | Confirm one proposed or manually edited four-player pairing as `PLANNED`. | Not started |
@@ -128,6 +129,27 @@ Internal (never reachable through the gateway):
 | player | `POST /internal/v1/players/guests` | playmatch | `{displayName, gameId, answers\|null}` → `201 {playerId}`; `400` for partial or out-of-range answers |
 
 Band mapping (blueprint §13): total of the four answers 0–3 → band 1, 4–6 → 2, 7–9 → 3, 10–12 → 4; all unknown → no band.
+
+### Host board: `GET /host/games/{gameId}/board`, `GET /host/games` (implemented, 2026-11-25)
+
+Both forwarded by the gateway to playmatch-service. Gateway rule: a signed-in account (route kind `HOST`); the real host check runs in playmatch (`AccessPolicy`, §15). Read only, no CSRF token needed. Answers carry `Cache-Control: no-store`.
+
+| Item | `GET /host/games/{gameId}/board` | `GET /host/games` |
+|---|---|---|
+| Caller | this game's host (`game.host_user_id`) | any signed-in account; answers only the caller's own games |
+| `200` | `{"asOf","game":{"id","publicCode","title","venue","startsAt","endsAt","courtCount","state","matchFormat","minSets"},"players":[{"attendanceId","displayName","kind","state","band","bandStatus","checkedInAt","availableSince","matchesPlayed"}],"courts":[{"courtNo","match":null\|{"matchId","matchNo","state","teams":{"A":[attendanceId…],"B":[…]}}}]}` | `{"games":[{"id","publicCode","title","venue","startsAt","endsAt","courtCount","state"}]}`, newest start first, at most 50 |
+| Order | `players` by state (Pending, Ready, Assigned, Playing, Resting, Left), then `matchesPlayed`, `availableSince`, `attendanceId` (the matcher's order, §14) | — |
+| Errors | `401 UNAUTHENTICATED` (not signed in, also a guest cookie only), `404 NOT_FOUND` (unknown or malformed id), `403 FORBIDDEN` (signed in, not the host), `503 SERVICE_UNAVAILABLE` (player-service down; no partial board) | `401 UNAUTHENTICATED` |
+
+`asOf` is the server time of the read (wait minutes are counted from it). `band` is 1–4 or `null` (shown as "Unknown / provisional"); `bandStatus` `SELF_REPORTED` / `OBSERVED` / `CONFIRMED`; `kind` `MEMBER` / `GUEST`. `courts` has exactly `courtCount` entries; `match` is the one `PLANNED` or `ACTIVE` match on that court. No user id, player id, email, token or questionnaire answer is returned. This answer is for the host only and is never reused for a player.
+
+Identity between gateway and services (for developers): on `HOST` routes the gateway adds the header `X-Internal-Identity` = `v1.<base64url claims>.<base64url HMAC-SHA256>`, claims `{"kind":"ACCOUNT","userId","iat","exp"}`, valid 30 s, signed with `INTERNAL_TOKEN_SECRET` (`.env`, at least 32 characters; the stack does not start without it). A browser-sent `X-Internal-*` header is always removed first. Services rebuild the caller only from this header; missing → anonymous, invalid or expired → `401`.
+
+Internal (never reachable through the gateway):
+
+| Service | Route | Called by | Request → response |
+|---|---|---|---|
+| player | `POST /internal/v1/players/levels` | playmatch (host board) | `{"playerIds":[…]}` (1–200) → `200 {"players":[{"playerId","kind","band","bandStatus"}]}`; unknown ids left out; `400` for an empty or too long list |
 
 ## Who may see what (§3)
 
@@ -235,4 +257,5 @@ Error codes (same body from the gateway and every service; messages are generic,
 - Public game page: `GET /public/games/{publicCode}` (playmatch-service, routed by the gateway).
 - Account login: `POST /auth/login`, `POST /auth/logout`, `GET /me` in the gateway; internal `POST /internal/v1/auth/verify` in auth-service; login throttle, idle and absolute session timeout.
 - Guest check-in (backend): `POST /public/games/{publicCode}/guests` in the gateway, saga across playmatch, player and auth (4 internal routes), guest cookie `fc_guest`; logout no longer clears it.
+- Host board: `GET /host/games/{gameId}/board` and `GET /host/games` (playmatch-service, forwarded by the gateway with the `X-Internal-Identity` token); `AccessPolicy` in playmatch; internal `POST /internal/v1/players/levels` in player-service (2026-11-25).
 - Password reset: `POST /auth/password/forgot`, `POST /auth/password/reset` (forwarded to auth-service), internal session check, Flyway `V3` (table `password_reset`, column `password_changed_at`), mail through SMTP (local catcher `mailpit`).

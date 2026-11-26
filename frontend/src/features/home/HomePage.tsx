@@ -3,13 +3,21 @@
 // "Court lines" look (Look and feel feature). Only existing copy; navigation and "games near you" are mocked up
 // in the design file and come with their own features (backlog L-20…L-22).
 // "Host login" links to /login (Account login feature); when signed in the header shows the email and "Sign out".
+import { useCallback } from 'react'
 import { Link } from 'react-router'
 import { logout } from '../../api/account'
+import { getHostedGames } from '../../api/host'
+import type { HostedGame } from '../../api/types'
 import Button from '../../components/Button'
 import CourtLines from '../../components/CourtLines'
+import ErrorBanner from '../../components/ErrorBanner'
 import Logo from '../../components/Logo'
+import StatusBadge from '../../components/StatusBadge'
 import { copy } from '../../copy/en'
-import { useAccount } from '../../hooks/useAccount'
+import { useAccount, type AccountState } from '../../hooks/useAccount'
+import { useAsync } from '../../hooks/useAsync'
+import { GAME_STATUS } from '../../lib/status'
+import { formatGameTime } from '../../lib/time'
 
 const steps = [
   {
@@ -27,14 +35,17 @@ const steps = [
 ]
 
 export default function HomePage() {
+  const account = useAccount()
   return (
     <div className="min-h-dvh bg-background text-ink">
       <header className="mx-auto flex max-w-[1080px] items-center justify-between gap-3 px-4 pt-4 pb-2 pl-5 md:px-6 md:pt-6 md:pb-3">
         <Logo />
-        <AccountMenu />
+        <AccountMenu account={account} />
       </header>
 
       <main className="mx-auto max-w-[1080px] px-4 pt-2 pb-12 md:px-6 md:pt-3">
+        {account.status === 'signedIn' && <HostedGames />}
+
         <section
           aria-labelledby="home-title"
           className="relative overflow-hidden rounded-[28px] bg-action px-[22px] py-[26px] text-white md:rounded-[32px] md:px-12 md:py-16"
@@ -123,9 +134,11 @@ export default function HomePage() {
   )
 }
 
-function AccountMenu() {
-  const account = useAccount()
-
+function AccountMenu({
+  account,
+}: {
+  account: AccountState & { reload: () => void }
+}) {
   switch (account.status) {
     case 'loading':
       // Keeps the space so the header does not jump when the answer arrives.
@@ -163,4 +176,77 @@ function AccountMenu() {
       return unreachable
     }
   }
+}
+
+// "Games you host": only for a signed-in account; the server answers with this caller's own games (Host board).
+function HostedGames() {
+  const load = useCallback((signal: AbortSignal) => getHostedGames(signal), [])
+  const games = useAsync(load, (list) => list.length === 0)
+
+  return (
+    <section aria-labelledby="hosted-title" className="mb-8 md:mb-12">
+      <h2
+        id="hosted-title"
+        className="px-1 text-[22px] font-black tracking-tight md:text-[28px]"
+      >
+        {copy.home.hostedTitle}
+      </h2>
+      <div className="mt-3">
+        {(() => {
+          switch (games.status) {
+            case 'loading':
+              return (
+                <p role="status" className="text-base">
+                  {copy.common.loading}
+                </p>
+              )
+            case 'empty':
+              return (
+                <p role="status" className="px-1 text-base font-bold">
+                  {copy.home.hostedEmpty}
+                </p>
+              )
+            case 'success':
+              return (
+                <ul className="grid gap-2 md:grid-cols-2 md:gap-4">
+                  {games.data.map((game) => (
+                    <HostedGameRow key={game.id} game={game} />
+                  ))}
+                </ul>
+              )
+            case 'error':
+              return <ErrorBanner onRetry={games.reload} />
+            default: {
+              const unreachable: never = games
+              return unreachable
+            }
+          }
+        })()}
+      </div>
+    </section>
+  )
+}
+
+function HostedGameRow({ game }: { game: HostedGame }) {
+  const time = formatGameTime(game.startsAt, game.endsAt)
+  const status = GAME_STATUS[game.state]
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-3 rounded-[18px] bg-surface px-4 py-3.5">
+      <div className="min-w-0">
+        <p className="truncate text-base font-extrabold">{game.title}</p>
+        <p className="text-sm text-muted">
+          {time.day} · {time.start}
+        </p>
+        <span className="mt-1 inline-block rounded-full bg-highlight">
+          <StatusBadge label={status.label} tone={status.tone} />
+        </span>
+      </div>
+      <Link
+        to={`/host/games/${game.id}`}
+        className="inline-flex min-h-11 items-center rounded-xl bg-action px-4 text-base font-extrabold text-white hover:bg-action-dark focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-action"
+      >
+        {copy.home.manage}
+      </Link>
+    </li>
+  )
 }

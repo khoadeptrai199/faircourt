@@ -91,10 +91,25 @@
 				<groupId>com.diffplug.spotless</groupId>
 				<artifactId>spotless-maven-plugin</artifactId>
 			</plugin>
+			<!-- Test-only identity token secret (Host board T02), so tests run anywhere without .env. Never a real secret. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<environmentVariables>
+						<INTERNAL_TOKEN_SECRET>test-only-identity-secret-not-for-real-use-0123456789</INTERNAL_TOKEN_SECRET>
+					</environmentVariables>
+				</configuration>
+			</plugin>
 			<!-- Runs *IT.java PostgreSQL integration tests during `mvn verify` (version managed by the Boot parent). -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-failsafe-plugin</artifactId>
+				<configuration>
+					<environmentVariables>
+						<INTERNAL_TOKEN_SECRET>test-only-identity-secret-not-for-real-use-0123456789</INTERNAL_TOKEN_SECRET>
+					</environmentVariables>
+				</configuration>
 				<executions>
 					<execution>
 						<goals>

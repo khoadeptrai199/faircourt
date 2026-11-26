@@ -2,11 +2,11 @@
 
 | Field | Value |
 |---|---|
-| Status | `ACTIVE` |
+| Status | `DONE` |
 | Goal | The backend runs as a gateway + `auth-service` + `player-service` + `playmatch-service` with one schema each, started by one command; anyone with the link sees the game (time, venue, courts, singles/doubles, minimum sets, price, status) through the gateway and nothing private; every service shares one error shape, request ID and test harness |
 | Gate | All services healthy with one command on WSL (and Mac); §17 step 1 tests still green after the split; "anonymous sees only public data" through the gateway (first half of §17 step 2); §17 checklist line 1: "Anonymous public response contains no attendance names, bands, match IDs or guest credentials" |
 | Blueprint | §0, §3, §12, §13, §15, §16; OD-17…OD-20 |
-| Started / finished | 2026-11-17 / — |
+| Started / finished | 2026-11-17 / 2026-11-25 |
 
 ## Features
 
@@ -38,6 +38,10 @@ Read-only and anonymous: no login, no transactions, no state machine. It still e
 
 | Gate item | Result | Evidence |
 |---|---|---|
+| All services healthy with one command | `PASS` (Mac, WSL) | Service split implement.md, 2026-11-17: `docker compose up --build -d` → 6 containers `healthy` on both machines |
+| §17 step 1 tests green after the split | `PASS` | Service split implement.md, 2026-11-17: pre-commit pipeline `PIPELINE OK`, `mvn -B clean verify` all modules |
+| Anonymous sees only public data through the gateway (§17 checklist line 1) | `PASS` | Public game page implement.md, 2026-11-18: `PublicGameIT` allowlist (no attendance names, host id), `GatewayAccessMatrixIT` 7/7, `PIPELINE OK` |
+| Sprint closed | `DONE` | Owner, conversation 2026-11-25 ("mark … sprints 1, 2 done"); all five features `DONE` |
 
 ## Notes and retro
 

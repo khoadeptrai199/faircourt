@@ -13,7 +13,7 @@ import org.springframework.web.client.RestClient;
  * auto-configured client builder (no extra dependency was approved), so the factory is set up here.
  */
 @Component
-class ServiceClients {
+public class ServiceClients {
 
     private final Duration connectTimeout;
     private final Duration readTimeout;
@@ -25,7 +25,7 @@ class ServiceClients {
         this.readTimeout = readTimeout;
     }
 
-    RestClient create(String baseUrl) {
+    public RestClient create(String baseUrl) {
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(
                 HttpClient.newBuilder().connectTimeout(connectTimeout).build());
         factory.setReadTimeout(readTimeout);

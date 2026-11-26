@@ -10,14 +10,14 @@ All API calls go to `/api/v1/...` on the same origin; locally Vite proxies `/api
 
 | Route | Screen (§6) | API call (§13) | Primary action | Empty / error states (§16) | Status |
 |---|---|---|---|---|---|
-| `/` | Home page (owner-approved 2026-11-12, not a §16 route) | `GET /me` (header: "Host login" link, or email + "Sign out") | `Host login` / `Sign out` | — | Implemented |
+| `/` | Home page (owner-approved 2026-11-12, not a §16 route) | `GET /me` (header: "Host login" link, or email + "Sign out"); when signed in `GET /host/games` ("Games you host" with a Manage link per game, OD-04) | `Host login` / `Sign out` | Not hosting any game → "You are not hosting any games yet." | Implemented ("Games you host" 2026-11-25, visual check pending) |
 | `/login` | Host login (design D-1; `?next=` same-site path only) | `GET /auth/csrf`, `POST /auth/login`, `GET /me` | `Sign in` | Empty fields, wrong credentials (one message), too many attempts (429), service down → Try again | Implemented 2026-11-18 (visual check pending) |
 | `/forgot-password` | Ask for a code (design F21) | `GET /auth/csrf`, `POST /auth/password/forgot` | `Send code` | Empty email, service down → Try again; the answer never says whether the email has an account | Implemented 2026-11-18 (visual check pending) |
 | `/reset-password` | Code + new password twice (email carried in router state from the previous page) | `POST /auth/password/reset` | `Change password` | Wrong or expired code (one message), password rules, mismatch, service down → Try again; success → link to `/login`, no automatic login | Implemented 2026-11-18 (visual check pending) |
 | `/g/:publicCode` | Public game page | `GET /public/games/{publicCode}` | `Join game` | Unknown code → friendly 404; closed → read-only; any other failure (incl. 503) → error with Try again | Implemented 2026-11-18 (`Join game` shown disabled with "Coming soon" until guest check-in) |
-| `/g/:publicCode/join` | Visitor check-in | `GET /public/games/{publicCode}`, `POST /public/games/{publicCode}/guests` | `Join as guest` | Validation in place; pending-approval panel after submit | Not started |
-| `/my/games/:gameId` | My game | `GET /games/{gameId}/me`, `POST /games/{gameId}/me/feedback` | `View my court` / `How was the match?` | Pending, Ready/no match, Assigned, Playing, Finished/closed, expired guest access | Not started |
-| `/host/games/:gameId` | Host board | `GET /host/games/{gameId}/board`, `PATCH .../attendance/{attendanceId}`, `PATCH /host/matches/{matchId}/start\|finish\|cancel`, `POST .../assessments` | `Suggest matches` | No ready players, fewer than four, occupied courts, request failure | Not started |
+| `/g/:publicCode/join` | Visitor check-in | `GET /public/games/{publicCode}`, `POST /public/games/{publicCode}/guests` | `Join as guest` | Validation in place; pending-approval panel after submit | Implemented (Guest check-in, 2026-11-18; visual check pending) |
+| `/my/games/:gameId` | My game | `GET /games/{gameId}/me`, `POST /games/{gameId}/me/feedback` | `View my court` / `How was the match?` | Pending, Ready/no match, Assigned, Playing, Finished/closed, expired guest access | Implemented for the attendance state (Own attendance status, 2026-11-20; feedback later) |
+| `/host/games/:gameId` | Host board | `GET /host/games/{gameId}/board` (later: `PATCH .../attendance/{attendanceId}`, `PATCH /host/matches/{matchId}/start\|finish\|cancel`, `POST .../assessments`) | `Suggest matches` (disabled, "Coming soon", until Match suggestions) | No ready players, fewer than four (two for singles), request failure with Try again, 403 "You don't manage this game." with "Back to home" (owner 2026-11-26), 401 → `/login?next=…`, unknown game → not found; Refresh button, no polling | Implemented 2026-11-25 (read only; visual check pending) |
 | `/host/games/:gameId/review` | Match review | `POST /host/games/{gameId}/suggestions`, `POST /host/games/{gameId}/matches` | `Start match` | Wide gap warning, stale suggestion `409`, Cancel/Confirm | Not started |
 
 Login: `POST /auth/login`, `POST /auth/logout`, `GET /me` (Account login, 2026-11-18). The CSRF token is fetched from `GET /auth/csrf`, kept only in memory and sent in the header the gateway names; it is forgotten at login and logout. The blueprint does not name a login route path yet.
@@ -35,7 +35,7 @@ Login: `POST /auth/login`, `POST /auth/logout`, `GET /me` (Account login, 2026-1
 - Every fetch: `loading / success / empty / error`.
 - Every host mutation: `idle / saving / success / conflict`; buttons disable while saving.
 - `409` → "This lineup changed. Refresh suggestions" (keep the host's state).
-- `403` → "You don't manage this game" and offer the public page.
+- `403` → "You don't manage this game" and offer the public page (§16). Host board: links home instead, because the 403 answer has no public code (owner 2026-11-26).
 - Guest cookie expired → "Check in again and tell the host to remove your old entry."
 
 ## Planned folder layout (§16)

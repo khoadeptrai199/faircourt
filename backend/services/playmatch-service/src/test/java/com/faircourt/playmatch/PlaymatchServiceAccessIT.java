@@ -2,13 +2,21 @@ package com.faircourt.playmatch;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.faircourt.common.identity.IdentityToken;
+import com.faircourt.common.identity.IdentityTokenHeader;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Clock;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
  * The real playmatch-service security chain (API foundation, AD-14): health public; every route that no feature opened,
@@ -20,6 +28,9 @@ class PlaymatchServiceAccessIT {
 
     @Value("${local.server.port}")
     int port;
+
+    @Autowired
+    JdbcClient jdbc;
 
     private final HttpClient http = HttpClient.newHttpClient();
 
@@ -88,6 +99,63 @@ class PlaymatchServiceAccessIT {
         assertThat(send("GET", "/api/v1/games/22222222-2222-2222-2222-222222222222/my-attendance")
                         .statusCode())
                 .isEqualTo(401);
+    }
+
+    @Test
+    void hostRoutesAreOpenForGetOnlyAndTheServiceAnswersWithoutTokenAs401() throws Exception {
+        String board = "/api/v1/host/games/22222222-2222-2222-2222-222222222222/board";
+        String list = "/api/v1/host/games";
+
+        // Opened by Host board. Without an identity token the route's own 401, with the JSON body.
+        for (String path : new String[] {board, list}) {
+            HttpResponse<String> get = send("GET", path);
+            assertThat(get.statusCode()).as(path).isEqualTo(401);
+            assertThat(get.body()).contains("\"code\":\"UNAUTHENTICATED\"");
+            for (String method : new String[] {"POST", "PUT", "PATCH", "DELETE"}) {
+                assertThat(send(method, path).statusCode())
+                        .as(method + " " + path)
+                        .isEqualTo(401);
+            }
+        }
+        assertThat(send("GET", board + "/extra").statusCode()).isEqualTo(401);
+        assertThat(send("GET", "/internal/v1/host/games").statusCode()).isEqualTo(401);
+    }
+
+    @Test
+    void aSignedInAccountThatIsNotTheHostGets403OnTheBoardAndItsOwnEmptyList() throws Exception {
+        UUID gameId = UUID.randomUUID();
+        jdbc.sql("""
+				INSERT INTO game (id, public_code, host_user_id, title, venue, starts_at, ends_at, court_count)
+				VALUES (:id, :code, :host, 'Access row', 'Court House D7', :startsAt, :endsAt, 2)""")
+                .param("id", gameId)
+                .param("code", "ACCROW01")
+                .param("host", UUID.randomUUID())
+                .param("startsAt", OffsetDateTime.now(ZoneOffset.UTC).plusDays(1))
+                .param("endsAt", OffsetDateTime.now(ZoneOffset.UTC).plusDays(1).plusHours(2))
+                .update();
+        try {
+            String token = new IdentityToken(System.getenv("INTERNAL_TOKEN_SECRET"), Clock.systemUTC())
+                    .issue(UUID.randomUUID());
+
+            HttpResponse<String> board = sendWithToken("/api/v1/host/games/" + gameId + "/board", token);
+            HttpResponse<String> list = sendWithToken("/api/v1/host/games", token);
+
+            assertThat(board.statusCode()).isEqualTo(403);
+            assertThat(board.body()).contains("\"code\":\"FORBIDDEN\"");
+            assertThat(list.statusCode()).isEqualTo(200);
+            assertThat(list.body()).isEqualTo("{\"games\":[]}");
+        } finally {
+            jdbc.sql("DELETE FROM game WHERE id = :id").param("id", gameId).update();
+        }
+    }
+
+    private HttpResponse<String> sendWithToken(String path, String token) throws Exception {
+        return http.send(
+                HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
+                        .header(IdentityTokenHeader.NAME, token)
+                        .GET()
+                        .build(),
+                HttpResponse.BodyHandlers.ofString());
     }
 
     @Test

@@ -2,17 +2,17 @@
 
 | Field | Value |
 |---|---|
-| Status | `PLANNED` |
+| Status | `ACTIVE` |
 | Goal | The session's host sees the full board (Pending, Ready, Assigned, Playing, Resting, Left; courts), approves guests, moves players between Ready/Resting/Left, and can create a new session |
 | Gate | §17 checklist line 2: "Host can create a session, approve a guest and see the full board; another account gets 403 on host routes" (completes §17 step 2 "host guest approval") |
 | Blueprint | §3, §6, §11, §13, §15, §16 |
-| Started / finished | — |
+| Started / finished | 2026-11-25 / — |
 
 ## Features
 
 | ID | Feature | Status |
 |---|---|---|
-| F06 | [Host board](host-board/README.md) | `BACKLOG` |
+| F06 | [Host board](host-board/README.md) | `IN_REVIEW` |
 | F07 | [Attendance management](attendance-management/README.md) | `BACKLOG` |
 | F08 | [Create game](create-game/README.md) | `BACKLOG` |
 
