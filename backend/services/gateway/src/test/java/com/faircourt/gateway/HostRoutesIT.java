@@ -21,6 +21,9 @@ class HostRoutesIT extends GuestTestBase {
 
     private static final String BOARD = "/api/v1/host/games/" + StubService.OPEN_GAME_ID + "/board";
     private static final String GAMES = "/api/v1/host/games";
+    private static final String ATTENDANCE =
+            "/api/v1/host/games/" + StubService.OPEN_GAME_ID + "/attendance/" + StubService.ACCOUNT_USER_ID;
+    private static final String PLAYMATCH = "playmatch-service";
     // The test-only secret set by backend/pom.xml for surefire and failsafe.
     private final IdentityToken tokens = new IdentityToken(System.getenv("INTERNAL_TOKEN_SECRET"), Clock.systemUTC());
 
@@ -73,7 +76,7 @@ class HostRoutesIT extends GuestTestBase {
         assertThat(call.path()).isEqualTo(BOARD);
         List<String> values = call.headers().get(IdentityTokenHeader.NAME);
         assertThat(values).hasSize(1);
-        assertThat(tokens.verify(values.getFirst()))
+        assertThat(tokens.verify(values.getFirst(), PLAYMATCH, "GET", BOARD))
                 .contains(new CallerIdentity.Account(UUID.fromString(StubService.ACCOUNT_USER_ID)));
         assertThat(call.headers().containsKey("Cookie")).isFalse();
         assertThat(get(GAMES).statusCode()).isEqualTo(200);
@@ -83,14 +86,14 @@ class HostRoutesIT extends GuestTestBase {
     void aTokenSentByTheBrowserIsReplacedByTheGatewaysOwn() throws Exception {
         signIn("host@faircourt.local");
         UUID other = UUID.fromString(StubService.OTHER_ACCOUNT_USER_ID);
-        String forged = tokens.issue(other);
+        String forged = tokens.issue(other, PLAYMATCH, "GET", BOARD);
 
         HttpResponse<String> response = send("GET", BOARD, Map.of(IdentityTokenHeader.NAME, forged));
 
         assertThat(response.statusCode()).isEqualTo(200);
         List<String> values = hostCalls().getFirst().headers().get(IdentityTokenHeader.NAME);
         assertThat(values).hasSize(1);
-        assertThat(tokens.verify(values.getFirst()))
+        assertThat(tokens.verify(values.getFirst(), PLAYMATCH, "GET", BOARD))
                 .contains(new CallerIdentity.Account(UUID.fromString(StubService.ACCOUNT_USER_ID)));
     }
 
@@ -115,5 +118,51 @@ class HostRoutesIT extends GuestTestBase {
                 .findFirst()
                 .orElseThrow();
         assertThat(publicCall.headers().containsKey(IdentityTokenHeader.NAME)).isFalse();
+    }
+
+    @Test
+    void aPathTooLongForTheTokenAnswers404AndNothingIsForwarded() throws Exception {
+        signIn("host@faircourt.local");
+        String longBoard = "/api/v1/host/games/" + "a".repeat(600) + "/board";
+
+        HttpResponse<String> response = send("GET", longBoard, Map.of());
+
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(404);
+        assertThat(response.body()).contains("\"code\":\"NOT_FOUND\"", "\"requestId\":\"");
+        assertThat(hostCalls()).isEmpty();
+    }
+
+    @Test
+    void theAttendancePatchNeedsAnAccountAndACsrfTokenAndIsForwardedOnceWithATokenBoundToIt() throws Exception {
+        assertUnauthenticated(send("PATCH", ATTENDANCE, bootstrap()));
+        HttpResponse<String> checkIn = checkIn(OPEN_CODE, guestJson("Mai"));
+        STUB.knownGuestToken(tokenOf(guestCookieOf(checkIn)), UUID.randomUUID().toString());
+        assertUnauthenticated(send("PATCH", ATTENDANCE, bootstrap()));
+        assertThat(hostCalls()).isEmpty();
+
+        signIn("host@faircourt.local");
+        HttpResponse<String> noCsrf = send("PATCH", ATTENDANCE, Map.of());
+        assertThat(noCsrf.statusCode()).isEqualTo(403);
+        assertThat(noCsrf.body()).contains("\"code\":\"CSRF_TOKEN_INVALID\"");
+        assertThat(hostCalls()).isEmpty();
+
+        Map<String, String> csrf = new java.util.HashMap<>(bootstrap());
+        csrf.put(IdentityTokenHeader.NAME, tokens.issue(UUID.randomUUID(), PLAYMATCH, "PATCH", ATTENDANCE));
+        HttpResponse<String> response = send("PATCH", ATTENDANCE, csrf);
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(hostCalls()).hasSize(1);
+        StubService.Received call = hostCalls().getFirst();
+        assertThat(call.method()).isEqualTo("PATCH");
+        assertThat(call.path()).isEqualTo(ATTENDANCE);
+        List<String> values = call.headers().get(IdentityTokenHeader.NAME);
+        assertThat(values).hasSize(1);
+        assertThat(tokens.verify(values.getFirst(), PLAYMATCH, "PATCH", ATTENDANCE))
+                .contains(new CallerIdentity.Account(UUID.fromString(StubService.ACCOUNT_USER_ID)));
+        assertThat(tokens.verify(values.getFirst(), PLAYMATCH, "GET", ATTENDANCE))
+                .isEmpty();
+        assertThat(tokens.verify(values.getFirst(), "player-service", "PATCH", ATTENDANCE))
+                .isEmpty();
+        assertThat(call.headers().containsKey("Cookie")).isFalse();
     }
 }

@@ -11,6 +11,9 @@ import org.springframework.http.HttpMethod;
  */
 public record GatewayRouteTable(List<GatewayRoute> routes) {
 
+    /** Audience of the identity token for routes forwarded to playmatch-service (its {@code spring.application.name}). */
+    static final String PLAYMATCH = "playmatch-service";
+
     public GatewayRouteTable {
         routes = List.copyOf(routes);
     }
@@ -63,8 +66,22 @@ public record GatewayRouteTable(List<GatewayRoute> routes) {
                         Set.of(HttpMethod.GET),
                         "/api/v1/host/games/*/board",
                         RouteAccess.HOST,
-                        playmatchUrl),
+                        playmatchUrl,
+                        PLAYMATCH),
                 new GatewayRoute(
-                        "host-games", Set.of(HttpMethod.GET), "/api/v1/host/games", RouteAccess.HOST, playmatchUrl)));
+                        "host-games",
+                        Set.of(HttpMethod.GET),
+                        "/api/v1/host/games",
+                        RouteAccess.HOST,
+                        playmatchUrl,
+                        PLAYMATCH),
+                // Attendance management (blueprint section 13; design 3.1): approve a guest or mark a player as left.
+                new GatewayRoute(
+                        "host-attendance",
+                        Set.of(HttpMethod.PATCH),
+                        "/api/v1/host/games/*/attendance/*",
+                        RouteAccess.HOST,
+                        playmatchUrl,
+                        PLAYMATCH)));
     }
 }

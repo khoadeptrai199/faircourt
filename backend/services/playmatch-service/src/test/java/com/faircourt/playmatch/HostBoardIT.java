@@ -199,8 +199,12 @@ class HostBoardIT {
 
     // ---- helpers ---------------------------------------------------------------------------------------------
 
-    private static String tokenFor(UUID user) {
-        return new IdentityToken(SECRET, CLOCK).issue(user);
+    private static String boardPath(String gameId) {
+        return "/api/v1/host/games/" + gameId + "/board";
+    }
+
+    private static String tokenFor(UUID user, String gameId) {
+        return new IdentityToken(SECRET, CLOCK).issue(user, "playmatch-service", "GET", boardPath(gameId));
     }
 
     private HttpResponse<String> board(String gameId, String token) throws Exception {
@@ -331,7 +335,8 @@ class HostBoardIT {
     void theHostSeesEveryAttendanceRowWithLevelsAndTheActiveMatchOnItsCourt() throws Exception {
         Fixture f = doublesBoard();
 
-        HttpResponse<String> response = board(f.game().toString(), tokenFor(host));
+        HttpResponse<String> response =
+                board(f.game().toString(), tokenFor(host, f.game().toString()));
 
         assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
         assertThat(response.headers().firstValue("Cache-Control"))
@@ -398,7 +403,8 @@ class HostBoardIT {
     void theBoardAnswerHasExactlyTheDocumentedFieldsAndNoIdentityOfAnyone() throws Exception {
         Fixture f = doublesBoard();
 
-        HttpResponse<String> response = board(f.game().toString(), tokenFor(host));
+        HttpResponse<String> response =
+                board(f.game().toString(), tokenFor(host, f.game().toString()));
 
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(JsonAllowlist.fieldPaths(response.body()))
@@ -452,7 +458,7 @@ class HostBoardIT {
         matchPlayer(match, game, a.attendanceId(), "A", false);
         matchPlayer(match, game, b.attendanceId(), "B", false);
 
-        JsonNode body = json(board(game.toString(), tokenFor(host)));
+        JsonNode body = json(board(game.toString(), tokenFor(host, game.toString())));
 
         JsonNode court = body.get("courts").get(0);
         assertThat(court.get("match").get("state").asString()).isEqualTo("PLANNED");
@@ -475,7 +481,7 @@ class HostBoardIT {
         matchPlayer(finished, game, b.attendanceId(), "B", true);
         insertMatch(game, 2, 1, "CANCELLED");
 
-        JsonNode body = json(board(game.toString(), tokenFor(host)));
+        JsonNode body = json(board(game.toString(), tokenFor(host, game.toString())));
 
         assertThat(body.get("courts")).hasSize(1);
         assertThat(body.get("courts").get(0).get("match").isNull()).isTrue();
@@ -495,7 +501,7 @@ class HostBoardIT {
         Row readyEarly0 = attend(game, "R-early-0", "READY", "MEMBER", "1", "CONFIRMED", 5, 0);
         Row pending = attend(game, "Pe", "PENDING", "GUEST", "null", "SELF_REPORTED", 1, 0);
 
-        JsonNode body = json(board(game.toString(), tokenFor(host)));
+        JsonNode body = json(board(game.toString(), tokenFor(host, game.toString())));
 
         List<String> names = new ArrayList<>();
         for (JsonNode p : body.get("players")) {
@@ -517,7 +523,7 @@ class HostBoardIT {
     void asOfIsTheServerClockInIsoUtc() throws Exception {
         UUID game = insertGame(host, 1, "DOUBLES", "OPEN");
 
-        JsonNode body = json(board(game.toString(), tokenFor(host)));
+        JsonNode body = json(board(game.toString(), tokenFor(host, game.toString())));
 
         assertThat(body.get("asOf").asString()).isEqualTo("2026-11-25T12:30:00Z");
         assertThat(body.get("game").get("startsAt").asString()).isEqualTo("2026-11-25T10:00:00Z");
@@ -528,7 +534,7 @@ class HostBoardIT {
     void aClosedGameStillShowsItsBoard() throws Exception {
         UUID game = insertGame(host, 1, "DOUBLES", "CLOSED");
 
-        HttpResponse<String> response = board(game.toString(), tokenFor(host));
+        HttpResponse<String> response = board(game.toString(), tokenFor(host, game.toString()));
 
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(json(response).get("game").get("state").asString()).isEqualTo("CLOSED");
@@ -540,7 +546,8 @@ class HostBoardIT {
     void anotherAccountGets403WithOnlyTheErrorFieldsAndTheStubIsNotCalled() throws Exception {
         Fixture f = doublesBoard();
 
-        HttpResponse<String> response = board(f.game().toString(), tokenFor(UUID.randomUUID()));
+        HttpResponse<String> response =
+                board(f.game().toString(), tokenFor(UUID.randomUUID(), f.game().toString()));
 
         assertThat(response.statusCode()).isEqualTo(403);
         assertThat(response.body()).contains("\"code\":\"FORBIDDEN\"");
@@ -551,7 +558,7 @@ class HostBoardIT {
     @Test
     void anUnknownOrMalformedGameIs404ForTheHost() throws Exception {
         for (String game : new String[] {UUID.randomUUID().toString(), "not-a-uuid"}) {
-            HttpResponse<String> response = board(game, tokenFor(host));
+            HttpResponse<String> response = board(game, tokenFor(host, game));
 
             assertThat(response.statusCode()).as(game).isEqualTo(404);
             assertThat(response.body()).contains("\"code\":\"NOT_FOUND\"");
@@ -562,11 +569,14 @@ class HostBoardIT {
     @Test
     void noTokenAnExpiredTokenOrATokenOfAnotherSecretIs401EvenForAnUnknownGame() throws Exception {
         Fixture f = doublesBoard();
-        String expired = new IdentityToken(SECRET, Clock.fixed(T.minusSeconds(60), ZoneOffset.UTC)).issue(host);
-        String otherSecret = new IdentityToken("another-secret-of-more-than-32-bytes!!", CLOCK).issue(host);
-        String tampered = tokenFor(host) + "x";
+        Clock past = Clock.fixed(T.minusSeconds(60), ZoneOffset.UTC);
 
         for (String game : new String[] {f.game().toString(), UUID.randomUUID().toString(), "not-a-uuid"}) {
+            String path = boardPath(game);
+            String expired = new IdentityToken(SECRET, past).issue(host, "playmatch-service", "GET", path);
+            String otherSecret = new IdentityToken("another-secret-of-more-than-32-bytes!!", CLOCK)
+                    .issue(host, "playmatch-service", "GET", path);
+            String tampered = tokenFor(host, game) + "x";
             for (String token : new String[] {null, expired, otherSecret, tampered}) {
                 HttpResponse<String> response = board(game, token);
 
@@ -584,10 +594,12 @@ class HostBoardIT {
         Fixture f = doublesBoard();
 
         PLAYER.failStatus = 500;
-        HttpResponse<String> failed = board(f.game().toString(), tokenFor(host));
+        HttpResponse<String> failed =
+                board(f.game().toString(), tokenFor(host, f.game().toString()));
         PLAYER.failStatus = 0;
         PLAYER.stallMillis = 1500;
-        HttpResponse<String> slow = board(f.game().toString(), tokenFor(host));
+        HttpResponse<String> slow =
+                board(f.game().toString(), tokenFor(host, f.game().toString()));
 
         for (HttpResponse<String> response : List.of(failed, slow)) {
             assertThat(response.statusCode()).isEqualTo(503);
@@ -603,7 +615,7 @@ class HostBoardIT {
         Row unknown = attend(game, "Zorbulon Zed", "READY", "MEMBER", "2", "CONFIRMED", 2, 0);
         PLAYER.omit.add(unknown.playerId());
 
-        HttpResponse<String> response = board(game.toString(), tokenFor(host));
+        HttpResponse<String> response = board(game.toString(), tokenFor(host, game.toString()));
 
         assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
         JsonNode body = json(response);

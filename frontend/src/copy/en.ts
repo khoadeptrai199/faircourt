@@ -123,6 +123,19 @@ export const copy = {
     fewerThanTwo: 'Fewer than two players ready.',
     forbidden: "You don't manage this game.",
     toPublicPage: 'Open the public page',
+    approve: 'Approve',
+    reject: 'Reject',
+    markLeft: 'Mark as left',
+    saving: 'Saving…',
+    rejectTitle: (name: string) => `Reject ${name}?`,
+    rejectBody: (name: string) =>
+      `${name} will be moved to Left and will not be picked for matches.`,
+    leftTitle: (name: string) => `Mark ${name} as left?`,
+    leftBody: (name: string) =>
+      `${name} will not be picked for matches again in this game.`,
+    cancelAction: 'Keep',
+    changeConflict: "This player's status changed. The board was refreshed.",
+    closedNote: 'This game is closed. The board is read-only.',
   },
   home: {
     hostedTitle: 'Games you host',

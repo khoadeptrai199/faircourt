@@ -58,7 +58,10 @@ class HostGamesIT {
         HttpRequest.Builder request =
                 HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/v1/host/games"));
         if (user != null) {
-            request.header(IdentityTokenHeader.NAME, new IdentityToken(SECRET, Clock.systemUTC()).issue(user));
+            request.header(
+                    IdentityTokenHeader.NAME,
+                    new IdentityToken(SECRET, Clock.systemUTC())
+                            .issue(user, "playmatch-service", "GET", "/api/v1/host/games"));
         }
         return http.send(request.GET().build(), HttpResponse.BodyHandlers.ofString());
     }

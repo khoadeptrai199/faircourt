@@ -70,6 +70,8 @@ FairCourt is a responsive web app that helps badminton groups (a host who rents 
 
 - 2026-11-26 — **Host board review decisions** (owner: "duyệt hết như đề xuất"). The 403 page on the host board links home, not to the public page (the 403 answer has no public code; no new field or route). `.env.example` ships a working, public, local-only `INTERNAL_TOKEN_SECRET` so the §0 first run works; **pre-deployment gate** now also requires a random `INTERNAL_TOKEN_SECRET` (next to `COOKIE_SECURE=true`, `__Host-` cookies, real SMTP) and a 1–2 s clock-skew allowance in the token check if services run on more than one host (backlog L-01). Binding the identity token to audience / method / path is decided in the Attendance management design, before the first host write route.
 
+- 2026-11-26 — **Attendance management design approved (Gate 1)** (owner: "duyệt hết như đề xuất"). Players never change their own status; only the host board and the match flow do. Host buttons: **Approve, Reject (Pending → Left), Mark as left**; **no Rest button** (deliberate deviation from §11 `READY ↔ RESTING`); Left is final (no undo); `available_since` kept on approve; a guest marked Left keeps their cookie. **Identity token v2** binds `aud` (target service) + method + path (closes Host board review #17). Open for the match features: OD-25 (drop the `ASSIGNED` step). Details: `planning/sprint03-host-board/attendance-management/design.md`.
+
 ## Unrelated existing files
 
 `README.md` is the project README. It is an empty file by owner request since 2026-11-17 (see "Owner decisions"); do not fill it unasked. (`nana/tesst.txt` was deleted by the owner on 2026-11-17.)

@@ -134,12 +134,12 @@ class PlaymatchServiceAccessIT {
                 .param("endsAt", OffsetDateTime.now(ZoneOffset.UTC).plusDays(1).plusHours(2))
                 .update();
         try {
-            String token = new IdentityToken(System.getenv("INTERNAL_TOKEN_SECRET"), Clock.systemUTC())
-                    .issue(UUID.randomUUID());
+            UUID other = UUID.randomUUID();
+            String boardPath = "/api/v1/host/games/" + gameId + "/board";
 
-            HttpResponse<String> board = sendWithToken("/api/v1/host/games/" + gameId + "/board", token);
-            HttpResponse<String> list = sendWithToken("/api/v1/host/games", token);
-
+            HttpResponse<String> board = sendWithToken("GET", boardPath, token(other, "GET", boardPath));
+            HttpResponse<String> list =
+                    sendWithToken("GET", "/api/v1/host/games", token(other, "GET", "/api/v1/host/games"));
             assertThat(board.statusCode()).isEqualTo(403);
             assertThat(board.body()).contains("\"code\":\"FORBIDDEN\"");
             assertThat(list.statusCode()).isEqualTo(200);
@@ -149,13 +149,100 @@ class PlaymatchServiceAccessIT {
         }
     }
 
-    private HttpResponse<String> sendWithToken(String path, String token) throws Exception {
-        return http.send(
-                HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
-                        .header(IdentityTokenHeader.NAME, token)
-                        .GET()
-                        .build(),
-                HttpResponse.BodyHandlers.ofString());
+    private static String token(UUID user, String method, String path) {
+        return new IdentityToken(System.getenv("INTERNAL_TOKEN_SECRET"), Clock.systemUTC())
+                .issue(user, "playmatch-service", method, path);
+    }
+
+    private HttpResponse<String> sendWithToken(String method, String path, String token) throws Exception {
+        return sendWithToken(method, path, token, "{}");
+    }
+
+    private HttpResponse<String> sendWithToken(String method, String path, String token, String body) throws Exception {
+        HttpRequest.Builder request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
+                .method(
+                        method,
+                        method.equals("GET")
+                                ? HttpRequest.BodyPublishers.noBody()
+                                : HttpRequest.BodyPublishers.ofString(body));
+        if (token != null) {
+            request.header(IdentityTokenHeader.NAME, token);
+        }
+        if (!method.equals("GET")) {
+            request.header("Content-Type", "application/json");
+        }
+        return http.send(request.build(), HttpResponse.BodyHandlers.ofString());
+    }
+
+    @Test
+    void hostAttendanceRouteIsOpenForPatchOnlyAndAnswersAccountHostAndMissingRowsAsDesigned() throws Exception {
+        UUID gameId = UUID.randomUUID();
+        UUID host = UUID.randomUUID();
+        UUID guest = UUID.randomUUID();
+        jdbc.sql("""
+				INSERT INTO game (id, public_code, host_user_id, title, venue, starts_at, ends_at, court_count)
+				VALUES (:id, :code, :host, 'Access row', 'Court House D7', :startsAt, :endsAt, 2)""")
+                .param("id", gameId)
+                .param("code", "ACCROW02")
+                .param("host", host)
+                .param("startsAt", OffsetDateTime.now(ZoneOffset.UTC).plusDays(1))
+                .param("endsAt", OffsetDateTime.now(ZoneOffset.UTC).plusDays(1).plusHours(2))
+                .update();
+        jdbc.sql("""
+				INSERT INTO attendance (id, game_id, player_id, display_name, state)
+				VALUES (:id, :game, :player, 'Access guest', 'PENDING')""")
+                .param("id", guest)
+                .param("game", gameId)
+                .param("player", UUID.randomUUID())
+                .update();
+        try {
+            String path = "/api/v1/host/games/" + gameId + "/attendance/" + guest;
+            String body = "{\"state\":\"READY\"}";
+
+            // No token: the route's own 401.
+            assertThat(sendWithToken("PATCH", path, null, body).statusCode()).isEqualTo(401);
+            // Other methods and a longer path are not opened.
+            for (String method : new String[] {"GET", "POST", "PUT", "DELETE"}) {
+                assertThat(sendWithToken(method, path, token(host, method, path), body)
+                                .statusCode())
+                        .as(method)
+                        .isEqualTo(401);
+            }
+            assertThat(sendWithToken("PATCH", path + "/extra", null, body).statusCode())
+                    .isEqualTo(401);
+            // An account that is not this game's host.
+            HttpResponse<String> other = sendWithToken("PATCH", path, token(UUID.randomUUID(), "PATCH", path), body);
+            assertThat(other.statusCode()).isEqualTo(403);
+            assertThat(other.body()).contains("\"code\":\"FORBIDDEN\"");
+            assertThat(stateOf(guest)).isEqualTo("PENDING");
+            // Unknown game, malformed game id, malformed attendance id.
+            String unknownGame = "/api/v1/host/games/" + UUID.randomUUID() + "/attendance/" + guest;
+            String badGame = "/api/v1/host/games/not-a-uuid/attendance/" + guest;
+            String badAttendance = "/api/v1/host/games/" + gameId + "/attendance/not-a-uuid";
+            for (String p : new String[] {unknownGame, badGame, badAttendance}) {
+                assertThat(sendWithToken("PATCH", p, token(host, "PATCH", p), body)
+                                .statusCode())
+                        .as(p)
+                        .isEqualTo(404);
+            }
+            assertThat(stateOf(guest)).isEqualTo("PENDING");
+            // The host.
+            HttpResponse<String> ok = sendWithToken("PATCH", path, token(host, "PATCH", path), body);
+            assertThat(ok.statusCode()).as(ok.body()).isEqualTo(200);
+            assertThat(stateOf(guest)).isEqualTo("READY");
+        } finally {
+            jdbc.sql("DELETE FROM attendance WHERE game_id = :id")
+                    .param("id", gameId)
+                    .update();
+            jdbc.sql("DELETE FROM game WHERE id = :id").param("id", gameId).update();
+        }
+    }
+
+    private String stateOf(UUID attendanceId) {
+        return jdbc.sql("SELECT state FROM attendance WHERE id = :id")
+                .param("id", attendanceId)
+                .query(String.class)
+                .single();
     }
 
     @Test

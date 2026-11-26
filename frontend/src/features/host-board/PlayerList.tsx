@@ -1,4 +1,9 @@
-import type { AttendanceState, HostBoardPlayer } from '../../api/types'
+import type {
+  AttendanceState,
+  AttendanceTarget,
+  HostBoardPlayer,
+} from '../../api/types'
+import AttendanceActions from './AttendanceActions'
 import PlayerChip from '../../components/PlayerChip'
 import StatusBadge from '../../components/StatusBadge'
 import WaitIndicator from '../../components/WaitIndicator'
@@ -12,12 +17,18 @@ export default function PlayerList({
   asOf,
   minSets,
   note,
+  gameClosed,
+  savingId,
+  onChange,
 }: {
   state: AttendanceState
   players: HostBoardPlayer[]
   asOf: string
   minSets: number
   note?: string
+  gameClosed: boolean
+  savingId: string | null
+  onChange: (attendanceId: string, target: AttendanceTarget) => void
 }) {
   const status = HOST_ATTENDANCE_STATUS[state]
   return (
@@ -48,6 +59,14 @@ export default function PlayerList({
                   <span className="text-sm font-bold text-subtle">
                     {copy.hostBoard.setsPlayed(player.matchesPlayed, minSets)}
                   </span>
+                  <AttendanceActions
+                    name={player.displayName}
+                    state={state}
+                    gameClosed={gameClosed}
+                    saving={savingId !== null}
+                    busyHere={savingId === player.attendanceId}
+                    onChange={(target) => onChange(player.attendanceId, target)}
+                  />
                 </>
               }
             />

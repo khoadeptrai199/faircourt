@@ -148,6 +148,9 @@ class GatewayAccessMatrixIT extends GatewayTestBase {
 
         assertUnauthenticated(get(board));
         assertUnauthenticated(get("/api/v1/host/games"));
+        String attendance =
+                "/api/v1/host/games/" + StubService.OPEN_GAME_ID + "/attendance/" + StubService.OPEN_GAME_ID;
+        assertUnauthenticated(send("PATCH", attendance, bootstrap()));
         for (String method : new String[] {"POST", "PUT", "PATCH", "DELETE"}) {
             assertThat(send(method, board, bootstrap()).statusCode()).as(method).isEqualTo(401);
         }
