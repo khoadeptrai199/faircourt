@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Sprint | S03 Host board |
-| Status | `IN_REVIEW` |
+| Status | `DONE` |
 | Blueprint | §3, §6 (host board composition), §11, §13 (`GET /host/sessions/{sessionId}/board`), §15 (AccessPolicy), §16 (`/host/sessions/:sessionId`) |
 | Depends on | F03 |
-| Waiting for | Gate 3: owner looks at the pages (TC-30…32) and commits (review findings decided 2026-11-26) |
+| Waiting for | — |
 | Suggested branch | `feature/host-board` |
 | Last updated | 2026-11-26 |
 
@@ -53,3 +53,4 @@ See [design.md](design.md). Packages: playmatch `access`, `board`, `player`; pla
 | 2026-11-25 | Gate 2 (plan) approved by the owner: "duyệt plan" — tasks T01–T09 and test cases TC-01…TC-33 in implement.md, incl. the two clarifications (token only on `HOST` routes; test secret in `backend/pom.xml`). Status `IN_PROGRESS`; branch `feature/host-board` from `main` (0 behind `origin/main`) | Owner, conversation 2026-11-25 |
 | 2026-11-25 | Build loop done: T01–T09, one fix round, 2 review rounds (flow-reviewer 81 → 88/100, all override gates PASS; scope-guardian; privacy-reviewer no high/medium), `PIPELINE OK`, live check on Docker. Status `IN_REVIEW`; open for the owner in review.md: 403 page link, empty `.env.example` secret vs §0 first-run, token audience before host writes, deployment gate | Claude, review.md |
 | 2026-11-26 | Owner accepted all review recommendations ("duyệt hết như đề xuất"): 403 page links home (no new field or route); `.env.example` ships a working local-only `INTERNAL_TOKEN_SECRET` (§0 first run works) and a real random secret joins the pre-deployment gate, with clock-skew allowance for multi-host; token audience / method / path binding decided in the Attendance management design; findings 14, 15, 18 kept as later cleanup / notes. Status stays `IN_REVIEW` until the visual check and commit | Owner, review.md |
+| 2026-11-26 | Gate 3 (result): owner checked the pages (TC-30…32) and merged the branch to `main` (PR #5); `IN_REVIEW → DONE` | Owner ("host board cũng DONE luôn") |

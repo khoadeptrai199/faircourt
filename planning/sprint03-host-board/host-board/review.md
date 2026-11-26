@@ -56,5 +56,5 @@ Status: `OPEN` | `FIXED` | `ACCEPTED (owner, reason)`.
 
 - Pre-commit pipeline: `PASS` (2026-11-25, Windows PC / WSL Ubuntu; `PIPELINE OK` in 109 s after the fix round)
 - README / `API Document` updated: root `README.md` stays empty by owner request; `API Document/backend.md` and `frontend.md` updated; flow maps updated
-- Result: `PASSED` for the automated gates (all override gates PASS; flow-reviewer 88/100, 93 with finding 1 accepted by the owner on 2026-11-26); no finding left `OPEN`; waiting for the owner's visual check and commit (Gate 3)
-- Not verified: page look and states (TC-30…32) in a real browser; 503 on the live stack; the Mac (needs its own `INTERNAL_TOKEN_SECRET` in `.env` first); clock skew across hosts
+- Result: `PASSED` for the automated gates (all override gates PASS; flow-reviewer 88/100, 93 with finding 1 accepted by the owner on 2026-11-26); no finding left `OPEN`. Gate 3 passed 2026-11-26: owner accepted the pages and merged PR #5
+- Not verified (by Claude): page look and states (TC-30…32) in a real browser (owner accepted them); 503 on the live stack; the Mac (needs its own `INTERNAL_TOKEN_SECRET` in `.env` first); clock skew across hosts

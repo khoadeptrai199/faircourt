@@ -37,6 +37,8 @@ public class SecurityConfig {
             // AccessPolicy decide in the controller (401 / 403 / 404).
             auth.requestMatchers(HttpMethod.GET, "/api/v1/host/games/*/board").permitAll();
             auth.requestMatchers(HttpMethod.GET, "/api/v1/host/games").permitAll();
+            // Create game: the gateway only forwards signed-in accounts; the identity token and AccessPolicy decide.
+            auth.requestMatchers(HttpMethod.POST, "/api/v1/games").permitAll();
             // Host attendance change (Attendance management): same rule; the token is bound to this method and path.
             auth.requestMatchers(HttpMethod.PATCH, "/api/v1/host/games/*/attendance/*")
                     .permitAll();

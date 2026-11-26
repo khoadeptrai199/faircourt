@@ -72,6 +72,8 @@ FairCourt is a responsive web app that helps badminton groups (a host who rents 
 
 - 2026-11-26 — **Attendance management design approved (Gate 1)** (owner: "duyệt hết như đề xuất"). Players never change their own status; only the host board and the match flow do. Host buttons: **Approve, Reject (Pending → Left), Mark as left**; **no Rest button** (deliberate deviation from §11 `READY ↔ RESTING`); Left is final (no undo); `available_since` kept on approve; a guest marked Left keeps their cookie. **Identity token v2** binds `aud` (target service) + method + path (closes Host board review #17). Open for the match features: OD-25 (drop the `ASSIGNED` step). Details: `planning/sprint03-host-board/attendance-management/design.md`.
 
+- 2026-11-26 — **Match suggestions design approved (Gate 1)** (owner: all recommendations). Read-only `POST /api/v1/host/games/{gameId}/suggestions` (ids only, §13 shape + `noSuggestionReason`); own review page `/host/games/:gameId/review` (swap/confirm come in Match confirm). **Singles** (OD-20): 2 players per court, pair adjacent levels, no "balanced teams" tag, no repeat-opponent rule. Minimum sets (OD-19 b) need no extra rule ("fewest sets played first" already favours players below it). No pool cap. Details: `planning/sprint04-match-loop/match-suggestions/design.md`.
+
 ## Unrelated existing files
 
 `README.md` is the project README. It is an empty file by owner request since 2026-11-17 (see "Owner decisions"); do not fill it unasked. (`nana/tesst.txt` was deleted by the owner on 2026-11-17.)

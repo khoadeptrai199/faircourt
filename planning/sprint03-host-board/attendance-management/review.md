@@ -45,5 +45,5 @@
 
 - Pre-commit pipeline: `PASS` (2026-11-26, Windows / WSL, `bash scripts/precommit.sh` → `PIPELINE OK`, run before and after fix round 1); gateway module re-run after the fix: 109 IT, 0 failures.
 - README / `API Document` updated: `README.md` stays empty (owner 2026-11-17); `API Document/backend.md` and `frontend.md` updated.
-- Result: `PASSED` (no open high/medium findings) — waits for the owner's Gate 3 visual check and commit.
-- Not verified: AC-06 (TC-19, TC-20 visual and keyboard checks: dialog, focus return, Esc, 44 px targets at 320 / 1280 px); the frontend fixes of round 1 were not seen in a browser; TC-14 (parallel approve) passed, timing not controlled.
+- Result: `PASSED` (no open high/medium findings). Gate 3 passed 2026-11-26: owner checked the UI (TC-19, TC-20) and merged PR #6.
+- Not verified (by Claude): the frontend fixes of round 1 were not seen in a browser; TC-14 (parallel approve) passed, timing not controlled.

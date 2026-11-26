@@ -2,17 +2,17 @@
 
 | Field | Value |
 |---|---|
-| Status | `PLANNED` |
+| Status | `ACTIVE` |
 | Goal | Host gets explained suggestions, swaps players, confirms a court, starts and finishes it; the next suggestion respects who waited |
 | Gate | §17 step 3: "correct DB state and `409` on an unavailable player/court; no partial match rows". §17 checklist: "Suggestions do not persist; confirm persists exactly one four-player, two-team planned match"; "Court and player cannot be assigned twice while unfinished; finish/cancel releases both"; "Second round accounts for time spent waiting; host can always override a suggestion" |
 | Blueprint | §5, §11, §12, §13, §14, §15, §16 |
-| Started / finished | — |
+| Started / finished | 2026-11-26 / — |
 
 ## Features
 
 | ID | Feature | Status |
 |---|---|---|
-| F09 | [Match suggestions](match-suggestions/README.md) | `BACKLOG` |
+| F09 | [Match suggestions](match-suggestions/README.md) | `IN_PROGRESS` |
 | F10 | [Match confirm + tap-to-swap](match-confirm/README.md) | `BACKLOG` |
 | F11 | [Match start / finish / cancel](match-lifecycle/README.md) | `BACKLOG` |
 

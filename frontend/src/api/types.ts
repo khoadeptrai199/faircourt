@@ -145,3 +145,26 @@ export type HostedGame = {
   courtCount: number
   state: GameState
 }
+
+// POST /api/v1/games body. One price bound alone is allowed (the server uses it as both).
+export type CreateGamePriceLine = { minVnd?: number; maxVnd?: number }
+
+export type CreateGameInput = {
+  title: string
+  venue: string
+  startsAt: string
+  endsAt: string
+  courtCount: number
+  matchFormat: MatchFormat
+  minSets: number
+  pricePerPerson: {
+    male?: CreateGamePriceLine
+    female?: CreateGamePriceLine
+  } | null
+}
+
+// POST /api/v1/games answer (201).
+export type CreatedGame = {
+  gameId: string
+  publicCode: string
+}

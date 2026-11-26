@@ -17,7 +17,7 @@ Naming (owner decision 2026-11-18): the blueprint's "session" (the play event) i
 ## Endpoints
 
 Status = what exists in this repository today (not what the blueprint promises).
-Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf`, `GET /api/v1/public/games/{publicCode}`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/me`, `POST /api/v1/auth/password/forgot`, `POST /api/v1/auth/password/reset`, `POST /api/v1/public/games/{publicCode}/guests`, `POST /api/v1/games/{gameId}/join`, `GET /api/v1/games/{gameId}/me`, `GET /api/v1/host/games/{gameId}/board`, `GET /api/v1/host/games` and `PATCH /api/v1/host/games/{gameId}/attendance/{attendanceId}` are reachable; every other route is denied (anonymous → `401 UNAUTHENTICATED`, so unknown routes are not revealed).
+Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf`, `GET /api/v1/public/games/{publicCode}`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/me`, `POST /api/v1/auth/password/forgot`, `POST /api/v1/auth/password/reset`, `POST /api/v1/public/games/{publicCode}/guests`, `POST /api/v1/games/{gameId}/join`, `GET /api/v1/games/{gameId}/me`, `GET /api/v1/host/games/{gameId}/board`, `GET /api/v1/host/games`, `PATCH /api/v1/host/games/{gameId}/attendance/{attendanceId}` and `POST /api/v1/games` are reachable; every other route is denied (anonymous → `401 UNAUTHENTICATED`, so unknown routes are not revealed).
 
 | Method and route | Caller | Contract (§13) | Status |
 |---|---|---|---|
@@ -28,7 +28,7 @@ Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf`, `GET /api/v1/pub
 | `GET /me` | Signed-in account | Returns account identity. | Implemented (Account login, 2026-11-18) |
 | `POST /auth/password/forgot` | Anyone | Asks for a one-time code by email (owner-approved addition, 2026-11-18). | Implemented (Password reset, 2026-11-18) |
 | `POST /auth/password/reset` | Anyone | Code + new password (owner-approved addition, 2026-11-18). | Implemented (Password reset, 2026-11-18) |
-| `POST /games` | Signed-in account | Create a game; creator becomes host. | Not started |
+| `POST /games` | Signed-in account | Create a game; creator becomes host. | Implemented (Create game, 2026-11-26) |
 | `POST /public/games/{publicCode}/guests` | Visitor | Submit name/assessment; create guest `PENDING`, set private guest cookie. | Implemented, backend (Guest check-in, 2026-11-18) |
 | `POST /games/{gameId}/join` | Signed-in player | Join once with member profile; return own attendance. | Implemented (Own attendance status, 2026-11-20; row updated 2026-11-25, details in that feature's design) |
 | `GET /games/{gameId}/me` | Member or scoped guest | Own attendance state, optional own `matchNo`, `courtNo`, `matchState`; no other players. | Implemented for the attendance state (Own attendance status, 2026-11-20); `assignment` is always `null` until the own-assignment feature |
@@ -129,6 +129,16 @@ Internal (never reachable through the gateway):
 | player | `POST /internal/v1/players/guests` | playmatch | `{displayName, gameId, answers\|null}` → `201 {playerId}`; `400` for partial or out-of-range answers |
 
 Band mapping (blueprint §13): total of the four answers 0–3 → band 1, 4–6 → 2, 7–9 → 3, 10–12 → 4; all unknown → no band.
+
+### Create game: `POST /games` (implemented, 2026-11-26)
+
+Forwarded by the gateway to playmatch-service. Gateway rule: signed-in account (`HOST`) and CSRF header `X-CSRF-TOKEN`; playmatch requires an account identity token. The new game's host is always the caller; a host field in the body is ignored.
+
+| Item | Value |
+|---|---|
+| Request | `{"title","venue","startsAt","endsAt","courtCount","matchFormat","minSets","pricePerPerson"}`. `title` 1–120 and `venue` 1–160 characters after trim; `startsAt` / `endsAt` ISO-8601 with offset, `endsAt > startsAt`, the game has not ended yet and lasts at most 12 hours (OD-26); `courtCount` 1–4; `matchFormat` `SINGLES` or `DOUBLES`; `minSets` 1–20; `pricePerPerson` optional: `{"male":{"minVnd","maxVnd"},"female":{…}}`, each line optional, whole VND 0–10,000,000, `minVnd ≤ maxVnd`, one bound alone is used as both |
+| `201` | `{"gameId","publicCode"}`, `Location: /api/v1/host/games/{gameId}/board`, `Cache-Control: no-store`. The game starts `OPEN` |
+| Errors | `401 UNAUTHENTICATED` (not signed in, guest cookie only); `403 CSRF_TOKEN_INVALID`; `400 VALIDATION_FAILED` (any invalid field; no per-field list); `500 INTERNAL_ERROR` (no free public code after 5 tries); `503 SERVICE_UNAVAILABLE` |
 
 ### Host attendance change: `PATCH /host/games/{gameId}/attendance/{attendanceId}` (implemented, 2026-11-26)
 

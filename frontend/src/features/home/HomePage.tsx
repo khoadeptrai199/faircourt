@@ -191,6 +191,12 @@ function HostedGames() {
       >
         {copy.home.hostedTitle}
       </h2>
+      <Link
+        to="/host/games/new"
+        className="mt-3 inline-flex min-h-11 items-center rounded-xl bg-action px-4 text-base font-extrabold text-white hover:bg-action-dark focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-action"
+      >
+        {copy.home.createGame}
+      </Link>
       <div className="mt-3">
         {(() => {
           switch (games.status) {

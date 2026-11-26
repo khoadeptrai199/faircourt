@@ -238,6 +238,47 @@ class PlaymatchServiceAccessIT {
         }
     }
 
+    @Test
+    void createGameRouteIsOpenForPostOnlyAndNeedsAnAccountToken() throws Exception {
+        String path = "/api/v1/games";
+        UUID account = UUID.randomUUID();
+        OffsetDateTime start = OffsetDateTime.now(ZoneOffset.UTC).plusHours(1);
+        String body = "{\"title\":\"Access row\",\"venue\":\"Court House D7\",\"startsAt\":\"" + start
+                + "\",\"endsAt\":\"" + start.plusHours(2)
+                + "\",\"courtCount\":2,\"matchFormat\":\"DOUBLES\",\"minSets\":6}";
+        try {
+            // No token, and an invalid or foreign token (not a valid account token for this route) -> 401. The real
+            // guest-cookie row is in GatewayAccessMatrixIT; the service knows only account tokens.
+            assertThat(sendWithToken("POST", path, null, body).statusCode()).isEqualTo(401);
+            assertThat(sendWithToken("POST", path, "invalid-or-foreign-token", body)
+                            .statusCode())
+                    .isEqualTo(401);
+            assertThat(hostedBy(account)).isZero();
+            // Other methods are not opened.
+            for (String method : new String[] {"GET", "PUT", "PATCH", "DELETE"}) {
+                assertThat(sendWithToken(method, path, token(account, method, path), body)
+                                .statusCode())
+                        .as(method)
+                        .isEqualTo(401);
+            }
+            // A signed-in account.
+            HttpResponse<String> created = sendWithToken("POST", path, token(account, "POST", path), body);
+            assertThat(created.statusCode()).as(created.body()).isEqualTo(201);
+            assertThat(hostedBy(account)).isEqualTo(1);
+        } finally {
+            jdbc.sql("DELETE FROM game WHERE host_user_id = :host")
+                    .param("host", account)
+                    .update();
+        }
+    }
+
+    private int hostedBy(UUID account) {
+        return jdbc.sql("SELECT count(*) FROM game WHERE host_user_id = :host")
+                .param("host", account)
+                .query(Integer.class)
+                .single();
+    }
+
     private String stateOf(UUID attendanceId) {
         return jdbc.sql("SELECT state FROM attendance WHERE id = :id")
                 .param("id", attendanceId)

@@ -12,9 +12,9 @@
 
 | ID | Feature | Status |
 |---|---|---|
-| F06 | [Host board](host-board/README.md) | `IN_REVIEW` |
-| F07 | [Attendance management](attendance-management/README.md) | `IN_REVIEW` |
-| F08 | [Create game](create-game/README.md) | `BACKLOG` |
+| F06 | [Host board](host-board/README.md) | `DONE` |
+| F07 | [Attendance management](attendance-management/README.md) | `DONE` |
+| F08 | [Create game](create-game/README.md) | `DONE` |
 
 ## Why this order
 
