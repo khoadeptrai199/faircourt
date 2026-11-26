@@ -143,6 +143,18 @@ class GatewayAccessMatrixIT extends GatewayTestBase {
     }
 
     @Test
+    void hostRoutesAreReachableOnlyBySignedInAccountsAndNothingIsForwardedToAnonymous() throws Exception {
+        String board = "/api/v1/host/games/" + StubService.OPEN_GAME_ID + "/board";
+
+        assertUnauthenticated(get(board));
+        assertUnauthenticated(get("/api/v1/host/games"));
+        for (String method : new String[] {"POST", "PUT", "PATCH", "DELETE"}) {
+            assertThat(send(method, board, bootstrap()).statusCode()).as(method).isEqualTo(401);
+        }
+        assertThat(STUB.received()).isEmpty();
+    }
+
+    @Test
     void accountRoutesNeedASignedInAccount() throws Exception {
         assertUnauthenticated(get("/api/v1/me"));
         // Login is public (CSRF token required); logout is for a signed-in account only.

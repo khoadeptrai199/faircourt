@@ -33,6 +33,10 @@ public class SecurityConfig {
                     .permitAll();
             auth.requestMatchers(HttpMethod.GET, "/internal/v1/games/*/my-attendance")
                     .permitAll();
+            // Host board and games I host: the gateway only forwards signed-in accounts; the identity token and
+            // AccessPolicy decide in the controller (401 / 403 / 404).
+            auth.requestMatchers(HttpMethod.GET, "/api/v1/host/games/*/board").permitAll();
+            auth.requestMatchers(HttpMethod.GET, "/api/v1/host/games").permitAll();
         });
     }
 }

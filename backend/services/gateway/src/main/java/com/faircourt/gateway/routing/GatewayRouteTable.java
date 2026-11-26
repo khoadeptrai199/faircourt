@@ -55,6 +55,16 @@ public record GatewayRouteTable(List<GatewayRoute> routes) {
                         Set.of(HttpMethod.GET),
                         "/api/v1/public/games/*",
                         RouteAccess.PUBLIC,
-                        playmatchUrl)));
+                        playmatchUrl),
+                // Host board (blueprint section 13; Host board design 3.1, 3.2): a signed-in account; the gateway adds
+                // the identity token, playmatch-service checks that the account hosts the game.
+                new GatewayRoute(
+                        "host-board",
+                        Set.of(HttpMethod.GET),
+                        "/api/v1/host/games/*/board",
+                        RouteAccess.HOST,
+                        playmatchUrl),
+                new GatewayRoute(
+                        "host-games", Set.of(HttpMethod.GET), "/api/v1/host/games", RouteAccess.HOST, playmatchUrl)));
     }
 }

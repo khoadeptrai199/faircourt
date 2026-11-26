@@ -14,9 +14,9 @@ Last updated: 2026-11-25
 | Sprint | Goal | Gate | Status |
 |---|---|---|---|
 | [S00 Foundation](sprint00-foundation/SPRINT.md) | Docker stack, V1 schema, seed, pure matcher | §17 step 1 | DONE |
-| [S01 Services + public read](sprint01-public-read/SPRINT.md) | Split into gateway + services (one schema each), shared API foundation, game rename, public game page | All services healthy; anonymous sees only public data through the gateway | ACTIVE |
-| [S02 Identity](sprint02-identity/SPRINT.md) | Account login, guest check-in, own attendance | §17 step 2 gate | PLANNED |
-| [S03 Host board](sprint03-host-board/SPRINT.md) | Host board, approve/rest/leave, create game | Host sees full board; other account 403 | PLANNED |
+| [S01 Services + public read](sprint01-public-read/SPRINT.md) | Split into gateway + services (one schema each), shared API foundation, game rename, public game page | All services healthy; anonymous sees only public data through the gateway | DONE |
+| [S02 Identity](sprint02-identity/SPRINT.md) | Account login, guest check-in, own attendance | §17 step 2 gate | DONE |
+| [S03 Host board](sprint03-host-board/SPRINT.md) | Host board, approve/rest/leave, create game | Host sees full board; other account 403 | ACTIVE |
 | [S04 Match loop](sprint04-match-loop/SPRINT.md) | Suggest, swap, confirm, start, finish, cancel | §17 step 3 gate | PLANNED |
 | [S05 Player loop](sprint05-player-loop/SPRINT.md) | My game, polling, feedback, host assessment | §17 step 4 gate | PLANNED |
 | [S06 Acceptance](sprint06-acceptance/SPRINT.md) | E2E smoke, responsive/a11y polish, CI | §0 demo + §17 checklist | PLANNED |
@@ -34,9 +34,9 @@ Last updated: 2026-11-25
 | F03 | Account login, logout, `GET /me` | S02 | DONE | F01 | — | [README](sprint02-identity/account-login/README.md) |
 | F21 | Password reset (forgot password, OTP by email) | S02 | DONE | F03 | — | [README](sprint02-identity/password-reset/README.md) · [design](sprint02-identity/password-reset/design.md) |
 | F04 | Guest check-in + guest cookie | S02 | DONE | F02 | — | [README](sprint02-identity/guest-check-in/README.md) |
-| F05 | Own attendance status + member join | S02 | IN_REVIEW | F03, F04 | owner visual check + 3 points in review.md | [README](sprint02-identity/my-attendance-status/README.md) · [design](sprint02-identity/my-attendance-status/design.md) |
-| F06 | Host board | S03 | BACKLOG | F03 | OD-04, OD-14 | [README](sprint03-host-board/host-board/README.md) |
-| F07 | Attendance management (approve, rest, leave) | S03 | BACKLOG | F06 | OD-07, OD-15 | [README](sprint03-host-board/attendance-management/README.md) |
+| F05 | Own attendance status + member join | S02 | DONE | F03, F04 | — | [README](sprint02-identity/my-attendance-status/README.md) · [design](sprint02-identity/my-attendance-status/design.md) |
+| F06 | Host board | S03 | IN_REVIEW | F03 | Gate 3: owner visual check (TC-30…32) + commit; review points decided 2026-11-26 | [README](sprint03-host-board/host-board/README.md) · [design](sprint03-host-board/host-board/design.md) · [implement](sprint03-host-board/host-board/implement.md) · [review](sprint03-host-board/host-board/review.md) |
+| F07 | Attendance management (approve, rest, leave) | S03 | BACKLOG | F06 | OD-07, OD-15, identity token audience (F06 review #17) | [README](sprint03-host-board/attendance-management/README.md) |
 | F08 | Create game | S03 | BACKLOG | F03 | OD-05, OD-10 | [README](sprint03-host-board/create-game/README.md) |
 | F09 | Match suggestions (read-only) | S04 | BACKLOG | F07 | — | [README](sprint04-match-loop/match-suggestions/README.md) |
 | F10 | Match confirm + tap-to-swap review | S04 | BACKLOG | F09 | OD-08 (optional) | [README](sprint04-match-loop/match-confirm/README.md) |

@@ -43,6 +43,9 @@ logging:
     level: "%5p [%X{requestId:-}]"
 
 faircourt:
+  internal-token:
+    # Signs the identity token sent to services (AD-14). From the environment only; at least 32 bytes, else startup fails.
+    secret: "${INTERNAL_TOKEN_SECRET}"
   services:
     # Where the gateway forwards each service's routes. Default = the Compose service name (services publish no host
     # port, so the gateway reaches them only inside the Compose network).

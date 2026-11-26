@@ -6,7 +6,7 @@
 | Status | `BACKLOG` |
 | Blueprint | §3, §11 (attendance state machine), §13 (`PATCH /host/sessions/{sessionId}/attendance/{attendanceId}`), §15 |
 | Depends on | F06 |
-| Waiting for | OD-07 (`available_since` rules), OD-15 (reject pending guest) |
+| Waiting for | OD-07 (`available_since` rules), OD-15 (reject pending guest), identity token scope (open decisions) |
 | Suggested branch | `feature/attendance-management` |
 | Last updated | 2026-11-17 |
 
@@ -41,3 +41,4 @@ The host approves a pending guest and moves players between Ready, Resting and L
 | OD-07 | Keep or reset `available_since` on approve / resting → ready | Open |
 | OD-15 | Allow `PENDING → LEFT` | Open |
 | — | Should marking a guest `LEFT` revoke their `guest_access`? (§12 silent) | Decide in design, ask owner |
+| — | Identity token scope before the first host write route (F06 review.md #17, owner 2026-11-26): bind `X-Internal-Identity` to an audience (target service) and method + path, or accept the 30 s replay window inside the network as an AD | Decide in design, ask owner (recommendation from F06 review: add the claims) |

@@ -72,3 +72,66 @@ export type MyAttendance = {
 export type MemberJoin = {
   attendanceState: AttendanceState
 }
+
+// GET /api/v1/host/games/{gameId}/board: host only, never reused for another audience (blueprint section 13).
+export type BandStatus = 'SELF_REPORTED' | 'OBSERVED' | 'CONFIRMED'
+
+export type PlayerKind = 'MEMBER' | 'GUEST'
+
+export type HostBoardGame = {
+  id: string
+  publicCode: string
+  title: string
+  venue: string
+  startsAt: string
+  endsAt: string
+  courtCount: number
+  state: GameState
+  matchFormat: MatchFormat
+  minSets: number
+}
+
+export type HostBoardPlayer = {
+  attendanceId: string
+  displayName: string
+  kind: PlayerKind | null
+  state: AttendanceState
+  band: number | null
+  bandStatus: BandStatus | null
+  checkedInAt: string
+  availableSince: string
+  matchesPlayed: number
+}
+
+export type CourtMatchState = 'PLANNED' | 'ACTIVE'
+
+export type HostBoardMatch = {
+  matchId: string
+  matchNo: number
+  state: CourtMatchState
+  teams: { A: string[]; B: string[] }
+}
+
+export type HostBoardCourt = {
+  courtNo: number
+  match: HostBoardMatch | null
+}
+
+export type HostBoard = {
+  asOf: string
+  game: HostBoardGame
+  players: HostBoardPlayer[]
+  courts: HostBoardCourt[]
+}
+
+// GET /api/v1/host/games: the games the caller hosts, newest first.
+export type HostedGame = {
+  id: string
+  publicCode: string
+  title: string
+  venue: string
+  startsAt: string
+  endsAt: string
+  courtCount: number
+  state: GameState
+}

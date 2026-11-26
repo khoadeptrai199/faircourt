@@ -16,6 +16,7 @@ import org.springframework.security.web.SecurityFilterChain;
  *       The service has no host port, so only containers on the Compose network can reach it.
  *   <li>Member profile (My attendance): {@code POST /internal/v1/players/members} and {@code GET
  *       /internal/v1/players/by-user/*}, internal, the same way.
+ *   <li>Player levels (Host board): {@code POST /internal/v1/players/levels}, internal, the same way.
  * </ul>
  */
 @Configuration
@@ -30,6 +31,8 @@ public class SecurityConfig {
                     .permitAll();
             auth.requestMatchers(HttpMethod.GET, "/internal/v1/players/by-user/*")
                     .permitAll();
+            // Private levels for the host board (Host board): internal, called by playmatch-service only (AD-15).
+            auth.requestMatchers(HttpMethod.POST, "/internal/v1/players/levels").permitAll();
         });
     }
 }

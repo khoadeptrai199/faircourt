@@ -68,6 +68,18 @@ class PlayerServiceAccessIT {
     }
 
     @Test
+    void levelsRouteIsInternalAndOpenForPostOnly() throws Exception {
+        String path = "/internal/v1/players/levels";
+
+        // Opened by Host board. An empty body is a 4xx from the route, never 401 from the security chain.
+        assertThat(send("POST", path).statusCode()).isNotEqualTo(401);
+        assertThat(send("GET", path).statusCode()).isEqualTo(401);
+        assertThat(send("PUT", path).statusCode()).isEqualTo(401);
+        assertThat(send("POST", path + "/extra").statusCode()).isEqualTo(401);
+        assertThat(send("POST", "/api/v1/players/levels").statusCode()).isEqualTo(401);
+    }
+
+    @Test
     void routesNoFeatureOpenedAre401JsonWithoutASession() throws Exception {
         for (String path : new String[] {"/api/v1/anything", "/internal/v1/anything"}) {
             for (String method : new String[] {"GET", "POST"}) {

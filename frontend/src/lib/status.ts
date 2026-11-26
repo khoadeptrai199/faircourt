@@ -1,4 +1,9 @@
-import type { AttendanceState, GameState, MatchFormat } from '../api/types'
+import type {
+  AttendanceState,
+  CourtMatchState,
+  GameState,
+  MatchFormat,
+} from '../api/types'
 import { copy } from '../copy/en'
 
 // Status is always text + color, never color alone (blueprint section 6). Record<…> keeps every value covered.
@@ -29,4 +34,26 @@ export const ATTENDANCE_STATUS: Record<
   PLAYING: { label: copy.myGame.inMatch, tone: 'positive' },
   RESTING: { label: copy.myGame.resting, tone: 'neutral' },
   LEFT: { label: copy.myGame.left, tone: 'neutral' },
+}
+
+// Host board labels: all six attendance states, ASSIGNED apart from PLAYING (blueprint section 11).
+export const HOST_ATTENDANCE_STATUS: Record<
+  AttendanceState,
+  { label: string; tone: StatusTone }
+> = {
+  PENDING: { label: copy.hostBoard.statePending, tone: 'neutral' },
+  READY: { label: copy.hostBoard.stateReady, tone: 'positive' },
+  ASSIGNED: { label: copy.hostBoard.stateAssigned, tone: 'positive' },
+  PLAYING: { label: copy.hostBoard.statePlaying, tone: 'positive' },
+  RESTING: { label: copy.hostBoard.stateResting, tone: 'neutral' },
+  LEFT: { label: copy.hostBoard.stateLeft, tone: 'neutral' },
+}
+
+// The two match states a court can show.
+export const COURT_MATCH_STATUS: Record<
+  CourtMatchState,
+  { label: string; tone: StatusTone }
+> = {
+  PLANNED: { label: copy.hostBoard.matchPlanned, tone: 'neutral' },
+  ACTIVE: { label: copy.hostBoard.matchActive, tone: 'positive' },
 }

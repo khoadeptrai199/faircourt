@@ -62,7 +62,7 @@ public class GatewaySecurityConfig {
                                 case PUBLIC ->
                                     auth.requestMatchers(method, route.pathPattern())
                                             .permitAll();
-                                case ACCOUNT ->
+                                case ACCOUNT, HOST ->
                                     auth.requestMatchers(method, route.pathPattern())
                                             .authenticated();
                                 // Account or guest cookie: the controller reads the cookie and answers 401 itself.

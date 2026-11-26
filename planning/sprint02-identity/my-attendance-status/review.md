@@ -7,7 +7,7 @@
 | `scope-guardian` (Opus) | 2026-11-20 | uncommitted diff on `feature/my-attendance-status` vs design.md, implement.md, blueprint | No out-of-scope behavior, no new dependency or migration; 3 medium, rest low (below) |
 | `privacy-reviewer` (Opus) | 2026-11-20 | same diff, identity, IDOR, allowlists, logs, races | No high or medium; 4 low, 2 uncertain |
 | Live check (agent) | 2026-11-20 | Docker stack, curl through the gateway, psql, log grep | All cases as expected, no bug |
-| Owner | — | — | pending (Gate 3) |
+| Owner | 2026-11-25 | merged PR #4 | confirmed `DONE` |
 
 ## Findings
 
@@ -23,7 +23,7 @@
 | 8 | low | clients | Member calls sit in `guest/` packages (`PlayerClient`, `PlaymatchClient`) | Internal naming; move later | `ACCEPTED (Claude, internal naming)` |
 | 9 | low | `copy/en.ts` | `myGame.backToGame` approved but unused | Used when #2 is resolved | `FIXED` (owner approved 2026-11-20) |
 | 10 | low | README | Dated rows sat in the "Open decisions" table | Moved under "Decision log" | `FIXED` |
-| 11 | low | planning | This branch also carries the status change of Account login, Password reset, Guest check-in to `DONE` | Commit separately if wanted | `OPEN` (owner) |
+| 11 | low | planning | This branch also carries the status change of Account login, Password reset, Guest check-in to `DONE` | Commit separately if wanted | `CLOSED` (merged in PR #4, owner 2026-11-25) |
 | 12 | low (privacy) | `MemberAttendanceService` | Attendance name was the email part even for members with a profile name | Uses the profile's own name | `FIXED` (fix round) |
 | 13 | low (privacy) | `PlayerAccessController` | Empty or surrogate-split name from the email | Cut by code points; empty → 400 (known limit, no fallback copy) | `FIXED` / known limit |
 | 14 | low (privacy) | `MemberAttendanceService` | Game closed during a join could still get a `READY` row | Re-check with `FOR SHARE` inside the insert transaction | `FIXED` |

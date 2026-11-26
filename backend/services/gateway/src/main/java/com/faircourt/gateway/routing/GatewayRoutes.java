@@ -6,6 +6,7 @@ import static org.springframework.cloud.gateway.server.mvc.handler.HandlerFuncti
 import static org.springframework.web.servlet.function.RequestPredicates.methods;
 import static org.springframework.web.servlet.function.RequestPredicates.path;
 
+import com.faircourt.common.identity.IdentityToken;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -26,7 +27,7 @@ public class GatewayRoutes {
     }
 
     @Bean
-    RouterFunction<ServerResponse> gatewayRouterFunction(GatewayRouteTable table) {
+    RouterFunction<ServerResponse> gatewayRouterFunction(GatewayRouteTable table, IdentityToken identityToken) {
         RouterFunction<ServerResponse> all = request -> Optional.empty();
         for (GatewayRoute r : table.routes()) {
             if (!r.forwarded()) {
@@ -36,6 +37,8 @@ public class GatewayRoutes {
                     .route(path(r.pathPattern()).and(methods(r.methods().toArray(HttpMethod[]::new))), http())
                     .before(uri(r.targetUrl()))
                     .before(new HeaderSanitizer())
+                    // After the sanitizer, so the token it adds is never removed; only HOST routes get one.
+                    .before(new IdentityTokenFilter(identityToken, r.access() == RouteAccess.HOST))
                     .build());
         }
         return all;
