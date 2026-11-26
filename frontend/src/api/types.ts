@@ -168,3 +168,22 @@ export type CreatedGame = {
   gameId: string
   publicCode: string
 }
+
+// POST /api/v1/host/games/{gameId}/suggestions: host only, attendance ids only (names and levels come from the board).
+export type ReasonCode = 'SIMILAR_LEVEL' | 'BALANCED_TEAMS' | 'LONG_WAIT'
+
+export type SuggestionWarning = 'WIDE_SKILL_GAP' | 'UNKNOWN_LEVEL'
+
+export type NoSuggestionReason = 'WAITING_FOR_PLAYERS' | 'NO_FREE_COURT'
+
+export type MatchProposal = {
+  courtNo: number
+  teams: { A: string[]; B: string[] }
+  reasonCodes: ReasonCode[]
+  warnings: SuggestionWarning[]
+}
+
+export type MatchSuggestions = {
+  suggestions: MatchProposal[]
+  noSuggestionReason: NoSuggestionReason | null
+}

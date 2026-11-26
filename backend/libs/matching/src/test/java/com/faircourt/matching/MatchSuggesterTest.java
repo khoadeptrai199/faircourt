@@ -254,4 +254,98 @@ class MatchSuggesterTest {
             assertThat(p.warnings()).isEmpty();
         }
     }
+
+    // ---- singles (OD-20, Match suggestions design 5) -------------------------------------------
+
+    private static BoardSnapshot singles(List<ReadyPlayer> ready, Integer... freeCourts) {
+        return new BoardSnapshot(ready, List.of(freeCourts), MatchFormat.SINGLES);
+    }
+
+    @Test
+    void singlesPairAdjacentLevelsOnTwoCourtsWithOnePlayerPerTeam() {
+        var ready = List.of(player(1, 1), player(2, 1), player(3, 3), player(4, 3));
+
+        SuggestionResult result = suggester.suggest(singles(ready, 1, 2));
+
+        assertThat(result.proposals()).hasSize(2);
+        Proposal court1 = result.proposals().get(0);
+        Proposal court2 = result.proposals().get(1);
+        assertThat(court1.teamA()).containsExactly(id(1));
+        assertThat(court1.teamB()).containsExactly(id(2));
+        assertThat(court2.teamA()).containsExactly(id(3));
+        assertThat(court2.teamB()).containsExactly(id(4));
+        for (Proposal p : result.proposals()) {
+            assertThat(p.reasonCodes()).contains(ReasonCode.SIMILAR_LEVEL).doesNotContain(ReasonCode.BALANCED_TEAMS);
+            assertThat(p.warnings()).isEmpty();
+        }
+    }
+
+    @Test
+    void singlesWithFiveReadyLeaveOutTheLastInPriorityOrderAndRepeatNoId() {
+        var ready = List.of(
+                player(1, 2, 0, T0),
+                player(2, 2, 0, T0),
+                player(3, 2, 0, T0),
+                player(4, 2, 0, T0),
+                player(5, 2, 2, T0));
+
+        SuggestionResult result = suggester.suggest(singles(ready, 1, 2));
+
+        Set<UUID> all = new HashSet<>();
+        for (Proposal p : result.proposals()) {
+            assertThat(p.teamA()).hasSize(1);
+            assertThat(p.teamB()).hasSize(1);
+            all.addAll(allIds(p));
+        }
+        assertThat(result.proposals()).hasSize(2);
+        assertThat(all).containsExactlyInAnyOrder(id(1), id(2), id(3), id(4));
+    }
+
+    @Test
+    void singlesWithOneReadyPlayerWaitForPlayers() {
+        SuggestionResult result = suggester.suggest(singles(List.of(player(1, 2)), 1));
+
+        assertThat(result.proposals()).isEmpty();
+        assertThat(result.noSuggestionReason()).isEqualTo(NoSuggestionReason.WAITING_FOR_PLAYERS);
+    }
+
+    @Test
+    void singlesWithoutAFreeCourtGiveNoFreeCourt() {
+        SuggestionResult result = suggester.suggest(singles(List.of(player(1, 2), player(2, 2))));
+
+        assertThat(result.proposals()).isEmpty();
+        assertThat(result.noSuggestionReason()).isEqualTo(NoSuggestionReason.NO_FREE_COURT);
+    }
+
+    @Test
+    void singlesWithLevelsOneAndThreeWarnAWideGapAndGiveNoSimilarOrBalancedReason() {
+        SuggestionResult result = suggester.suggest(singles(List.of(player(1, 1), player(2, 3)), 1));
+
+        Proposal p = result.proposals().getFirst();
+        assertThat(p.warnings()).contains(Warning.WIDE_SKILL_GAP);
+        assertThat(p.reasonCodes()).doesNotContain(ReasonCode.SIMILAR_LEVEL, ReasonCode.BALANCED_TEAMS);
+    }
+
+    @Test
+    void singlesWithAnUnknownLevelWarnAndCountItAsBand2() {
+        SuggestionResult result = suggester.suggest(singles(List.of(player(1, null), player(2, 2)), 1));
+
+        Proposal p = result.proposals().getFirst();
+        assertThat(p.warnings()).containsExactly(Warning.UNKNOWN_LEVEL);
+        assertThat(p.reasonCodes()).contains(ReasonCode.SIMILAR_LEVEL);
+    }
+
+    @Test
+    void singlesGiveTheSameAnswerForShuffledInputAndMarkTheLongestWaiter() {
+        var ready = new ArrayList<>(
+                List.of(player(1, 1, 0, T0.minusSeconds(600)), player(2, 1), player(3, 3), player(4, 3)));
+        SuggestionResult first = suggester.suggest(singles(ready, 1, 2));
+        Collections.shuffle(ready, new Random(7));
+
+        SuggestionResult second = suggester.suggest(singles(ready, 1, 2));
+
+        assertThat(second).isEqualTo(first);
+        assertThat(first.proposals().get(0).reasonCodes()).contains(ReasonCode.LONG_WAIT);
+        assertThat(first.proposals().get(1).reasonCodes()).doesNotContain(ReasonCode.LONG_WAIT);
+    }
 }

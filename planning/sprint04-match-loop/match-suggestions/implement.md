@@ -10,14 +10,14 @@ Small, runnable steps in order. Status: `TODO` | `DOING` | `DONE` | `SKIPPED (re
 
 | Task | Covers | Description | Status |
 |---|---|---|---|
-| T01 | AC-07, AC-01 | Matching lib: add `MatchFormat` (`SINGLES`, `DOUBLES`); `BoardSnapshot` gets `format` (canonical 3-arg constructor + a 2-arg constructor that means `DOUBLES`, so existing tests compile unchanged); `MatchSuggester.suggest` branches on format: doubles path untouched, new singles path (design §5). Unit tests TC-01…TC-08 | `TODO` |
-| T02 | AC-01…AC-04 | `playmatch/match/SuggestionSnapshotQuery` (`JdbcClient`, one `@Transactional(readOnly = true)` method `read(gameId)` → `Optional<Snapshot>`): game (`state`, `court_count`, `match_format`), eligible pool (READY, no unreleased `match_player`; `id`, `player_id`, `available_since`, `matches_played`), busy courts (PLANNED/ACTIVE), recent partners (last 3 FINISHED matches per eligible player, same team, `ROW_NUMBER()`) | `TODO` |
-| T03 | AC-01, AC-02, AC-05, AC-08 | `SuggestionService.suggest(caller, gameId)`: `requireHost` → query (empty → 404) → `CLOSED` → `409 STATE_CONFLICT` → `PlayerLevelsClient.levels` for the pool (skipped when empty) → build `BoardSnapshot` (free courts = `1…court_count` minus busy; missing level = null band, warn log with attendance id only) → `MatchSuggester` → `HostSuggestionResponse`. `HostSuggestionController` (`POST`, `requireAccount` first, malformed id → 404, `no-store`, body ignored). `HostSuggestionResponse` record (`suggestions[] {courtNo, teams {A, B}, reasonCodes, warnings}`, `noSuggestionReason`). `MatchSuggester` exposed as a bean or created in the service (no Spring in the lib) | `TODO` |
-| T04 | AC-05 | `playmatch/security/SecurityConfig`: `POST /api/v1/host/games/*/suggestions` authenticated. Gateway `GatewayRouteTable`: route `host-suggestions`, `POST /api/v1/host/games/*/suggestions` → playmatch, account required. Rows in `GatewayAccessMatrixIT` and `PlaymatchServiceAccessIT` (TC-20, TC-21) | `TODO` |
-| T05 | AC-01…AC-05, AC-07, AC-08 | `MatchSuggestionsIT` (TC-09…TC-19), same harness as `HostBoardIT` (JDK `HttpServer` player-service stub, test identity token, test clock, inline SQL helpers as in `HostBoardIT`/`HostAttendanceIT`; the `support/TestData` builders named in conventions do not exist yet in this service, so the existing local helper style is followed and noted under "Deviations") | `TODO` |
-| T06 | AC-06 | Frontend: `api/types.ts` (`MatchSuggestions`, `MatchProposal`, `ReasonCode`, `SuggestionWarning`, `NoSuggestionReason` as string unions), `api/matches.ts` `suggestMatches(gameId)` via `client.ts` (POST + CSRF), route `/host/games/:gameId/review` in `AppRoutes.tsx`, `features/match-review/MatchReviewPage.tsx` + `MatchProposal.tsx`, copy keys `matchReview.*` in `copy/en.ts` (design §7, approved), host board "Suggest matches" enabled as a link to the review page (disabled + closed note on a `CLOSED` game), "Coming soon" text removed there | `TODO` |
-| T07 | — | Docs: `API Document/backend.md` (route, response, errors), `API Document/frontend.md` (review page), `.claude/flow/maps/api-routes.md` | `TODO` |
-| T08 | all | Format (`backend-format`, frontend `format`), pre-commit pipeline `scripts/precommit.sh` in WSL; manual check TC-22…TC-24 on the running stack; fill "Commands executed" and "Acceptance evidence" | `TODO` |
+| T01 | AC-07, AC-01 | Matching lib: add `MatchFormat` (`SINGLES`, `DOUBLES`); `BoardSnapshot` gets `format` (canonical 3-arg constructor + a 2-arg constructor that means `DOUBLES`, so existing tests compile unchanged); `MatchSuggester.suggest` branches on format: doubles path untouched, new singles path (design §5). Unit tests TC-01…TC-08 | `DONE` |
+| T02 | AC-01…AC-04 | `playmatch/match/SuggestionSnapshotQuery` (`JdbcClient`, one `@Transactional(readOnly = true)` method `read(gameId)` → `Optional<Snapshot>`): game (`state`, `court_count`, `match_format`), eligible pool (READY, no unreleased `match_player`; `id`, `player_id`, `available_since`, `matches_played`), busy courts (PLANNED/ACTIVE), recent partners (last 3 FINISHED matches per eligible player, same team, `ROW_NUMBER()`) | `DONE` |
+| T03 | AC-01, AC-02, AC-05, AC-08 | `SuggestionService.suggest(caller, gameId)`: `requireHost` → query (empty → 404) → `CLOSED` → `409 STATE_CONFLICT` → `PlayerLevelsClient.levels` for the pool (skipped when empty) → build `BoardSnapshot` (free courts = `1…court_count` minus busy; missing level = null band, warn log with attendance id only) → `MatchSuggester` → `HostSuggestionResponse`. `HostSuggestionController` (`POST`, `requireAccount` first, malformed id → 404, `no-store`, body ignored). `HostSuggestionResponse` record (`suggestions[] {courtNo, teams {A, B}, reasonCodes, warnings}`, `noSuggestionReason`). `MatchSuggester` exposed as a bean or created in the service (no Spring in the lib) | `DONE` |
+| T04 | AC-05 | `playmatch/security/SecurityConfig`: `POST /api/v1/host/games/*/suggestions` authenticated. Gateway `GatewayRouteTable`: route `host-suggestions`, `POST /api/v1/host/games/*/suggestions` → playmatch, account required. Rows in `GatewayAccessMatrixIT` and `PlaymatchServiceAccessIT` (TC-23, TC-24) | `DONE` |
+| T05 | AC-01…AC-05, AC-07, AC-08 | `MatchSuggestionsIT` (TC-09…TC-19), same harness as `HostBoardIT` (JDK `HttpServer` player-service stub, test identity token, test clock, inline SQL helpers as in `HostBoardIT`/`HostAttendanceIT`; the `support/TestData` builders named in conventions do not exist yet in this service, so the existing local helper style is followed and noted under "Deviations") | `DONE` |
+| T06 | AC-06 | Frontend: `api/types.ts` (`MatchSuggestions`, `MatchProposal`, `ReasonCode`, `SuggestionWarning`, `NoSuggestionReason` as string unions), `api/matches.ts` `suggestMatches(gameId)` via `client.ts` (POST + CSRF), route `/host/games/:gameId/review` in `AppRoutes.tsx`, `features/match-review/MatchReviewPage.tsx` + `MatchProposal.tsx`, copy keys `matchReview.*` in `copy/en.ts` (design §7, approved), host board "Suggest matches" enabled as a link to the review page (disabled + closed note on a `CLOSED` game), "Coming soon" text removed there | `DONE` |
+| T07 | — | Docs: `API Document/backend.md` (route, response, errors), `API Document/frontend.md` (review page), `.claude/flow/maps/api-routes.md` | `DONE` |
+| T08 | all | Format (`backend-format`, frontend `format`), pre-commit pipeline `scripts/precommit.sh` in WSL; manual check TC-25…TC-28 on the running stack (owner); fill "Commands executed" and "Acceptance evidence" | `DONE` (automated parts; manual TC-25…TC-28 `NOT VERIFIED`, owner) |
 
 ## Test cases
 
@@ -107,20 +107,39 @@ Only commands that were actually run, with their real result.
 
 | Date | Machine | Command | Result |
 |---|---|---|---|
+| 2026-11-26 | Windows + WSL Ubuntu | `docker compose run --rm --build backend-format` (T01-T05) | PASS (exit 0, Spotless applied) |
+| 2026-11-26 | Windows + WSL Ubuntu | `docker compose --profile test run --rm --build backend-test` (first run) | FAIL: `PlaymatchSchemaIT` 9 errors, "too many clients already" (extra cached Spring context from the new IT); `MatchSuggestionsIT` 14 tests PASS |
+| 2026-11-26 | Windows + WSL Ubuntu | same, after `@DirtiesContext` on `MatchSuggestionsIT` and re-format | PASS: BUILD SUCCESS; matching `MatchSuggesterTest` 20 tests, gateway `GatewayAccessMatrixIT` 18, playmatch 132 tests (incl. `MatchSuggestionsIT` 14, `PlaymatchServiceAccessIT` 11), 0 failures |
+| 2026-11-26 | Windows + WSL Ubuntu | `docker compose run --rm --no-deps frontend npm run format` (T06) | PASS (exit 0) |
+| 2026-11-26 | Windows + WSL Ubuntu | `docker compose run --rm --no-deps frontend npm run build` (`tsc --noEmit && vite build`, T06) | PASS (built in 1.03s) |
+| 2026-11-26 | Windows + WSL Ubuntu | Review fixes: `docker compose run --rm --build backend-format` | PASS (Spotless ran, no error output) |
+| 2026-11-26 | Windows + WSL Ubuntu | `docker compose --profile test run --rm --build backend-test` (after review fixes, first run) | FAIL: `GatewayAccessMatrixIT` GET on suggestions path returned 403, assertion expected 401 (my guess); fixed the assertion to the observed 403 |
+| 2026-11-26 | Windows + WSL Ubuntu | `docker compose run --rm --no-deps frontend npm run format` | PASS (exit 0) |
+| 2026-11-26 | Windows + WSL Ubuntu | `bash scripts/precommit.sh` | PASS: `PIPELINE OK`; unit/IT suites 0 failures (gateway 112, playmatch 132, matching 13 plus other modules), `.env`/`.idea/` not staged, frontend format:check + build OK |
 
 ## Acceptance evidence
 
 | AC | Check | Result | Evidence |
 |---|---|---|---|
-| AC-01 | TC-01, TC-09, TC-10, TC-22 | `NOT VERIFIED` | not built yet |
-| AC-02 | TC-11…TC-13 | `NOT VERIFIED` | not built yet |
-| AC-03 | TC-14, TC-15 | `NOT VERIFIED` | not built yet |
-| AC-04 | TC-16, TC-17 | `NOT VERIFIED` | not built yet |
-| AC-05 | TC-18, TC-19, TC-23, TC-24 | `NOT VERIFIED` | not built yet |
-| AC-06 | TC-25…TC-28 | `NOT VERIFIED` | not built yet |
-| AC-07 | TC-02…TC-08, TC-20 | `NOT VERIFIED` | not built yet |
-| AC-08 | TC-21 | `NOT VERIFIED` | not built yet |
+| AC-01 | TC-01, TC-09, TC-10, TC-22 | PASS | `MatchSuggesterTest` (TC-01, doubles suite); `MatchSuggestionsIT`: `theSeededGroupFormsTwoSimilarBalancedCourtsAndNothingIsSaved`, `theAnswerHasExactlyTheDocumentedFieldsAndNoNamesBandsOrPlayerIds`, `aReadyPlayerMissingFromTheLevelsAnswerIsUnknownAndLogsOnlyTheAttendanceId`; precommit.sh 2026-11-26 |
+| AC-02 | TC-11…TC-13 | PASS | `MatchSuggestionsIT`: `threeReadyDoublesPlayersGiveWaitingForPlayersAfterOneLevelsCall`, `aCourtWithAnActiveMatchLeavesNoFreeCourt`, `aGameWithNoReadyPlayerAnswersWithoutCallingPlayerService`; precommit.sh 2026-11-26 |
+| AC-03 | TC-14, TC-15 | PASS | `MatchSuggestionsIT`: `onlyThePartnersOfTheLastThreeFinishedMatchesAreRecentPartners`, `twoPlayersWhoWerePartnersInTheLastFinishedMatchAreSplitWhenTeamGapsTie`; precommit.sh 2026-11-26 |
+| AC-04 | TC-16, TC-17 | PASS | `MatchSuggestionsIT`: `onlyReadyPlayersOnFreeCourtsAreSuggested`, `aReadyPlayerStillInAnUnreleasedMatchIsNotSuggested`; precommit.sh 2026-11-26 |
+| AC-05 | TC-18, TC-19, TC-23, TC-24 | PASS | `MatchSuggestionsIT`: `aClosedGameIs409AndNothingIsCalledOrChanged`, `otherAccountsMissingOrWrongTokensAndUnknownIdsAreRefusedWithoutCallingPlayerService`; `GatewayAccessMatrixIT.suggestionsNeedAnAccountAndACsrfTokenAndAreForwardedOnceWithATokenBoundToThePath`; `PlaymatchServiceAccessIT` (TC-24); precommit.sh 2026-11-26 |
+| AC-06 | TC-25…TC-28 | `NOT VERIFIED` | owner visual check of TC-25…TC-28 on the running stack; `npm run build` and `format:check` pass but are not a UI check |
+| AC-07 | TC-02…TC-08, TC-20 | PASS | `MatchSuggesterTest` TC-02…TC-08; `MatchSuggestionsIT.aSinglesGameGetsOnePlayerPerTeamOnTwoCourtsWithNoIdTwice`; precommit.sh 2026-11-26 |
+| AC-08 | TC-21 | PASS | `MatchSuggestionsIT.whenPlayerServiceFailsOrDoesNotAnswerInTimeTheAnswerIs503WithNoSuggestions`; precommit.sh 2026-11-26 |
 
 ## Deviations from the design
 
 - Planned: test data via local SQL helpers inside the IT (as `HostBoardIT`, `HostAttendanceIT`), not `support/TestData` builders, because none exist in playmatch yet. Listed here per conventions ("old spot → implement.md").
+- `SecurityConfig`: the plan said "authenticated"; the route is `permitAll()` like the other host routes (host board, attendance), because the identity token and `AccessPolicy` decide in the controller (401 / 403 / 404). Unauthenticated callers still get the service's own 401 JSON.
+- `MatchSuggestionsIT` carries `@DirtiesContext(classMode = AFTER_CLASS)`: its own Spring context (own clock bean and player stub) made the test JVM hold one more cached context, and the shared PostgreSQL ran out of connections (`too many clients already`) in `PlaymatchSchemaIT`. Test-only; no config change.
+- `SuggestionService` creates `MatchSuggester` itself (plan allowed bean or in-service); no Spring in the lib.
+- Gateway IT for GET on the suggestions path: a signed-in account is refused with 403 (observed) and nothing more is forwarded.
+- Frontend: no frontend unit-test tool exists (OD-08 (a)); TC-25…TC-28 stay manual in T08. The 409 answer on the review page shows the closed text with a link back to the board. The empty note on the review page reuses `hostBoard.fewerThanFour` / `fewerThanTwo` by game format (read from the board).
+- `MatchProposal` draws its own card frame instead of reusing `CourtCard` (the proposal shows teams, level chips and reason tags, which `CourtCard` does not).
+- `HostSuggestionResponse.Teams` is a record with components `A` / `B` so the JSON keys are `A` and `B` (internal naming choice).
+- The eligible-pool SQL appears twice in `SuggestionSnapshotQuery` (pool and recent partners); kept as is, noted.
+- A suggested attendance id that is missing from the board names list renders nothing in `MatchProposal` (the design says this cannot happen: both come from the same game).
+- Host board, `CLOSED` game: the disabled "Suggest matches" button points `aria-describedby` at the existing `hostBoard.closedNote`; the extra `matchReview.closed` note there was removed (it stays on the review page).

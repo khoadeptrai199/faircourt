@@ -41,6 +41,9 @@ public final class MatchSuggester {
         if (courts.isEmpty()) {
             return SuggestionResult.none(NoSuggestionReason.NO_FREE_COURT);
         }
+        if (snapshot.format() == MatchFormat.SINGLES) {
+            return suggestSingles(courts, ready);
+        }
         if (ready.size() < 4) {
             return SuggestionResult.none(NoSuggestionReason.WAITING_FOR_PLAYERS);
         }
@@ -59,6 +62,56 @@ public final class MatchSuggester {
             proposals.add(buildProposal(courts.get(g), four, longestWaiters));
         }
         return SuggestionResult.of(proposals);
+    }
+
+    /**
+     * Singles (OD-20, Match suggestions design 5): two players per court, same selection order as doubles, pairs of
+     * adjacent bands. There is no BALANCED_TEAMS reason (it would repeat SIMILAR_LEVEL) and no repeat-opponent rule.
+     */
+    private static SuggestionResult suggestSingles(List<Integer> courts, List<ReadyPlayer> ready) {
+        if (ready.size() < 2) {
+            return SuggestionResult.none(NoSuggestionReason.WAITING_FOR_PLAYERS);
+        }
+        int courtsToFill = Math.min(courts.size(), ready.size() / 2);
+        List<ReadyPlayer> selected =
+                ready.stream().sorted(PRIORITY).limit(2L * courtsToFill).toList();
+        List<ReadyPlayer> grouped = selected.stream().sorted(GROUPING).toList();
+        Set<UUID> longestWaiters = longestWaiters(ready);
+
+        List<Proposal> proposals = new ArrayList<>(courtsToFill);
+        for (int g = 0; g < courtsToFill; g++) {
+            List<ReadyPlayer> pair =
+                    grouped.subList(2 * g, 2 * g + 2).stream().sorted(BY_ID).toList();
+            proposals.add(buildSinglesProposal(courts.get(g), pair, longestWaiters));
+        }
+        return SuggestionResult.of(proposals);
+    }
+
+    private static Proposal buildSinglesProposal(int courtNo, List<ReadyPlayer> pair, Set<UUID> longestWaiters) {
+        int spread = Math.abs(effectiveBand(pair.get(0)) - effectiveBand(pair.get(1)));
+
+        EnumSet<Warning> warnings = EnumSet.noneOf(Warning.class);
+        if (spread >= 2) {
+            warnings.add(Warning.WIDE_SKILL_GAP);
+        }
+        if (pair.stream().anyMatch(p -> p.band() == null)) {
+            warnings.add(Warning.UNKNOWN_LEVEL);
+        }
+
+        EnumSet<ReasonCode> reasons = EnumSet.noneOf(ReasonCode.class);
+        if (spread <= 1) {
+            reasons.add(ReasonCode.SIMILAR_LEVEL);
+        }
+        if (pair.stream().anyMatch(p -> longestWaiters.contains(p.attendanceId()))) {
+            reasons.add(ReasonCode.LONG_WAIT);
+        }
+
+        return new Proposal(
+                courtNo,
+                ids(List.of(pair.get(0))),
+                ids(List.of(pair.get(1))),
+                List.copyOf(reasons),
+                List.copyOf(warnings));
     }
 
     private static Proposal buildProposal(int courtNo, List<ReadyPlayer> four, Set<UUID> longestWaiters) {

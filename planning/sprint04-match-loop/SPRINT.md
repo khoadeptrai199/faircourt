@@ -12,7 +12,7 @@
 
 | ID | Feature | Status |
 |---|---|---|
-| F09 | [Match suggestions](match-suggestions/README.md) | `IN_PROGRESS` |
+| F09 | [Match suggestions](match-suggestions/README.md) | `IN_REVIEW` |
 | F10 | [Match confirm + tap-to-swap](match-confirm/README.md) | `BACKLOG` |
 | F11 | [Match start / finish / cancel](match-lifecycle/README.md) | `BACKLOG` |
 

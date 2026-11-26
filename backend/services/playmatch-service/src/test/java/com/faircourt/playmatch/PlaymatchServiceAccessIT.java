@@ -149,6 +149,21 @@ class PlaymatchServiceAccessIT {
         }
     }
 
+    /** Match suggestions, TC-24: no identity token is 401 JSON; the route is open for POST only. */
+    @Test
+    void suggestionsRouteIsOpenForPostOnlyAndAnswersWithoutTokenAs401() throws Exception {
+        String path = "/api/v1/host/games/22222222-2222-2222-2222-222222222222/suggestions";
+
+        HttpResponse<String> post = send("POST", path);
+
+        assertThat(post.statusCode()).isEqualTo(401);
+        assertThat(post.body()).contains("\"code\":\"UNAUTHENTICATED\"");
+        for (String method : new String[] {"GET", "PUT", "PATCH", "DELETE"}) {
+            assertThat(send(method, path).statusCode()).as(method).isEqualTo(401);
+        }
+        assertThat(send("POST", path + "/extra").statusCode()).isEqualTo(401);
+    }
+
     private static String token(UUID user, String method, String path) {
         return new IdentityToken(System.getenv("INTERNAL_TOKEN_SECRET"), Clock.systemUTC())
                 .issue(user, "playmatch-service", method, path);

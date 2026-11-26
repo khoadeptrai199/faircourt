@@ -91,6 +91,14 @@ public record GatewayRouteTable(List<GatewayRoute> routes) {
                         "/api/v1/host/games/*/attendance/*",
                         RouteAccess.HOST,
                         playmatchUrl,
+                        PLAYMATCH),
+                // Match suggestions (blueprint section 13; design 3.1): read-only proposals for this game's host.
+                new GatewayRoute(
+                        "host-suggestions",
+                        Set.of(HttpMethod.POST),
+                        "/api/v1/host/games/*/suggestions",
+                        RouteAccess.HOST,
+                        playmatchUrl,
                         PLAYMATCH)));
     }
 }

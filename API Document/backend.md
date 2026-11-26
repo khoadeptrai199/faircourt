@@ -17,7 +17,7 @@ Naming (owner decision 2026-11-18): the blueprint's "session" (the play event) i
 ## Endpoints
 
 Status = what exists in this repository today (not what the blueprint promises).
-Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf`, `GET /api/v1/public/games/{publicCode}`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/me`, `POST /api/v1/auth/password/forgot`, `POST /api/v1/auth/password/reset`, `POST /api/v1/public/games/{publicCode}/guests`, `POST /api/v1/games/{gameId}/join`, `GET /api/v1/games/{gameId}/me`, `GET /api/v1/host/games/{gameId}/board`, `GET /api/v1/host/games`, `PATCH /api/v1/host/games/{gameId}/attendance/{attendanceId}` and `POST /api/v1/games` are reachable; every other route is denied (anonymous → `401 UNAUTHENTICATED`, so unknown routes are not revealed).
+Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf`, `GET /api/v1/public/games/{publicCode}`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/me`, `POST /api/v1/auth/password/forgot`, `POST /api/v1/auth/password/reset`, `POST /api/v1/public/games/{publicCode}/guests`, `POST /api/v1/games/{gameId}/join`, `GET /api/v1/games/{gameId}/me`, `GET /api/v1/host/games/{gameId}/board`, `GET /api/v1/host/games`, `PATCH /api/v1/host/games/{gameId}/attendance/{attendanceId}`, `POST /api/v1/host/games/{gameId}/suggestions` and `POST /api/v1/games` are reachable; every other route is denied (anonymous → `401 UNAUTHENTICATED`, so unknown routes are not revealed).
 
 | Method and route | Caller | Contract (§13) | Status |
 |---|---|---|---|
@@ -35,7 +35,7 @@ Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf`, `GET /api/v1/pub
 | `GET /host/games/{gameId}/board` | This game's host | Full attendance list, private bands, current matches and courts. | Implemented (Host board, 2026-11-25) |
 | `GET /host/games` | Signed-in account | Games the caller hosts (owner-approved addition, OD-04, 2026-11-25). | Implemented (Host board, 2026-11-25) |
 | `PATCH /host/games/{gameId}/attendance/{attendanceId}` | Host | Approve guest, set Ready/Resting/Left with state validation. | Implemented, Ready and Left only (Attendance management, 2026-11-26) |
-| `POST /host/games/{gameId}/suggestions` | Host | Compute one or more proposed courts; read-only, no match persistence. | Not started (pure matcher exists, see below) |
+| `POST /host/games/{gameId}/suggestions` | Host | Compute one or more proposed courts; read-only, no match persistence. | Implemented (Match suggestions, 2026-11-26) |
 | `POST /host/games/{gameId}/matches` | Host | Confirm one proposed or manually edited four-player pairing as `PLANNED`. | Not started |
 | `PATCH /host/matches/{matchId}/start` | Owning host | Planned → active; four attendance rows Assigned → Playing. | Not started |
 | `PATCH /host/matches/{matchId}/finish` | Owning host | Active → finished; release players, set Ready and update wait/game counters. | Not started |
@@ -151,6 +151,19 @@ Forwarded by the gateway to playmatch-service. Gateway rule: signed-in account (
 | Errors | `401 UNAUTHENTICATED` (not signed in, guest cookie only); `403 CSRF_TOKEN_INVALID`; `403 FORBIDDEN` (not this game's host); `404 NOT_FOUND` (unknown or malformed game or attendance id, attendance of another game); `400 VALIDATION_FAILED`; `409 STATE_CONFLICT` (transition not allowed, for example `LEFT` → `READY`; player in a planned or active match: "Cancel or finish this player's match first."; game `CLOSED`: "This game is closed."); `503 SERVICE_UNAVAILABLE` |
 
 Allowed moves: `PENDING` → `READY` or `LEFT`; `READY` → `LEFT`. `LEFT` is final. There is no Rest action (owner 2026-11-26).
+
+### Host suggestions: `POST /host/games/{gameId}/suggestions` (implemented, 2026-11-26)
+
+Forwarded by the gateway to playmatch-service. Gateway rule: signed-in account (`HOST`) and CSRF header `X-CSRF-TOKEN` (POST); playmatch checks that the caller is this game's host. Read only: nothing is written. No request body (any body is ignored). Answer carries `Cache-Control: no-store`.
+
+| Item | Value |
+|---|---|
+| `200` | `{"suggestions":[{"courtNo","teams":{"A":[attendanceId...],"B":[...]},"reasonCodes":[...],"warnings":[...]}],"noSuggestionReason":null\|"WAITING_FOR_PLAYERS"\|"NO_FREE_COURT"}`; ordered by `courtNo`; doubles 2 ids per team, singles 1 |
+| `reasonCodes` | `SIMILAR_LEVEL`, `BALANCED_TEAMS` (doubles only), `LONG_WAIT` |
+| `warnings` | `WIDE_SKILL_GAP`, `UNKNOWN_LEVEL` |
+| Errors | `401 UNAUTHENTICATED`; `403 CSRF_TOKEN_INVALID`; `403 FORBIDDEN` (not this game's host); `404 NOT_FOUND` (unknown or malformed id); `409 STATE_CONFLICT` (game `CLOSED`); `503 SERVICE_UNAVAILABLE` (player-service down) |
+
+Attendance ids only: no names, bands or player ids (the host page reads names from the board). Pool = `READY` players not in an unfinished match; free courts = courts without a `PLANNED` / `ACTIVE` match. Calls the existing internal `POST /internal/v1/players/levels` for bands.
 
 ### Host board: `GET /host/games/{gameId}/board`, `GET /host/games` (implemented, 2026-11-25)
 
