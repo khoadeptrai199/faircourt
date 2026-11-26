@@ -18,7 +18,7 @@ Order: shared token change first (it touches every forwarded route), then backen
 | T08 | AC-06 | Frontend: `apiPatch` in `api/client.ts`; `changeAttendance` in `api/host.ts`; `HostAttendanceChange` in `api/types.ts`; copy keys in `copy/en.ts` | `DONE` |
 | T09 | AC-06 | Frontend: `components/ConfirmDialog.tsx`; `features/host-board/AttendanceActions.tsx`; `PlayerList.tsx` and `HostBoardPage.tsx` wiring (one mutation, all buttons disabled while saving, reload on success / conflict, closed note) | `DONE` |
 | T10 | — | `API Document/` entry for the PATCH route + token v2 note; pre-commit pipeline `scripts/precommit.sh` | `DONE` (`API Document/backend.md` + `frontend.md`; `scripts/precommit.sh` PIPELINE OK) |
-| T11 | AC-01, AC-06 | Live check in Docker (TC-21) + owner visual check (TC-19, TC-20) | `DOING` (TC-21 PASS; TC-19, TC-20 wait for the owner) |
+| T11 | AC-01, AC-06 | Live check in Docker (TC-21) + owner visual check (TC-19, TC-20) | `DONE` (TC-21 PASS; TC-19, TC-20 PASS by owner visual check 2026-11-26) |
 
 ## Test cases
 
@@ -97,7 +97,7 @@ Only commands that were actually run, with their real result.
 | AC-03 | TC-01, TC-06…TC-08 | `PASS` | `HostAttendanceIT` (409 with unchanged rows); live `LEFT → READY` 409 |
 | AC-04 | TC-09, TC-10, TC-17, TC-18 | `PASS` | `HostAttendanceIT`, `PlaymatchServiceAccessIT`, `GatewayAccessMatrixIT`, `HostRoutesIT`; live `player1` 403, anonymous 403 CSRF / 401 |
 | AC-05 | TC-11…TC-13, TC-18 | `PASS` | `IdentityTokenTest`, `CallerIdentityArgumentResolverTest`, `HostAttendanceIT`, `HostRoutesIT`; live board / me routes still work with v2 |
-| AC-06 | TC-19, TC-20 | `NOT VERIFIED` | visual checks wait for the owner; frontend build + format check PASS only |
+| AC-06 | TC-19, TC-20 | `PASS` | owner visual check 2026-11-26 ("UI ok"); frontend build + format check PASS |
 | AC-07 | TC-16 | `PASS` | `HostAttendanceIT`; live guest `/me` → LEFT |
 
 ## Deviations from the design

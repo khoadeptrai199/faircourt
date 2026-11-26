@@ -3,6 +3,7 @@ import BackHomeLink from '../components/BackHomeLink'
 import EmptyState from '../components/EmptyState'
 import Logo from '../components/Logo'
 import { copy } from '../copy/en'
+import CreateGamePage from '../features/create-game/CreateGamePage'
 import HomePage from '../features/home/HomePage'
 import HostBoardPage from '../features/host-board/HostBoardPage'
 import JoinPage from '../features/join/JoinPage'
@@ -20,6 +21,7 @@ export default function AppRoutes() {
       <Route path="/g/:publicCode" element={<PublicGamePage />} />
       <Route path="/g/:publicCode/join" element={<JoinPage />} />
       <Route path="/my/games/:gameId" element={<MyGamePage />} />
+      <Route path="/host/games/new" element={<CreateGamePage />} />
       <Route path="/host/games/:gameId" element={<HostBoardPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />

@@ -1,5 +1,5 @@
-import { apiGet } from './client'
-import type { PublicGame } from './types'
+import { apiGet, apiPost } from './client'
+import type { CreatedGame, CreateGameInput, PublicGame } from './types'
 
 export function getPublicGame(
   publicCode: string,
@@ -9,4 +9,9 @@ export function getPublicGame(
     `/public/games/${encodeURIComponent(publicCode)}`,
     signal,
   )
+}
+
+// Host creates a game (blueprint section 13 POST /sessions, renamed by OD-22). The caller becomes the host.
+export function createGame(input: CreateGameInput): Promise<CreatedGame> {
+  return apiPost<CreatedGame>('/games', input)
 }

@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Sprint | S03 Host board |
-| Status | `IN_REVIEW` |
+| Status | `DONE` |
 | Blueprint | §0 step 3, §3, §11 (attendance state machine), §12, §13 (`PATCH /host/sessions/{sessionId}/attendance/{attendanceId}`), §15, §16 |
 | Depends on | F06 |
-| Waiting for | Gate 3: owner visual check (TC-19, TC-20) + commit; keep or remove the live-test guest row |
+| Waiting for | — |
 | Suggested branch | `feature/attendance-management` |
 | Last updated | 2026-11-26 |
 
@@ -61,3 +61,4 @@ See [design.md](design.md). Write style `JdbcClient` + enum rule (D-1); the atte
 | 2026-11-26 | Gate 1 (spec) approved by the owner: design.md with all recommendations (OD-15 allow, D-1 JdbcClient, D-2 same state → 200) and the copy table; `WAITING_APPROVAL → APPROVED` | Owner ("duyệt hết như đề xuất") |
 | 2026-11-26 | Gate 2 (plan) approved by the owner: tasks T01–T11 and test cases TC-01–TC-22 in implement.md; `APPROVED → IN_PROGRESS` | Owner ("duyệt gate 2, làm tiếp đi") |
 | 2026-11-26 | Build loop done: tasks T01–T10 done, T11 live check PASS (visual pending); pre-commit PIPELINE OK; reviews: scope-guardian, privacy-reviewer, flow-reviewer 85 → fix round 1 → 98 APPROVE; `IN_PROGRESS → IN_REVIEW` | Claude |
+| 2026-11-26 | Gate 3 (result): owner checked the UI (TC-19, TC-20) and merged the branch to `main` (PR #6); `IN_REVIEW → DONE`. The live-test guest row "Live F07 guest" stays in the local demo database (no deletion asked) | Owner ("UI ok rồi, chuyển attendance management DONE") |

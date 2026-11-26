@@ -3,11 +3,17 @@ package com.faircourt.gateway;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
+import com.faircourt.common.identity.CallerIdentity;
+import com.faircourt.common.identity.IdentityToken;
+import com.faircourt.common.identity.IdentityTokenHeader;
 import com.faircourt.gateway.routing.GatewayRoute;
 import com.faircourt.gateway.routing.RouteAccess;
 import java.net.http.HttpResponse;
+import java.time.Clock;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 
@@ -16,7 +22,76 @@ import org.springframework.http.HttpMethod;
  * the CSRF bootstrap and listed routes are reachable; everything else is 401 JSON, and {@code /internal/**} never
  * reaches a service.
  */
-class GatewayAccessMatrixIT extends GatewayTestBase {
+class GatewayAccessMatrixIT extends GuestTestBase {
+
+    private static final String CREATE_GAME = "/api/v1/games";
+    private static final String PLAYMATCH = "playmatch-service";
+    private final IdentityToken tokens = new IdentityToken(System.getenv("INTERNAL_TOKEN_SECRET"), Clock.systemUTC());
+
+    private void signIn() throws Exception {
+        HttpResponse<String> login = postJson(
+                "/api/v1/auth/login", loginJson("host@faircourt.local", StubService.ACCOUNT_PASSWORD), bootstrap());
+        assertThat(login.statusCode()).as(login.body()).isEqualTo(200);
+    }
+
+    private List<StubService.Received> createGameCalls() {
+        return STUB.received().stream()
+                .filter(r -> r.path().equals(CREATE_GAME))
+                .toList();
+    }
+
+    /** Create game, TC-11: anonymous and guest-only are 401, no CSRF is 403, an account with CSRF is forwarded once. */
+    @Test
+    void createGameNeedsAnAccountAndACsrfTokenAndIsForwardedOnceWithATokenBoundToIt() throws Exception {
+        assertUnauthenticated(send("POST", CREATE_GAME, bootstrap()));
+        HttpResponse<String> checkIn = checkIn(OPEN_CODE, guestJson("Mai"));
+        STUB.knownGuestToken(tokenOf(guestCookieOf(checkIn)), UUID.randomUUID().toString());
+        assertUnauthenticated(send("POST", CREATE_GAME, bootstrap()));
+        assertThat(createGameCalls()).isEmpty();
+
+        signIn();
+        HttpResponse<String> noCsrf = send("POST", CREATE_GAME, Map.of());
+        assertThat(noCsrf.statusCode()).isEqualTo(403);
+        assertThat(noCsrf.body()).contains("\"code\":\"CSRF_TOKEN_INVALID\"");
+        assertThat(createGameCalls()).isEmpty();
+
+        HttpResponse<String> response = send("POST", CREATE_GAME, bootstrap());
+
+        // The stub answers every unknown path with 200 {"ok":true}; the gateway passes the answer through.
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(createGameCalls()).hasSize(1);
+        List<String> values = createGameCalls().getFirst().headers().get(IdentityTokenHeader.NAME);
+        assertThat(values).hasSize(1);
+        assertThat(tokens.verify(values.getFirst(), PLAYMATCH, "POST", CREATE_GAME))
+                .contains(new CallerIdentity.Account(UUID.fromString(StubService.ACCOUNT_USER_ID)));
+        assertThat(tokens.verify(values.getFirst(), PLAYMATCH, "POST", "/api/v1/games/x/join"))
+                .isEmpty();
+        // Only POST is open on this path: a signed-in account sending another method is refused 403 and nothing is
+        // forwarded.
+        for (String method : new String[] {"PUT", "PATCH", "DELETE"}) {
+            assertThat(send(method, CREATE_GAME, bootstrap()).statusCode())
+                    .as(method)
+                    .isEqualTo(403);
+            assertThat(createGameCalls()).as(method + " forwarded").hasSize(1);
+        }
+    }
+
+    /** Create game, TC-12: join and "my game" keep their own rows (answered by the gateway, nothing forwarded). */
+    @Test
+    void theCreateGameRowDoesNotTakeOverJoinAndMyGame() throws Exception {
+        signIn();
+        String join = "/api/v1/games/" + StubService.OPEN_GAME_ID + "/join";
+        String me = "/api/v1/games/" + StubService.OPEN_GAME_ID + "/me";
+
+        HttpResponse<String> joined = send("POST", join, bootstrap());
+        HttpResponse<String> mine = get(me);
+
+        assertThat(joined.statusCode()).as(joined.body()).isIn(200, 201);
+        assertThat(mine.statusCode()).as(mine.body()).isEqualTo(200);
+        assertThat(STUB.received()).noneMatch(r -> r.path().startsWith("/api/v1/games"));
+        assertThat(STUB.received()).anyMatch(r -> r.path().endsWith("/member-attendances"));
+        assertThat(STUB.received()).anyMatch(r -> r.path().endsWith("/my-attendance"));
+    }
 
     private static void assertUnauthenticated(HttpResponse<String> response) {
         assertThat(response.statusCode()).isEqualTo(401);

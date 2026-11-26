@@ -21,7 +21,7 @@ Order: backend first (T01–T06), then frontend (T07–T08), then docs and check
 | T06 | AC-07 | playmatch: `board/HostGamesQuery`, `HostGamesController` `GET /api/v1/host/games`, `HostGamesResponse`; security rule. `HostGamesIT` (TC-27…TC-29) | `DONE` |
 | T07 | AC-04, AC-05 | Frontend: `api/host.ts`, types in `api/types.ts`, approved copy in `copy/en.ts`, host labels in `lib/status.ts`; shared `components/CourtCard.tsx`, `PlayerChip.tsx`, `WaitIndicator.tsx`; `features/host-board/HostBoardPage.tsx`, `GameStrip.tsx`, `PlayerList.tsx`; route `/host/games/:gameId`; all page states (TC-30, TC-31) | `DONE` |
 | T08 | AC-07 | Frontend: "Games you host" section on the home page for a signed-in account with a Manage link per game; hidden for anonymous (TC-32) | `DONE` |
-| T09 | all | `API Document/`: two host routes + error table; internal header described for developers. Pre-commit pipeline (`scripts/precommit.sh`), live check on Docker (TC-33), `scope-guardian` + `privacy-reviewer`, `review.md` | `DONE` (2026-11-25; visual TC-30…32 left for the owner) |
+| T09 | all | `API Document/`: two host routes + error table; internal header described for developers. Pre-commit pipeline (`scripts/precommit.sh`), live check on Docker (TC-33), `scope-guardian` + `privacy-reviewer`, `review.md` | `DONE` (2026-11-25; visual TC-30…32 by the owner, accepted 2026-11-26) |
 
 ## Test cases
 
@@ -137,10 +137,10 @@ Only commands that were actually run, with their real result.
 | AC-01 | TC-15…TC-20, TC-26 (`HostBoardIT`), TC-33 live | `PASS` | ITs green; live: host board 200, `Cache-Control: no-store`, 9 READY (8 seeded + 1 member from an earlier live check), 2 courts with `match: null`, keys exactly as design §3.1 (no user id, player id, email) |
 | AC-02 | TC-01…TC-11, TC-21…TC-23, access ITs, TC-33 live | `PASS` | unit + ITs green; live: `player1` board 403 `FORBIDDEN`, anonymous 401, anonymous with a forged `X-Internal-Identity` 401; guest cookie only → 401 (`HostRoutesIT`) |
 | AC-03 | TC-24 (exact field-path equality), review grep | `PASS` | `HostBoardResponse` used only for the host audience, inside playmatch `board/` (controller, service, query); checked by scope-guardian and privacy-reviewer, see review.md |
-| AC-04 | TC-30 visual | `NOT VERIFIED` | page builds; not opened in a browser (owner looks at Gate 3) |
-| AC-05 | TC-31 visual | `NOT VERIFIED` | as above |
+| AC-04 | TC-30 visual | `PASS` | owner accepted at Gate 3, 2026-11-26 ("host board cũng DONE luôn"); page build PASS |
+| AC-05 | TC-31 visual | `PASS` | as above |
 | AC-06 | TC-25 (stub 500 / timeout → 503), TC-12…TC-14 | `PASS` | ITs green; 503 not tried on the live stack |
-| AC-07 | TC-27…TC-29, TC-32 visual, live | API `PASS`; page `NOT VERIFIED` | ITs green; live: host `GET /host/games` 200 with 1 game, `player1` 200 `{"games":[]}`; home section not opened in a browser |
+| AC-07 | TC-27…TC-29, TC-32 visual, live | `PASS` (page accepted by the owner at Gate 3, 2026-11-26) | ITs green; live: host `GET /host/games` 200 with 1 game, `player1` 200 `{"games":[]}`; home section not opened in a browser |
 | Logs | TC-33 | `PASS` | gateway, playmatch, player logs: 0 lines with the secret, 0 with a token, 0 with the first player's quoted name |
 
 ## Deviations from the design

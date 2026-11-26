@@ -75,6 +75,15 @@ public record GatewayRouteTable(List<GatewayRoute> routes) {
                         RouteAccess.HOST,
                         playmatchUrl,
                         PLAYMATCH),
+                // Create game (blueprint section 13; Create game design 3.1): any signed-in account posts a game and
+                // becomes its host. Distinct from "/api/v1/games/*/join" and "/api/v1/games/*/me" (one segment).
+                new GatewayRoute(
+                        "create-game",
+                        Set.of(HttpMethod.POST),
+                        "/api/v1/games",
+                        RouteAccess.HOST,
+                        playmatchUrl,
+                        PLAYMATCH),
                 // Attendance management (blueprint section 13; design 3.1): approve a guest or mark a player as left.
                 new GatewayRoute(
                         "host-attendance",
