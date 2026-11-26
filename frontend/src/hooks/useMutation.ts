@@ -12,7 +12,10 @@ export type MutationState<R> =
 
 export function useMutation<A, R>(
   action: (arg: A) => Promise<R>,
-): MutationState<R> & { run: (arg: A) => Promise<R | undefined> } {
+): MutationState<R> & {
+  run: (arg: A) => Promise<R | undefined>
+  reset: () => void
+} {
   const [state, setState] = useState<MutationState<R>>({ status: 'idle' })
 
   const run = useCallback(
@@ -34,5 +37,7 @@ export function useMutation<A, R>(
     [action],
   )
 
-  return { ...state, run }
+  const reset = useCallback(() => setState({ status: 'idle' }), [])
+
+  return { ...state, run, reset }
 }

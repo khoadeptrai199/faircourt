@@ -18,6 +18,7 @@ Built 2026-11-18 from `GatewayRouteTable` and the `@*Mapping` annotations. Refre
 | GET | `/api/v1/games/{gameId}/me` | PLAYER (account or guest cookie) | gateway → playmatch `/internal/v1/games/*/my-attendance` | `gateway.player.PlayerAccessController` | `PlayerAccessIT`, `MemberAttendanceIT` | `features/my-game/`, `api/attendance.ts` |
 | GET | `/api/v1/host/games/{gameId}/board` | HOST (signed-in account; token `X-Internal-Identity` added) | playmatch-service (+ player `/internal/v1/players/levels`) | `playmatch.board.HostBoardController` (`access.AccessPolicy.requireHost`) | `HostBoardIT`, `HostRoutesIT`, `PlaymatchServiceAccessIT` | `features/host-board/`, `api/host.ts` |
 | GET | `/api/v1/host/games` | HOST (signed-in account; token added) | playmatch-service | `playmatch.board.HostGamesController` | `HostGamesIT`, `HostRoutesIT`, `PlaymatchServiceAccessIT` | `features/home/HomePage.tsx`, `api/host.ts` |
+| PATCH | `/api/v1/host/games/{gameId}/attendance/{attendanceId}` | HOST (signed-in account; token v2 bound to service, method, path) | playmatch-service | `playmatch.attendance.HostAttendanceController` (`AttendanceService.changeState`, `access.AccessPolicy.requireHost`) | `HostAttendanceIT`, `AttendanceStateTest`, `HostRoutesIT`, `GatewayAccessMatrixIT`, `PlaymatchServiceAccessIT` | done (`HostBoardPage`, `AttendanceActions`) |
 
 All routes: `GatewayAccessMatrixIT`. Unknown routes answer 401. Identity token: gateway `routing.IdentityTokenFilter` (only `HOST` routes), services `common.identity.CallerIdentityArgumentResolver` (2026-11-25).
 

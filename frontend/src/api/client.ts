@@ -38,13 +38,23 @@ async function csrfHeader(): Promise<Record<string, string>> {
 
 // JSON write (POST). Retries once with a fresh token when the gateway says the token is stale; never retries
 // anything else (a write is not repeated by guesswork, AD-15). Answers 204 with undefined.
-export async function apiPost<T = void>(
+export function apiPost<T = void>(path: string, body?: unknown): Promise<T> {
+  return apiWrite<T>('POST', path, body)
+}
+
+// JSON write (PATCH): same CSRF and retry-once rule as apiPost.
+export function apiPatch<T = void>(path: string, body?: unknown): Promise<T> {
+  return apiWrite<T>('PATCH', path, body)
+}
+
+async function apiWrite<T>(
+  method: 'POST' | 'PATCH',
   path: string,
   body?: unknown,
 ): Promise<T> {
   for (let attempt = 0; ; attempt++) {
     const response = await fetch(`/api/v1${path}`, {
-      method: 'POST',
+      method,
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',

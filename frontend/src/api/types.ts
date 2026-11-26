@@ -124,6 +124,16 @@ export type HostBoard = {
   courts: HostBoardCourt[]
 }
 
+// The host can only approve (READY) or release (LEFT) a player.
+export type AttendanceTarget = 'READY' | 'LEFT'
+
+// PATCH /api/v1/host/games/{gameId}/attendance/{attendanceId}: the changed entry.
+export type HostAttendanceChange = {
+  attendanceId: string
+  state: AttendanceState
+  availableSince: string
+}
+
 // GET /api/v1/host/games: the games the caller hosts, newest first.
 export type HostedGame = {
   id: string

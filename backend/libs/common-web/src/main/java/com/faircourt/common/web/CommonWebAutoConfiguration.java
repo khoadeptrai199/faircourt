@@ -52,11 +52,12 @@ public class CommonWebAutoConfiguration {
     /** Lets a controller take a {@code CallerIdentity} argument, built only from the identity token header. */
     @Bean
     @ConditionalOnProperty(IdentityToken.SECRET_PROPERTY)
-    WebMvcConfigurer callerIdentityResolver(IdentityToken identityToken) {
+    WebMvcConfigurer callerIdentityResolver(
+            IdentityToken identityToken, @Value("${spring.application.name}") String serviceName) {
         return new WebMvcConfigurer() {
             @Override
             public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-                resolvers.add(new CallerIdentityArgumentResolver(identityToken));
+                resolvers.add(new CallerIdentityArgumentResolver(identityToken, serviceName));
             }
         };
     }

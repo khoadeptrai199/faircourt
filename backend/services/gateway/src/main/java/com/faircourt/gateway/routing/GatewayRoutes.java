@@ -38,7 +38,7 @@ public class GatewayRoutes {
                     .before(uri(r.targetUrl()))
                     .before(new HeaderSanitizer())
                     // After the sanitizer, so the token it adds is never removed; only HOST routes get one.
-                    .before(new IdentityTokenFilter(identityToken, r.access() == RouteAccess.HOST))
+                    .before(new IdentityTokenFilter(identityToken, r.access() == RouteAccess.HOST, r.audience()))
                     .build());
         }
         return all;

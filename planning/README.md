@@ -7,7 +7,7 @@ The one place to create features, track their status, and read each feature's de
 - System design: [architecture/system-design.md](architecture/system-design.md) · Decision log: [architecture/decisions.md](architecture/decisions.md)
 - Rules for agents: [.claude/rules/planning-workflow.md](../.claude/rules/planning-workflow.md), [.claude/rules/conventions.md](../.claude/rules/conventions.md)
 
-Last updated: 2026-11-25
+Last updated: 2026-11-26
 
 ## Sprints
 
@@ -36,7 +36,7 @@ Last updated: 2026-11-25
 | F04 | Guest check-in + guest cookie | S02 | DONE | F02 | — | [README](sprint02-identity/guest-check-in/README.md) |
 | F05 | Own attendance status + member join | S02 | DONE | F03, F04 | — | [README](sprint02-identity/my-attendance-status/README.md) · [design](sprint02-identity/my-attendance-status/design.md) |
 | F06 | Host board | S03 | IN_REVIEW | F03 | Gate 3: owner visual check (TC-30…32) + commit; review points decided 2026-11-26 | [README](sprint03-host-board/host-board/README.md) · [design](sprint03-host-board/host-board/design.md) · [implement](sprint03-host-board/host-board/implement.md) · [review](sprint03-host-board/host-board/review.md) |
-| F07 | Attendance management (approve, rest, leave) | S03 | BACKLOG | F06 | OD-07, OD-15, identity token audience (F06 review #17) | [README](sprint03-host-board/attendance-management/README.md) |
+| F07 | Attendance management (approve, left) | S03 | IN_REVIEW | F06 | Gate 3: owner visual check (TC-19, TC-20) + commit | [README](sprint03-host-board/attendance-management/README.md) · [design](sprint03-host-board/attendance-management/design.md) · [implement](sprint03-host-board/attendance-management/implement.md) · [review](sprint03-host-board/attendance-management/review.md) |
 | F08 | Create game | S03 | BACKLOG | F03 | OD-05, OD-10 | [README](sprint03-host-board/create-game/README.md) |
 | F09 | Match suggestions (read-only) | S04 | BACKLOG | F07 | — | [README](sprint04-match-loop/match-suggestions/README.md) |
 | F10 | Match confirm + tap-to-swap review | S04 | BACKLOG | F09 | OD-08 (optional) | [README](sprint04-match-loop/match-confirm/README.md) |

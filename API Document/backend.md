@@ -17,7 +17,7 @@ Naming (owner decision 2026-11-18): the blueprint's "session" (the play event) i
 ## Endpoints
 
 Status = what exists in this repository today (not what the blueprint promises).
-Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf`, `GET /api/v1/public/games/{publicCode}`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/me`, `POST /api/v1/auth/password/forgot`, `POST /api/v1/auth/password/reset`, `POST /api/v1/public/games/{publicCode}/guests`, `POST /api/v1/games/{gameId}/join`, `GET /api/v1/games/{gameId}/me`, `GET /api/v1/host/games/{gameId}/board` and `GET /api/v1/host/games` are reachable; every other route is denied (anonymous → `401 UNAUTHENTICATED`, so unknown routes are not revealed).
+Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf`, `GET /api/v1/public/games/{publicCode}`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/me`, `POST /api/v1/auth/password/forgot`, `POST /api/v1/auth/password/reset`, `POST /api/v1/public/games/{publicCode}/guests`, `POST /api/v1/games/{gameId}/join`, `GET /api/v1/games/{gameId}/me`, `GET /api/v1/host/games/{gameId}/board`, `GET /api/v1/host/games` and `PATCH /api/v1/host/games/{gameId}/attendance/{attendanceId}` are reachable; every other route is denied (anonymous → `401 UNAUTHENTICATED`, so unknown routes are not revealed).
 
 | Method and route | Caller | Contract (§13) | Status |
 |---|---|---|---|
@@ -34,7 +34,7 @@ Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf`, `GET /api/v1/pub
 | `GET /games/{gameId}/me` | Member or scoped guest | Own attendance state, optional own `matchNo`, `courtNo`, `matchState`; no other players. | Implemented for the attendance state (Own attendance status, 2026-11-20); `assignment` is always `null` until the own-assignment feature |
 | `GET /host/games/{gameId}/board` | This game's host | Full attendance list, private bands, current matches and courts. | Implemented (Host board, 2026-11-25) |
 | `GET /host/games` | Signed-in account | Games the caller hosts (owner-approved addition, OD-04, 2026-11-25). | Implemented (Host board, 2026-11-25) |
-| `PATCH /host/games/{gameId}/attendance/{attendanceId}` | Host | Approve guest, set Ready/Resting/Left with state validation. | Not started |
+| `PATCH /host/games/{gameId}/attendance/{attendanceId}` | Host | Approve guest, set Ready/Resting/Left with state validation. | Implemented, Ready and Left only (Attendance management, 2026-11-26) |
 | `POST /host/games/{gameId}/suggestions` | Host | Compute one or more proposed courts; read-only, no match persistence. | Not started (pure matcher exists, see below) |
 | `POST /host/games/{gameId}/matches` | Host | Confirm one proposed or manually edited four-player pairing as `PLANNED`. | Not started |
 | `PATCH /host/matches/{matchId}/start` | Owning host | Planned → active; four attendance rows Assigned → Playing. | Not started |
@@ -130,6 +130,18 @@ Internal (never reachable through the gateway):
 
 Band mapping (blueprint §13): total of the four answers 0–3 → band 1, 4–6 → 2, 7–9 → 3, 10–12 → 4; all unknown → no band.
 
+### Host attendance change: `PATCH /host/games/{gameId}/attendance/{attendanceId}` (implemented, 2026-11-26)
+
+Forwarded by the gateway to playmatch-service. Gateway rule: signed-in account (`HOST`) and CSRF header `X-CSRF-TOKEN`; playmatch checks that the caller is this game's host (§15) and that the attendance belongs to this game. The caller is never taken from the path or body.
+
+| Item | Value |
+|---|---|
+| Request | `{"state":"READY"}` (approve a pending guest) or `{"state":"LEFT"}` (reject a pending check-in, or mark a ready player as left). Any other or missing value → `400 VALIDATION_FAILED` |
+| `200` | `{"attendanceId","state","availableSince"}`, `Cache-Control: no-store`; `availableSince` is never changed by this route. Same state as now → `200`, nothing written |
+| Errors | `401 UNAUTHENTICATED` (not signed in, guest cookie only); `403 CSRF_TOKEN_INVALID`; `403 FORBIDDEN` (not this game's host); `404 NOT_FOUND` (unknown or malformed game or attendance id, attendance of another game); `400 VALIDATION_FAILED`; `409 STATE_CONFLICT` (transition not allowed, for example `LEFT` → `READY`; player in a planned or active match: "Cancel or finish this player's match first."; game `CLOSED`: "This game is closed."); `503 SERVICE_UNAVAILABLE` |
+
+Allowed moves: `PENDING` → `READY` or `LEFT`; `READY` → `LEFT`. `LEFT` is final. There is no Rest action (owner 2026-11-26).
+
 ### Host board: `GET /host/games/{gameId}/board`, `GET /host/games` (implemented, 2026-11-25)
 
 Both forwarded by the gateway to playmatch-service. Gateway rule: a signed-in account (route kind `HOST`); the real host check runs in playmatch (`AccessPolicy`, §15). Read only, no CSRF token needed. Answers carry `Cache-Control: no-store`.
@@ -143,7 +155,7 @@ Both forwarded by the gateway to playmatch-service. Gateway rule: a signed-in ac
 
 `asOf` is the server time of the read (wait minutes are counted from it). `band` is 1–4 or `null` (shown as "Unknown / provisional"); `bandStatus` `SELF_REPORTED` / `OBSERVED` / `CONFIRMED`; `kind` `MEMBER` / `GUEST`. `courts` has exactly `courtCount` entries; `match` is the one `PLANNED` or `ACTIVE` match on that court. No user id, player id, email, token or questionnaire answer is returned. This answer is for the host only and is never reused for a player.
 
-Identity between gateway and services (for developers): on `HOST` routes the gateway adds the header `X-Internal-Identity` = `v1.<base64url claims>.<base64url HMAC-SHA256>`, claims `{"kind":"ACCOUNT","userId","iat","exp"}`, valid 30 s, signed with `INTERNAL_TOKEN_SECRET` (`.env`, at least 32 characters; the stack does not start without it). A browser-sent `X-Internal-*` header is always removed first. Services rebuild the caller only from this header; missing → anonymous, invalid or expired → `401`.
+Identity between gateway and services (for developers): on `HOST` routes the gateway adds the header `X-Internal-Identity` = `v2.<base64url claims>.<base64url HMAC-SHA256>`, claims `{"kind":"ACCOUNT","userId","aud","method","path","iat","exp"}`, valid 30 s, signed with `INTERNAL_TOKEN_SECRET` (`.env`, at least 32 characters; the stack does not start without it). Token v2 (Attendance management, 2026-11-26) is bound to one request: `aud` = target service name, `method` and `path` = the forwarded request line (no query string). A service refuses any mismatch, and `v1` tokens, with `401`; the body is not covered. A browser-sent `X-Internal-*` header is always removed first. Services rebuild the caller only from this header; missing → anonymous, invalid or expired → `401`.
 
 Internal (never reachable through the gateway):
 

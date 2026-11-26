@@ -1,8 +1,12 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router'
-import { getHostBoard } from '../../api/host'
+import { changeAttendance, getHostBoard } from '../../api/host'
 import { ApiError } from '../../api/errors'
-import type { AttendanceState, HostBoard } from '../../api/types'
+import type {
+  AttendanceState,
+  AttendanceTarget,
+  HostBoard,
+} from '../../api/types'
 import BackHomeLink from '../../components/BackHomeLink'
 import Button from '../../components/Button'
 import CourtCard from '../../components/CourtCard'
@@ -11,6 +15,7 @@ import ErrorBanner from '../../components/ErrorBanner'
 import Logo from '../../components/Logo'
 import { copy } from '../../copy/en'
 import { useAsync } from '../../hooks/useAsync'
+import { useMutation, type MutationState } from '../../hooks/useMutation'
 import GameStrip from './GameStrip'
 import PlayerList from './PlayerList'
 
@@ -38,6 +43,35 @@ export default function HostBoardPage() {
     [gameId],
   )
   const board = useAsync(load)
+  const change = useMutation(changeAttendance)
+  const [changingId, setChangingId] = useState<string | null>(null)
+  const { status: changeStatus } = change
+  const { reload } = board
+
+  // One change at a time: every action button is disabled while one is saving. After a change (or a 409) the
+  // board is read again.
+  useEffect(() => {
+    if (changeStatus === 'success' || changeStatus === 'conflict') reload()
+  }, [changeStatus, reload])
+
+  const onChange = (attendanceId: string, state: AttendanceTarget) => {
+    setChangingId(attendanceId)
+    void change.run({ gameId, attendanceId, state })
+  }
+  const changeFailure =
+    change.status === 'error' ? statusOf(change.error) : null
+  // Only a real FORBIDDEN answer is the "not your game" view; a 403 for a bad CSRF token is an ordinary error.
+  const changeForbidden =
+    change.status === 'error' &&
+    change.error instanceof ApiError &&
+    change.error.status === 403 &&
+    change.error.code === 'FORBIDDEN'
+  const { reset } = change
+  // Refresh / Try again: clear the failed write so its banner goes away, then read the board again.
+  const refresh = () => {
+    reset()
+    reload()
+  }
 
   return (
     <div className="min-h-dvh bg-background text-ink">
@@ -46,6 +80,15 @@ export default function HostBoardPage() {
       </header>
       <main className="mx-auto flex max-w-[1200px] flex-col gap-4 px-4 pt-2 pb-6 md:px-6 md:pt-3">
         {(() => {
+          if (changeFailure === 401) {
+            return (
+              <Navigate
+                to={`/login?next=${encodeURIComponent(`/host/games/${gameId}`)}`}
+                replace
+              />
+            )
+          }
+          if (changeForbidden) return <Forbidden />
           switch (board.status) {
             case 'loading':
               return (
@@ -56,7 +99,15 @@ export default function HostBoardPage() {
             case 'empty':
               return <NotFound />
             case 'success':
-              return <Board board={board.data} onRefresh={board.reload} />
+              return (
+                <Board
+                  board={board.data}
+                  onRefresh={refresh}
+                  change={change}
+                  savingId={changeStatus === 'saving' ? changingId : null}
+                  onChange={onChange}
+                />
+              )
             case 'error':
               switch (statusOf(board.error)) {
                 case 401:
@@ -113,9 +164,15 @@ function Forbidden() {
 function Board({
   board,
   onRefresh,
+  change,
+  savingId,
+  onChange,
 }: {
   board: HostBoard
   onRefresh: () => void
+  change: MutationState<unknown>
+  savingId: string | null
+  onChange: (attendanceId: string, state: AttendanceTarget) => void
 }) {
   const { game, players, courts, asOf } = board
   const names = new Map(players.map((p) => [p.attendanceId, p.displayName]))
@@ -140,6 +197,31 @@ function Board({
         </Button>
       </div>
       <GameStrip game={game} />
+      {(() => {
+        switch (change.status) {
+          case 'conflict':
+            return (
+              <p role="status" className="text-base font-bold text-ink">
+                {t.changeConflict}
+              </p>
+            )
+          case 'error':
+            return <ErrorBanner onRetry={onRefresh} />
+          case 'idle':
+          case 'saving':
+          case 'success':
+            return null
+          default: {
+            const unreachable: never = change
+            return unreachable
+          }
+        }
+      })()}
+      {game.state === 'CLOSED' && (
+        <p role="status" className="text-base font-bold text-muted">
+          {t.closedNote}
+        </p>
+      )}
 
       <div className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(0,1fr)_340px] md:items-start md:gap-6">
         <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0 xl:grid-cols-3">
@@ -166,6 +248,9 @@ function Board({
           asOf={asOf}
           minSets={game.minSets}
           note={readyNote}
+          gameClosed={game.state === 'CLOSED'}
+          savingId={savingId}
+          onChange={onChange}
         />
       </div>
 
@@ -177,6 +262,9 @@ function Board({
             players={players.filter((p) => p.state === state)}
             asOf={asOf}
             minSets={game.minSets}
+            gameClosed={game.state === 'CLOSED'}
+            savingId={savingId}
+            onChange={onChange}
           />
         ))}
       </div>
