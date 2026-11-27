@@ -27,6 +27,14 @@ public enum AttendanceState {
     }
 
     /**
+     * Only a {@code READY} player can be put into a planned match ({@code READY -> ASSIGNED}, blueprint sections 11,
+     * 12); the match commands use this check, not the host's manual moves.
+     */
+    public boolean canBeAssigned() {
+        return this == READY;
+    }
+
+    /**
      * Whether the host may move a player from this state to {@code target}: exactly {@code PENDING -> READY},
      * {@code PENDING -> LEFT} and {@code READY -> LEFT}. Staying in the same state is not a move (the caller treats it
      * as "no change").

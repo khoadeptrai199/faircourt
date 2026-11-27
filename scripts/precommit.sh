@@ -19,8 +19,8 @@ docker compose run --rm --no-deps frontend npm run format
 step "3/6 backend clean verify (unit + integration tests + spotless:check)"
 docker compose --profile test run --rm --build backend-test mvn -B clean verify
 
-step "4/6 frontend format:check + typecheck + build"
-docker compose run --rm --no-deps frontend sh -c "npm run format:check && npm run build"
+step "4/6 frontend format:check + unit tests + typecheck + build"
+docker compose run --rm --no-deps frontend sh -c "npm run format:check && npm test && npm run build"
 
 step "5/6 no forbidden files staged (.env, .idea/)"
 if git diff --cached --name-only | grep -E '(^|/)\.env$|(^|/)\.idea/'; then

@@ -267,6 +267,40 @@ class GatewayAccessMatrixIT extends GuestTestBase {
         assertThat(calls.get()).hasSize(1);
     }
 
+    /** Match confirm, TC-20: anonymous and guest-only 401, no CSRF 403, account with CSRF forwarded once. */
+    @Test
+    void matchConfirmNeedsAnAccountAndACsrfTokenAndIsForwardedOnceWithATokenBoundToThePath() throws Exception {
+        String path = "/api/v1/host/games/" + StubService.OPEN_GAME_ID + "/matches";
+        java.util.function.Supplier<List<StubService.Received>> calls = () ->
+                STUB.received().stream().filter(r -> r.path().equals(path)).toList();
+
+        assertUnauthenticated(send("POST", path, bootstrap()));
+        HttpResponse<String> checkIn = checkIn(OPEN_CODE, guestJson("Mai"));
+        STUB.knownGuestToken(tokenOf(guestCookieOf(checkIn)), UUID.randomUUID().toString());
+        assertUnauthenticated(send("POST", path, bootstrap()));
+        assertThat(calls.get()).isEmpty();
+
+        signIn();
+        HttpResponse<String> noCsrf = send("POST", path, Map.of());
+        assertThat(noCsrf.statusCode()).isEqualTo(403);
+        assertThat(noCsrf.body()).contains("\"code\":\"CSRF_TOKEN_INVALID\"");
+        assertThat(calls.get()).isEmpty();
+
+        HttpResponse<String> response = send("POST", path, bootstrap());
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(calls.get()).hasSize(1);
+        List<String> values = calls.get().getFirst().headers().get(IdentityTokenHeader.NAME);
+        assertThat(values).hasSize(1);
+        assertThat(tokens.verify(values.getFirst(), PLAYMATCH, "POST", path))
+                .contains(new CallerIdentity.Account(UUID.fromString(StubService.ACCOUNT_USER_ID)));
+        assertThat(tokens.verify(values.getFirst(), PLAYMATCH, "GET", path)).isEmpty();
+        // Only POST is open on this path: GET is refused and nothing more is forwarded.
+        HttpResponse<String> get = get(path);
+        assertThat(get.statusCode()).isEqualTo(403);
+        assertThat(calls.get()).hasSize(1);
+    }
+
     @Test
     void accountRoutesNeedASignedInAccount() throws Exception {
         assertUnauthenticated(get("/api/v1/me"));

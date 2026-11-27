@@ -45,6 +45,9 @@ public class SecurityConfig {
             // Match suggestions (read only): same rule; the token is bound to this method and path.
             auth.requestMatchers(HttpMethod.POST, "/api/v1/host/games/*/suggestions")
                     .permitAll();
+            // Match confirm: same rule; the token is bound to this method and path.
+            auth.requestMatchers(HttpMethod.POST, "/api/v1/host/games/*/matches")
+                    .permitAll();
         });
     }
 }

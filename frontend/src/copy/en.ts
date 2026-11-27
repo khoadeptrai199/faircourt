@@ -150,6 +150,13 @@ export const copy = {
     warnUnknownLevel: "Someone's level is not known yet.",
     noFreeCourt: 'All courts are in use.',
     closed: 'This game is closed. No new matches.',
+    confirm: 'Confirm',
+    saved: (n: number) => `Saved as match ${n}.`,
+    conflict: 'This lineup changed. Refresh suggestions',
+    swapHint: 'Tap a player, then another, to swap them.',
+    selected: (name: string) => `${name} selected. Tap another player to swap.`,
+    benchTitle: 'Ready, not picked',
+    edited: 'You changed this court.',
   },
   home: {
     hostedTitle: 'Games you host',

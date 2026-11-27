@@ -40,6 +40,13 @@ class AttendanceStateTest {
     }
 
     @Test
+    void onlyReadyCanBeAssigned() {
+        for (AttendanceState state : AttendanceState.values()) {
+            assertThat(state.canBeAssigned()).as(state.name()).isEqualTo(state == READY);
+        }
+    }
+
+    @Test
     void onlyAssignedAndPlayingAreInAMatch() {
         for (AttendanceState state : AttendanceState.values()) {
             assertThat(state.inMatch()).as(state.name()).isEqualTo(state == ASSIGNED || state == PLAYING);

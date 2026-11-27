@@ -187,3 +187,16 @@ export type MatchSuggestions = {
   suggestions: MatchProposal[]
   noSuggestionReason: NoSuggestionReason | null
 }
+
+// POST /api/v1/host/games/{gameId}/matches: confirm one court as a PLANNED match (Match confirm design section 3).
+export type ConfirmMatchRequest = {
+  courtNo: number
+  teams: { A: string[]; B: string[] }
+}
+
+export type ConfirmedMatch = {
+  matchId: string
+  matchNo: number
+  courtNo: number
+  state: CourtMatchState
+}

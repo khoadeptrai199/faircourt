@@ -164,6 +164,27 @@ class PlaymatchServiceAccessIT {
         assertThat(send("POST", path + "/extra").statusCode()).isEqualTo(401);
     }
 
+    /** Match confirm, TC-21: no identity token is 401 JSON; the route is open for POST only. */
+    @Test
+    void matchesRouteIsOpenForPostOnlyAndAnswersWithoutTokenAs401() throws Exception {
+        String validBody = "{\"courtNo\":1,\"teams\":{\"A\":[\"" + UUID.randomUUID() + "\",\"" + UUID.randomUUID()
+                + "\"]," + "\"B\":[\"" + UUID.randomUUID() + "\",\"" + UUID.randomUUID() + "\"]}}";
+        String path = "/api/v1/host/games/22222222-2222-2222-2222-222222222222/matches";
+
+        HttpResponse<String> noBody = sendWithToken("POST", path, null, "");
+
+        assertThat(noBody.statusCode()).isEqualTo(401);
+        assertThat(noBody.body()).contains("\"code\":\"UNAUTHENTICATED\"");
+        HttpResponse<String> post = sendWithToken("POST", path, null, validBody);
+
+        assertThat(post.statusCode()).isEqualTo(401);
+        assertThat(post.body()).contains("\"code\":\"UNAUTHENTICATED\"");
+        for (String method : new String[] {"GET", "PUT", "PATCH", "DELETE"}) {
+            assertThat(send(method, path).statusCode()).as(method).isEqualTo(401);
+        }
+        assertThat(send("POST", path + "/extra").statusCode()).isEqualTo(401);
+    }
+
     private static String token(UUID user, String method, String path) {
         return new IdentityToken(System.getenv("INTERNAL_TOKEN_SECRET"), Clock.systemUTC())
                 .issue(user, "playmatch-service", method, path);

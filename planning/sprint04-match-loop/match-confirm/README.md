@@ -3,12 +3,12 @@
 | Field | Value |
 |---|---|
 | Sprint | S04 Match loop |
-| Status | `BACKLOG` |
+| Status | `IN_REVIEW` |
 | Blueprint | §5, §11 (match PLANNED), §12 (application invariants, partial unique indexes), §13 (`POST /host/sessions/{sessionId}/matches`, `409 MATCH_CONFLICT`), §15 (transaction, lock, no partial success), §16 (`/host/sessions/:sessionId/review`, tap-to-swap) |
 | Depends on | F09 |
-| Waiting for | OD-08 (Vitest for the swap reducer, optional) |
+| Waiting for | Gate 3: owner reviews the result (browser checks TC-31…TC-34) and commits |
 | Suggested branch | `feature/match-confirm` |
-| Last updated | 2026-11-17 |
+| Last updated | 2026-11-27 |
 
 ## Goal
 
@@ -39,4 +39,16 @@ The host swaps players across courts or replaces anyone with another Ready playe
 
 | ID | Question | Status |
 |---|---|---|
-| OD-08 | Vitest for the reducer | Open |
+| OD-08 | Vitest for the reducer (design D-6) | Decided 2026-11-26: (b) add Vitest |
+| OD-25 | Drop the `ASSIGNED` step (design D-1) | Decided 2026-11-26: (a) keep `ASSIGNED` (§0) |
+
+## Decision log
+
+| Date | Decision | Source |
+|---|---|---|
+| 2026-11-26 | Design drafted via `/flow match-confirm`: `BACKLOG → WAITING_APPROVAL`; branch `feature/match-confirm` cut from `feature/match-suggestions` | Claude |
+| 2026-11-26 | Gate 1 (spec) approved by the owner: design.md D-1…D-7 as recommended (keep `ASSIGNED`, singles 1 + 1, court above count → 409, edited court hides tags, no confirm dialog, add Vitest, Start on the board) and the copy table ("duyệt hết như đề xuất") | Owner |
+| 2026-11-26 | Plan + test cases written in implement.md (T01…T10, TC-01…TC-34; Vitest pin proposed 5.1.0); waiting for Gate 2 | Claude |
+| 2026-11-26 | Gate 2 (plan) approved by the owner: implement.md T01…T10, TC-01…TC-34, Vitest pinned 5.1.0, `npm test` added to scripts/precommit.sh ("duyệt hết như đề xuất") | Owner |
+| 2026-11-26 | Build loop done: fix round 1 after review (3 medium fixed); flow-reviewer APPROVE 94/100, scope and privacy no open high/medium; `scripts/precommit.sh` PIPELINE OK; `IN_PROGRESS → IN_REVIEW` | Claude |
+| 2026-11-27 | Gate 3 decisions approved by the owner ("duyệt hết như đề xuất"): `PlayerSlotButton` moved to its own file, "Refresh suggestions" disabled while a court saves, body validation in `MatchService` accepted as a deviation. Browser checks TC-31…TC-34 and commit still the owner's | Owner |

@@ -99,6 +99,14 @@ public record GatewayRouteTable(List<GatewayRoute> routes) {
                         "/api/v1/host/games/*/suggestions",
                         RouteAccess.HOST,
                         playmatchUrl,
+                        PLAYMATCH),
+                // Match confirm (blueprint section 13; design 3.1): the host saves one PLANNED match.
+                new GatewayRoute(
+                        "host-matches",
+                        Set.of(HttpMethod.POST),
+                        "/api/v1/host/games/*/matches",
+                        RouteAccess.HOST,
+                        playmatchUrl,
                         PLAYMATCH)));
     }
 }
