@@ -107,6 +107,29 @@ public record GatewayRouteTable(List<GatewayRoute> routes) {
                         "/api/v1/host/games/*/matches",
                         RouteAccess.HOST,
                         playmatchUrl,
+                        PLAYMATCH),
+                // Match start / finish / cancel (blueprint section 13; design 3): one route per action, so any other
+                // action name stays unrouted.
+                new GatewayRoute(
+                        "host-match-start",
+                        Set.of(HttpMethod.PATCH),
+                        "/api/v1/host/matches/*/start",
+                        RouteAccess.HOST,
+                        playmatchUrl,
+                        PLAYMATCH),
+                new GatewayRoute(
+                        "host-match-finish",
+                        Set.of(HttpMethod.PATCH),
+                        "/api/v1/host/matches/*/finish",
+                        RouteAccess.HOST,
+                        playmatchUrl,
+                        PLAYMATCH),
+                new GatewayRoute(
+                        "host-match-cancel",
+                        Set.of(HttpMethod.PATCH),
+                        "/api/v1/host/matches/*/cancel",
+                        RouteAccess.HOST,
+                        playmatchUrl,
                         PLAYMATCH)));
     }
 }

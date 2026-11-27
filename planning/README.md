@@ -7,7 +7,7 @@ The one place to create features, track their status, and read each feature's de
 - System design: [architecture/system-design.md](architecture/system-design.md) · Decision log: [architecture/decisions.md](architecture/decisions.md)
 - Rules for agents: [.claude/rules/planning-workflow.md](../.claude/rules/planning-workflow.md), [.claude/rules/conventions.md](../.claude/rules/conventions.md)
 
-Last updated: 2026-11-26
+Last updated: 2026-11-27
 
 ## Sprints
 
@@ -40,7 +40,7 @@ Last updated: 2026-11-26
 | F08 | Create game | S03 | DONE | F03 | — (owner commits) | [README](sprint03-host-board/create-game/README.md) · [design](sprint03-host-board/create-game/design.md) · [implement](sprint03-host-board/create-game/implement.md) · [review](sprint03-host-board/create-game/review.md) |
 | F09 | Match suggestions (read-only) | S04 | IN_REVIEW | F07 | Owner: visual check + commit | [README](sprint04-match-loop/match-suggestions/README.md) · [design](sprint04-match-loop/match-suggestions/design.md) · [implement](sprint04-match-loop/match-suggestions/implement.md) |
 | F10 | Match confirm + tap-to-swap review | S04 | IN_REVIEW | F09 | Owner: visual check + commit | [README](sprint04-match-loop/match-confirm/README.md) · [design](sprint04-match-loop/match-confirm/design.md) · [implement](sprint04-match-loop/match-confirm/implement.md) · [review](sprint04-match-loop/match-confirm/review.md) |
-| F11 | Match start / finish / cancel | S04 | BACKLOG | F10 | OD-07 | [README](sprint04-match-loop/match-lifecycle/README.md) |
+| F11 | Match start / finish / cancel | S04 | IN_REVIEW | F10 | Gate 3: owner reviews and commits | [README](sprint04-match-loop/match-lifecycle/README.md) |
 | F12 | My game: own assignment + polling | S05 | BACKLOG | F05, F11 | OD-16 | [README](sprint05-player-loop/my-match-assignment/README.md) |
 | F13 | Match-fit feedback | S05 | BACKLOG | F12 | OD-16 | [README](sprint05-player-loop/match-feedback/README.md) |
 | F14 | Host skill assessment | S05 | BACKLOG | F06 | — | [README](sprint05-player-loop/host-assessment/README.md) |

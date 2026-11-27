@@ -301,6 +301,60 @@ class GatewayAccessMatrixIT extends GuestTestBase {
         assertThat(calls.get()).hasSize(1);
     }
 
+    /**
+     * Match lifecycle, TC-18: for start, finish and cancel anonymous and guest-only are 401, no CSRF is 403, an account
+     * with CSRF is forwarded once with a token bound to PATCH and this path; GET and an unknown action are not routed.
+     */
+    @Test
+    void matchLifecycleRoutesNeedAnAccountAndACsrfTokenAndAreForwardedOnceWithATokenBoundToThePath() throws Exception {
+        String matchId = "77777777-7777-7777-7777-777777777777";
+        for (String action : new String[] {"start", "finish", "cancel"}) {
+            assertUnauthenticated(send("PATCH", "/api/v1/host/matches/" + matchId + "/" + action, bootstrap()));
+        }
+        // A guest cookie without an account is still 401.
+        HttpResponse<String> checkIn = checkIn(OPEN_CODE, guestJson("Mai"));
+        STUB.knownGuestToken(tokenOf(guestCookieOf(checkIn)), UUID.randomUUID().toString());
+        for (String action : new String[] {"start", "finish", "cancel"}) {
+            assertUnauthenticated(send("PATCH", "/api/v1/host/matches/" + matchId + "/" + action, bootstrap()));
+        }
+        assertThat(STUB.received()).noneMatch(r -> r.path().startsWith("/api/v1/host/matches/"));
+        // An unknown action is not routed: anonymous callers get 401 and nothing is forwarded.
+        String pause = "/api/v1/host/matches/" + matchId + "/pause";
+        assertUnauthenticated(send("PATCH", pause, bootstrap()));
+
+        signIn();
+        for (String action : new String[] {"start", "finish", "cancel"}) {
+            String path = "/api/v1/host/matches/" + matchId + "/" + action;
+            java.util.function.Supplier<List<StubService.Received>> calls = () ->
+                    STUB.received().stream().filter(r -> r.path().equals(path)).toList();
+
+            HttpResponse<String> noCsrf = send("PATCH", path, Map.of());
+            assertThat(noCsrf.statusCode()).as(action).isEqualTo(403);
+            assertThat(noCsrf.body()).contains("\"code\":\"CSRF_TOKEN_INVALID\"");
+            assertThat(calls.get()).as(action + " without CSRF").isEmpty();
+
+            HttpResponse<String> response = send("PATCH", path, bootstrap());
+
+            assertThat(response.statusCode()).as(action).isEqualTo(200);
+            assertThat(calls.get()).as(action).hasSize(1);
+            List<String> values = calls.get().getFirst().headers().get(IdentityTokenHeader.NAME);
+            assertThat(values).hasSize(1);
+            assertThat(tokens.verify(values.getFirst(), PLAYMATCH, "PATCH", path))
+                    .contains(new CallerIdentity.Account(UUID.fromString(StubService.ACCOUNT_USER_ID)));
+            assertThat(tokens.verify(values.getFirst(), PLAYMATCH, "GET", path)).isEmpty();
+            // Another action's path does not accept this token.
+            String otherPath = "/api/v1/host/matches/" + matchId + "/" + (action.equals("start") ? "finish" : "start");
+            assertThat(tokens.verify(values.getFirst(), PLAYMATCH, "PATCH", otherPath))
+                    .isEmpty();
+            // Only PATCH is open on this path: a signed-in GET is refused and nothing more is forwarded.
+            assertThat(get(path).statusCode()).as("GET " + action).isEqualTo(403);
+            assertThat(calls.get()).as(action + " after GET").hasSize(1);
+        }
+        // Signed in, an unknown action is refused like a signed-in GET above (403) and never forwarded.
+        assertThat(send("PATCH", pause, bootstrap()).statusCode()).isEqualTo(403);
+        assertThat(STUB.received()).noneMatch(r -> r.path().equals(pause));
+    }
+
     @Test
     void accountRoutesNeedASignedInAccount() throws Exception {
         assertUnauthenticated(get("/api/v1/me"));

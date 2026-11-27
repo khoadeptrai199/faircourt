@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router'
 import { changeAttendance, getHostBoard } from '../../api/host'
 import { ApiError } from '../../api/errors'
+import { cancelMatch, finishMatch, startMatch } from '../../api/matches'
 import type {
   AttendanceState,
   AttendanceTarget,
@@ -16,6 +17,7 @@ import Logo from '../../components/Logo'
 import { copy } from '../../copy/en'
 import { useAsync } from '../../hooks/useAsync'
 import { useMutation, type MutationState } from '../../hooks/useMutation'
+import CourtActions, { type MatchAction } from './CourtActions'
 import GameStrip from './GameStrip'
 import PlayerList from './PlayerList'
 
@@ -34,6 +36,24 @@ function statusOf(error: unknown): number | null {
   return error instanceof ApiError ? error.status : null
 }
 
+const MATCH_CALLS = {
+  start: startMatch,
+  finish: finishMatch,
+  cancel: cancelMatch,
+}
+
+function changeMatch(request: { matchId: string; action: MatchAction }) {
+  return MATCH_CALLS[request.action](request.matchId)
+}
+
+function isForbidden(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    error.status === 403 &&
+    error.code === 'FORBIDDEN'
+  )
+}
+
 // /host/games/:gameId: the host's full view of one game (blueprint sections 6, 13, 16). Reads only; a Refresh
 // button, no polling.
 export default function HostBoardPage() {
@@ -46,6 +66,10 @@ export default function HostBoardPage() {
   const change = useMutation(changeAttendance)
   const [changingId, setChangingId] = useState<string | null>(null)
   const { status: changeStatus } = change
+  const matchChange = useMutation(changeMatch)
+  const [actingMatchId, setActingMatchId] = useState<string | null>(null)
+  const [actingAction, setActingAction] = useState<MatchAction | null>(null)
+  const { status: matchStatus } = matchChange
   const { reload } = board
 
   // One change at a time: every action button is disabled while one is saving. After a change (or a 409) the
@@ -53,6 +77,19 @@ export default function HostBoardPage() {
   useEffect(() => {
     if (changeStatus === 'success' || changeStatus === 'conflict') reload()
   }, [changeStatus, reload])
+  useEffect(() => {
+    if (matchStatus === 'success' || matchStatus === 'conflict') reload()
+  }, [matchStatus, reload])
+
+  const onMatchAction = (matchId: string, action: MatchAction) => {
+    setActingMatchId(matchId)
+    setActingAction(action)
+    void matchChange.run({ matchId, action })
+  }
+  const matchFailure =
+    matchChange.status === 'error' ? statusOf(matchChange.error) : null
+  const matchForbidden =
+    matchChange.status === 'error' && isForbidden(matchChange.error)
 
   const onChange = (attendanceId: string, state: AttendanceTarget) => {
     setChangingId(attendanceId)
@@ -67,9 +104,11 @@ export default function HostBoardPage() {
     change.error.status === 403 &&
     change.error.code === 'FORBIDDEN'
   const { reset } = change
+  const { reset: resetMatch } = matchChange
   // Refresh / Try again: clear the failed write so its banner goes away, then read the board again.
   const refresh = () => {
     reset()
+    resetMatch()
     reload()
   }
 
@@ -80,7 +119,7 @@ export default function HostBoardPage() {
       </header>
       <main className="mx-auto flex max-w-[1200px] flex-col gap-4 px-4 pt-2 pb-6 md:px-6 md:pt-3">
         {(() => {
-          if (changeFailure === 401) {
+          if (changeFailure === 401 || matchFailure === 401) {
             return (
               <Navigate
                 to={`/login?next=${encodeURIComponent(`/host/games/${gameId}`)}`}
@@ -88,7 +127,7 @@ export default function HostBoardPage() {
               />
             )
           }
-          if (changeForbidden) return <Forbidden />
+          if (changeForbidden || matchForbidden) return <Forbidden />
           switch (board.status) {
             case 'loading':
               return (
@@ -104,8 +143,17 @@ export default function HostBoardPage() {
                   board={board.data}
                   onRefresh={refresh}
                   change={change}
+                  matchChange={matchChange}
+                  busy={changeStatus === 'saving' || matchStatus === 'saving'}
                   savingId={changeStatus === 'saving' ? changingId : null}
+                  matchSavingId={
+                    matchStatus === 'saving' ? actingMatchId : null
+                  }
+                  matchSavingAction={
+                    matchStatus === 'saving' ? actingAction : null
+                  }
                   onChange={onChange}
+                  onMatchAction={onMatchAction}
                 />
               )
             case 'error':
@@ -165,14 +213,24 @@ function Board({
   board,
   onRefresh,
   change,
+  matchChange,
+  busy,
   savingId,
+  matchSavingId,
+  matchSavingAction,
   onChange,
+  onMatchAction,
 }: {
   board: HostBoard
   onRefresh: () => void
   change: MutationState<unknown>
+  matchChange: MutationState<unknown>
+  busy: boolean
   savingId: string | null
+  matchSavingId: string | null
+  matchSavingAction: MatchAction | null
   onChange: (attendanceId: string, state: AttendanceTarget) => void
+  onMatchAction: (matchId: string, action: MatchAction) => void
 }) {
   const { game, players, courts, asOf } = board
   const names = new Map(players.map((p) => [p.attendanceId, p.displayName]))
@@ -217,6 +275,26 @@ function Board({
           }
         }
       })()}
+      {(() => {
+        switch (matchChange.status) {
+          case 'conflict':
+            return (
+              <p role="status" className="text-base font-bold text-ink">
+                {t.matchConflict}
+              </p>
+            )
+          case 'error':
+            return <ErrorBanner onRetry={onRefresh} />
+          case 'idle':
+          case 'saving':
+          case 'success':
+            return null
+          default: {
+            const unreachable: never = matchChange
+            return unreachable
+          }
+        }
+      })()}
       {game.state === 'CLOSED' && (
         <p
           id="host-board-closed-note"
@@ -229,22 +307,38 @@ function Board({
 
       <div className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(0,1fr)_340px] md:items-start md:gap-6">
         <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-2 md:overflow-visible md:px-0 xl:grid-cols-3">
-          {courts.map((court) => (
-            <CourtCard
-              key={court.courtNo}
-              courtNo={court.courtNo}
-              match={
-                court.match && {
-                  matchNo: court.match.matchNo,
-                  state: court.match.state,
-                  teams: {
-                    A: court.match.teams.A.map(nameOf),
-                    B: court.match.teams.B.map(nameOf),
-                  },
+          {courts.map((court) => {
+            const m = court.match
+            return (
+              <CourtCard
+                key={court.courtNo}
+                courtNo={court.courtNo}
+                match={
+                  m && {
+                    matchNo: m.matchNo,
+                    state: m.state,
+                    teams: {
+                      A: m.teams.A.map(nameOf),
+                      B: m.teams.B.map(nameOf),
+                    },
+                  }
                 }
-              }
-            />
-          ))}
+                actions={
+                  m && game.state !== 'CLOSED' ? (
+                    <CourtActions
+                      matchNo={m.matchNo}
+                      state={m.state}
+                      saving={busy}
+                      savingAction={
+                        matchSavingId === m.matchId ? matchSavingAction : null
+                      }
+                      onAction={(action) => onMatchAction(m.matchId, action)}
+                    />
+                  ) : undefined
+                }
+              />
+            )
+          })}
         </div>
         <PlayerList
           state="READY"
@@ -253,6 +347,7 @@ function Board({
           minSets={game.minSets}
           note={readyNote}
           gameClosed={game.state === 'CLOSED'}
+          busy={busy}
           savingId={savingId}
           onChange={onChange}
         />
@@ -267,6 +362,7 @@ function Board({
             asOf={asOf}
             minSets={game.minSets}
             gameClosed={game.state === 'CLOSED'}
+            busy={busy}
             savingId={savingId}
             onChange={onChange}
           />

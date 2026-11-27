@@ -37,9 +37,9 @@ Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf`, `GET /api/v1/pub
 | `PATCH /host/games/{gameId}/attendance/{attendanceId}` | Host | Approve guest, set Ready/Resting/Left with state validation. | Implemented, Ready and Left only (Attendance management, 2026-11-26) |
 | `POST /host/games/{gameId}/suggestions` | Host | Compute one or more proposed courts; read-only, no match persistence. | Implemented (Match suggestions, 2026-11-26) |
 | `POST /host/games/{gameId}/matches` | Host | Confirm one proposed or manually edited four-player pairing as `PLANNED`. | Implemented, doubles 2 + 2 and singles 1 + 1 (Match confirm, 2026-11-26) |
-| `PATCH /host/matches/{matchId}/start` | Owning host | Planned → active; four attendance rows Assigned → Playing. | Not started |
-| `PATCH /host/matches/{matchId}/finish` | Owning host | Active → finished; release players, set Ready and update wait/game counters. | Not started |
-| `PATCH /host/matches/{matchId}/cancel` | Owning host | Planned/active → cancelled; release players and restore Ready. | Not started |
+| `PATCH /host/matches/{matchId}/start` | Owning host | Planned → active; four attendance rows Assigned → Playing. | Implemented (Match start / finish / cancel, 2026-11-27) |
+| `PATCH /host/matches/{matchId}/finish` | Owning host | Active → finished; release players, set Ready and update wait/game counters. | Implemented (Match start / finish / cancel, 2026-11-27) |
+| `PATCH /host/matches/{matchId}/cancel` | Owning host | Planned/active → cancelled; release players and restore Ready. | Implemented (Match start / finish / cancel, 2026-11-27) |
 | `POST /games/{gameId}/me/feedback` | Participant | Body includes `matchId` and fit answer; only a participant of that finished match; one answer per player/match. | Not started |
 | `POST /host/games/{gameId}/assessments` | Host | Record observation and update current private band. | Not started |
 
@@ -177,6 +177,20 @@ Forwarded by the gateway to playmatch-service. Gateway rule: signed-in account (
 | Errors, in check order | `401 UNAUTHENTICATED` (no account; guest cookie only too); `403 CSRF_TOKEN_INVALID` (gateway); `404 NOT_FOUND` (unknown or malformed game id); `403 FORBIDDEN` (not this game's host); `400 VALIDATION_FAILED` (missing or invalid body, `courtNo` outside 1–4, team sizes not fitting the game's format, an id twice); `409 STATE_CONFLICT` (game `CLOSED`); `409 MATCH_CONFLICT` (court above the game's court count, court has a `PLANNED`/`ACTIVE` match, an id that is not an attendance of this game, a player not `READY` or already in an unfinished match, or a unique index hit at insert) |
 
 The `409 MATCH_CONFLICT` message is always "A player or court is no longer available." and never says which player, so it does not reveal anything about other games. Suggestions may be stale: the host refreshes and confirms again. The game row is locked for the whole command, so two confirms that share a player run one after the other and the second gets 409.
+
+### Match start / finish / cancel: `PATCH /host/matches/{matchId}/start`, `/finish`, `/cancel` (implemented, 2026-11-27)
+
+Forwarded by the gateway to playmatch-service, one gateway route per action. Gateway rule: signed-in account (`HOST`) and CSRF header `X-CSRF-TOKEN`; playmatch finds the game from the match and checks that the caller is that game's host. No request body. Each action is one transaction: game row `FOR SHARE`, match row `FOR UPDATE`, the match's attendance rows `FOR UPDATE` by id. Answer carries `Cache-Control: no-store`.
+
+| Item | Value |
+|---|---|
+| `200` | `{"matchId", "matchNo", "courtNo", "state"}` with the new state: `ACTIVE`, `FINISHED` or `CANCELLED` |
+| Start | `PLANNED → ACTIVE`, `started_at` set; its players `ASSIGNED → PLAYING`; `match_player` stays unreleased |
+| Finish | `ACTIVE → FINISHED`, `finished_at` set; `match_player.released_at` set; its players `PLAYING → READY`, `matches_played + 1`, `available_since` = now; other players unchanged |
+| Cancel | `PLANNED` or `ACTIVE → CANCELLED`; `match_player.released_at` set; its players `ASSIGNED` / `PLAYING → READY`; `matches_played` and `available_since` unchanged (owner 2026-11-27); `started_at` kept, `finished_at` stays empty |
+| Errors, in check order | `401 UNAUTHENTICATED` (no account; guest cookie only too); `403 CSRF_TOKEN_INVALID` (gateway); `404 NOT_FOUND` (unknown or malformed match id); `403 FORBIDDEN` (match of a game the caller does not host); `409 STATE_CONFLICT` (game `CLOSED`; illegal move such as start on a non-`PLANNED` match or finish on a non-`ACTIVE` one, including a repeated tap; a player of the match not in the expected state) |
+
+Any other action name on that path is not routed: anonymous callers get `401`, a signed-in caller `403`, and nothing is forwarded. After finish or cancel the court and the players can be confirmed again, and the next suggestion favours players who waited.
 
 ### Host board: `GET /host/games/{gameId}/board`, `GET /host/games` (implemented, 2026-11-25)
 

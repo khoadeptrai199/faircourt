@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { CourtMatchState } from '../api/types'
 import { copy } from '../copy/en'
 import { COURT_MATCH_STATUS } from '../lib/status'
@@ -10,8 +11,10 @@ export type CourtCardTeams = { A: string[]; B: string[] }
 export default function CourtCard({
   courtNo,
   match,
+  actions,
 }: {
   courtNo: number
+  actions?: ReactNode
   match: {
     matchNo: number
     state: CourtMatchState
@@ -40,6 +43,7 @@ export default function CourtCard({
       ) : (
         <p className="text-base font-bold text-muted">{t.courtFree}</p>
       )}
+      {match && actions}
     </article>
   )
 }

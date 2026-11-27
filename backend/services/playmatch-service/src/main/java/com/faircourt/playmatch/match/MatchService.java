@@ -9,6 +9,7 @@ import com.faircourt.playmatch.game.GameState;
 import com.faircourt.playmatch.game.MatchFormat;
 import jakarta.validation.Validator;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -126,6 +127,176 @@ public class MatchService {
                 .update();
         return new ConfirmMatchResponse(matchId, game.nextMatchNo(), courtNo, MatchState.PLANNED);
     }
+
+    /** {@code PLANNED -> ACTIVE}; its players {@code ASSIGNED -> PLAYING} (Match lifecycle design 4). */
+    @Transactional
+    public HostMatchStateResponse start(CallerIdentity caller, UUID matchId) {
+        Locked locked = loadAndLock(caller, matchId);
+        if (!locked.match().state().canStart()) {
+            throw new ApiException(ErrorCode.STATE_CONFLICT);
+        }
+        checkPlayers(locked);
+        Instant now = clock.instant();
+        markStarted(matchId, now);
+        setPlayerState(locked, AttendanceState.PLAYING, false, now);
+        return response(locked, MatchState.ACTIVE);
+    }
+
+    /** {@code ACTIVE -> FINISHED}; releases the players, counts one set each and resets their wait time. */
+    @Transactional
+    public HostMatchStateResponse finish(CallerIdentity caller, UUID matchId) {
+        Locked locked = loadAndLock(caller, matchId);
+        if (!locked.match().state().canFinish()) {
+            throw new ApiException(ErrorCode.STATE_CONFLICT);
+        }
+        checkPlayers(locked);
+        Instant now = clock.instant();
+        markFinished(matchId, now);
+        release(locked, now);
+        setPlayerState(locked, AttendanceState.READY, true, now);
+        return response(locked, MatchState.FINISHED);
+    }
+
+    /** {@code PLANNED|ACTIVE -> CANCELLED}; releases the players, no set counted, wait time kept (design D-1, D-4). */
+    @Transactional
+    public HostMatchStateResponse cancel(CallerIdentity caller, UUID matchId) {
+        Locked locked = loadAndLock(caller, matchId);
+        if (!locked.match().state().canCancel()) {
+            throw new ApiException(ErrorCode.STATE_CONFLICT);
+        }
+        checkPlayers(locked);
+        Instant now = clock.instant();
+        markCancelled(matchId);
+        release(locked, now);
+        setPlayerState(locked, AttendanceState.READY, false, now);
+        return response(locked, MatchState.CANCELLED);
+    }
+
+    /**
+     * Shared first half of the three commands (design 4): match to game (404), host check (403), game row
+     * {@code FOR SHARE} (closed is 409), match row {@code FOR UPDATE}, the match's attendance rows {@code FOR UPDATE}
+     * by id. Lock order game, match, attendance.
+     */
+    private Locked loadAndLock(CallerIdentity caller, UUID matchId) {
+        UUID gameId = jdbc.sql("SELECT game_id FROM play_match WHERE id = :matchId")
+                .param("matchId", matchId)
+                .query(UUID.class)
+                .optional()
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
+        policy.requireHost(caller, gameId);
+        GameState gameState = jdbc.sql("SELECT state FROM game WHERE id = :gameId FOR SHARE")
+                .param("gameId", gameId)
+                .query((rs, n) -> GameState.valueOf(rs.getString("state")))
+                .optional()
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
+        if (gameState == GameState.CLOSED) {
+            throw new ApiException(ErrorCode.STATE_CONFLICT);
+        }
+        MatchRow match = jdbc.sql("""
+                        SELECT state, match_no, court_no FROM play_match
+                        WHERE id = :matchId FOR UPDATE""")
+                .param("matchId", matchId)
+                .query((rs, n) -> new MatchRow(
+                        MatchState.valueOf(rs.getString("state")), rs.getInt("match_no"), rs.getInt("court_no")))
+                .optional()
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
+        return new Locked(matchId, gameId, match, lockPlayers(matchId, gameId));
+    }
+
+    private List<PlayerRow> lockPlayers(UUID matchId, UUID gameId) {
+        return jdbc.sql("""
+                        SELECT a.id, a.state FROM attendance a
+                        JOIN match_player mp ON mp.attendance_id = a.id AND mp.match_id = :matchId
+                        WHERE a.game_id = :gameId ORDER BY a.id FOR UPDATE OF a""")
+                .param("matchId", matchId)
+                .param("gameId", gameId)
+                .query((rs, n) ->
+                        new PlayerRow(rs.getObject("id", UUID.class), AttendanceState.valueOf(rs.getString("state"))))
+                .list();
+    }
+
+    /** Data drift guard: every player must be in the state the match's state implies, else 409. */
+    private void checkPlayers(Locked locked) {
+        AttendanceState expected = AttendanceState.expectedInMatch(
+                        locked.match().state())
+                .orElseThrow(() -> new ApiException(ErrorCode.STATE_CONFLICT));
+        if (locked.players().isEmpty() || locked.players().stream().anyMatch(p -> p.state() != expected)) {
+            throw new ApiException(ErrorCode.STATE_CONFLICT);
+        }
+    }
+
+    private void markStarted(UUID matchId, Instant now) {
+        int updated = jdbc.sql("""
+                        UPDATE play_match SET state = :state, started_at = :now
+                        WHERE id = :matchId""")
+                .param("state", MatchState.ACTIVE.name())
+                .param("now", OffsetDateTime.ofInstant(now, ZoneOffset.UTC))
+                .param("matchId", matchId)
+                .update();
+        expectRows(updated, 1);
+    }
+
+    private void markFinished(UUID matchId, Instant now) {
+        int updated = jdbc.sql("""
+                        UPDATE play_match SET state = :state, finished_at = :now
+                        WHERE id = :matchId""")
+                .param("state", MatchState.FINISHED.name())
+                .param("now", OffsetDateTime.ofInstant(now, ZoneOffset.UTC))
+                .param("matchId", matchId)
+                .update();
+        expectRows(updated, 1);
+    }
+
+    private void markCancelled(UUID matchId) {
+        int updated = jdbc.sql("""
+                        UPDATE play_match SET state = :state
+                        WHERE id = :matchId""")
+                .param("state", MatchState.CANCELLED.name())
+                .param("matchId", matchId)
+                .update();
+        expectRows(updated, 1);
+    }
+
+    private void release(Locked locked, Instant now) {
+        int updated = jdbc.sql("UPDATE match_player SET released_at = :now WHERE match_id = :matchId")
+                .param("now", OffsetDateTime.ofInstant(now, ZoneOffset.UTC))
+                .param("matchId", locked.matchId())
+                .update();
+        expectRows(updated, locked.players().size());
+    }
+
+    private void setPlayerState(Locked locked, AttendanceState target, boolean countSet, Instant now) {
+        List<UUID> ids = locked.players().stream().map(PlayerRow::id).toList();
+        String sql = countSet ? """
+                UPDATE attendance SET state = :state, matches_played = matches_played + 1, available_since = :now
+                WHERE game_id = :gameId AND id IN (:ids)""" : "UPDATE attendance SET state = :state WHERE game_id = :gameId AND id IN (:ids)";
+        var statement = jdbc.sql(sql)
+                .param("state", target.name())
+                .param("gameId", locked.gameId())
+                .param("ids", ids);
+        if (countSet) {
+            statement = statement.param("now", OffsetDateTime.ofInstant(now, ZoneOffset.UTC));
+        }
+        expectRows(statement.update(), ids.size());
+    }
+
+    /** A row-count mismatch throws, so the transaction rolls back and nothing is half saved (section 15). */
+    private static void expectRows(int actual, int expected) {
+        if (actual != expected) {
+            throw new ApiException(ErrorCode.STATE_CONFLICT);
+        }
+    }
+
+    private static HostMatchStateResponse response(Locked locked, MatchState state) {
+        return new HostMatchStateResponse(
+                locked.matchId(), locked.match().matchNo(), locked.match().courtNo(), state);
+    }
+
+    private record MatchRow(MatchState state, int matchNo, int courtNo) {}
+
+    private record PlayerRow(UUID id, AttendanceState state) {}
+
+    private record Locked(UUID matchId, UUID gameId, MatchRow match, List<PlayerRow> players) {}
 
     /** Reads and validates the raw body after the host check, so 401 / 404 / 403 come before 400. */
     private ConfirmMatchRequest parseBody(String body) {
