@@ -18,7 +18,7 @@ Last updated: 2026-11-27
 | [S02 Identity](sprint02-identity/SPRINT.md) | Account login, guest check-in, own attendance | §17 step 2 gate | DONE |
 | [S03 Host board](sprint03-host-board/SPRINT.md) | Host board, approve/rest/leave, create game | Host sees full board; other account 403 | ACTIVE |
 | [S04 Match loop](sprint04-match-loop/SPRINT.md) | Suggest, swap, confirm, start, finish, cancel | §17 step 3 gate | ACTIVE |
-| [S05 Player loop](sprint05-player-loop/SPRINT.md) | My game, polling, feedback, host assessment | §17 step 4 gate | PLANNED |
+| [S05 Player loop](sprint05-player-loop/SPRINT.md) | My game, polling, feedback, host assessment | §17 step 4 gate | ACTIVE |
 | [S06 Acceptance](sprint06-acceptance/SPRINT.md) | E2E smoke, responsive/a11y polish, CI | §0 demo + §17 checklist | PLANNED |
 
 ## Features
@@ -38,11 +38,11 @@ Last updated: 2026-11-27
 | F06 | Host board | S03 | DONE | F03 | — | [README](sprint03-host-board/host-board/README.md) · [design](sprint03-host-board/host-board/design.md) · [implement](sprint03-host-board/host-board/implement.md) · [review](sprint03-host-board/host-board/review.md) |
 | F07 | Attendance management (approve, left) | S03 | DONE | F06 | — | [README](sprint03-host-board/attendance-management/README.md) · [design](sprint03-host-board/attendance-management/design.md) · [implement](sprint03-host-board/attendance-management/implement.md) · [review](sprint03-host-board/attendance-management/review.md) |
 | F08 | Create game | S03 | DONE | F03 | — (owner commits) | [README](sprint03-host-board/create-game/README.md) · [design](sprint03-host-board/create-game/design.md) · [implement](sprint03-host-board/create-game/implement.md) · [review](sprint03-host-board/create-game/review.md) |
-| F09 | Match suggestions (read-only) | S04 | IN_REVIEW | F07 | Owner: visual check + commit | [README](sprint04-match-loop/match-suggestions/README.md) · [design](sprint04-match-loop/match-suggestions/design.md) · [implement](sprint04-match-loop/match-suggestions/implement.md) |
-| F10 | Match confirm + tap-to-swap review | S04 | IN_REVIEW | F09 | Owner: visual check + commit | [README](sprint04-match-loop/match-confirm/README.md) · [design](sprint04-match-loop/match-confirm/design.md) · [implement](sprint04-match-loop/match-confirm/implement.md) · [review](sprint04-match-loop/match-confirm/review.md) |
+| F09 | Match suggestions (read-only) | S04 | DONE | F07 | — (merged PR #8) | [README](sprint04-match-loop/match-suggestions/README.md) · [design](sprint04-match-loop/match-suggestions/design.md) · [implement](sprint04-match-loop/match-suggestions/implement.md) |
+| F10 | Match confirm + tap-to-swap review | S04 | DONE | F09 | — (merged PR #8) | [README](sprint04-match-loop/match-confirm/README.md) · [design](sprint04-match-loop/match-confirm/design.md) · [implement](sprint04-match-loop/match-confirm/implement.md) · [review](sprint04-match-loop/match-confirm/review.md) |
 | F11 | Match start / finish / cancel | S04 | DONE | F10 | — | [README](sprint04-match-loop/match-lifecycle/README.md) · [design](sprint04-match-loop/match-lifecycle/design.md) · [implement](sprint04-match-loop/match-lifecycle/implement.md) · [review](sprint04-match-loop/match-lifecycle/review.md) |
-| F12 | My game: own assignment + polling | S05 | BACKLOG | F05, F11 | OD-16 | [README](sprint05-player-loop/my-match-assignment/README.md) |
-| F13 | Match-fit feedback | S05 | BACKLOG | F12 | OD-16 | [README](sprint05-player-loop/match-feedback/README.md) |
+| F12 | My game: own assignment + polling | S05 | IN_REVIEW | F05, F11 | Owner: browser check TC-11 (polling) | [README](sprint05-player-loop/my-match-assignment/README.md) · [design](sprint05-player-loop/my-match-assignment/design.md) · [implement](sprint05-player-loop/my-match-assignment/implement.md) · [review](sprint05-player-loop/my-match-assignment/review.md) |
+| F13 | Match-fit feedback | S05 | BACKLOG | F12 | OD-16 (moved here from My game) | [README](sprint05-player-loop/match-feedback/README.md) |
 | F14 | Host skill assessment | S05 | BACKLOG | F06 | — | [README](sprint05-player-loop/host-assessment/README.md) |
 | F15 | End-to-end smoke test + acceptance check | S06 | BACKLOG | F13 | OD-08 | [README](sprint06-acceptance/e2e-smoke-test/README.md) |
 | F16 | Responsive + accessibility polish | S06 | BACKLOG | F12 | — | [README](sprint06-acceptance/responsive-a11y-polish/README.md) |

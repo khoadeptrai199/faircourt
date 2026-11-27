@@ -4,7 +4,6 @@ import com.faircourt.common.web.ApiException;
 import com.faircourt.common.web.ErrorCode;
 import com.faircourt.gateway.account.AccountResponse;
 import com.faircourt.gateway.account.AuthClient;
-import com.faircourt.gateway.guest.AttendanceState;
 import com.faircourt.gateway.guest.GuestCookie;
 import com.faircourt.gateway.guest.PlaymatchClient;
 import jakarta.servlet.http.HttpServletRequest;
@@ -73,9 +72,11 @@ public class PlayerAccessController {
         // After the identity check, so a caller without credentials learns nothing about game ids.
         UUID game = parseGameId(gameId);
 
-        AttendanceState state = playmatchClient.myAttendance(game, userId, attendanceId);
+        PlaymatchClient.MyAttendance own = playmatchClient.myAttendance(game, userId, attendanceId);
 
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(new MyAttendanceResponse(state, null));
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(new MyAttendanceResponse(own.attendanceState(), own.assignment()));
     }
 
     /** The signed-in account of this request, if any (the gateway's own session; never a header or a body field). */

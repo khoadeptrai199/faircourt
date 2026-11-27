@@ -62,11 +62,20 @@ export type GuestCheckIn = {
   message: string | null
 }
 
-// GET /api/v1/games/{gameId}/me: the caller's own entry only. `assignment` is always null until the own-assignment
-// feature. POST /api/v1/games/{gameId}/join answers with `attendanceState` only.
+// The caller's own unreleased match: only these three fields, never opponents or other players (blueprint section 11).
+export type MyMatchState = 'PLANNED' | 'ACTIVE'
+
+export type MyAssignment = {
+  matchNo: number
+  courtNo: number
+  matchState: MyMatchState
+}
+
+// GET /api/v1/games/{gameId}/me: the caller's own entry only. `assignment` is null while no match is waiting.
+// POST /api/v1/games/{gameId}/join answers with `attendanceState` only.
 export type MyAttendance = {
   attendanceState: AttendanceState
-  assignment: null
+  assignment: MyAssignment | null
 }
 
 export type MemberJoin = {

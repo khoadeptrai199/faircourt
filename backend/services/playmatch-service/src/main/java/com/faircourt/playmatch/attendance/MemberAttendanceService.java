@@ -72,7 +72,8 @@ public class MemberAttendanceService {
                     .update();
             AttendanceState current = myAttendanceQuery
                     .byPlayer(gameId, playerId)
-                    .orElseThrow(() -> new ApiException(ErrorCode.INTERNAL_ERROR));
+                    .orElseThrow(() -> new ApiException(ErrorCode.INTERNAL_ERROR))
+                    .state();
             return new MemberAttendanceResponse(current, inserted == 1);
         });
         if (result.attendanceState() == AttendanceState.LEFT) {
@@ -87,13 +88,14 @@ public class MemberAttendanceService {
      * (a guest). 404 when the caller has no row in this game, with no hint whether the game or the person is unknown.
      */
     public MyAttendanceResponse myAttendance(UUID gameId, UUID userId, UUID attendanceId) {
-        Optional<AttendanceState> state;
+        Optional<MyAttendanceQuery.MyAttendanceRow> row;
         if (attendanceId != null) {
-            state = myAttendanceQuery.byAttendance(gameId, attendanceId);
+            row = myAttendanceQuery.byAttendance(gameId, attendanceId);
         } else {
-            state = playerClient.findMember(userId).flatMap(playerId -> myAttendanceQuery.byPlayer(gameId, playerId));
+            row = playerClient.findMember(userId).flatMap(playerId -> myAttendanceQuery.byPlayer(gameId, playerId));
         }
-        return new MyAttendanceResponse(state.orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND)));
+        MyAttendanceQuery.MyAttendanceRow own = row.orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND));
+        return new MyAttendanceResponse(own.state(), own.assignment());
     }
 
     /** Same name rule as GuestCheckInService.cleanName: trimmed, 1-80 characters, no control characters. */

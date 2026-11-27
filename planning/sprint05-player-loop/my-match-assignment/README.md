@@ -3,12 +3,12 @@
 | Field | Value |
 |---|---|
 | Sprint | S05 Player loop |
-| Status | `BACKLOG` |
+| Status | `IN_REVIEW` |
 | Blueprint | §3, §6 (My game, "Your next match: Court 2"), §11 (privacy), §13 (`GET /sessions/{id}/me` with `assignment`), §16 (`/my/sessions/:sessionId`, 15 s polling, Refresh) |
 | Depends on | F05, F11 |
-| Waiting for | OD-16 (`matchId` for feedback) |
+| Waiting for | Gate 3: owner browser check TC-11 (polling) |
 | Suggested branch | `feature/my-match-assignment` |
-| Last updated | 2026-11-17 |
+| Last updated | 2026-11-27 |
 
 ## Goal
 
@@ -37,4 +37,12 @@ Each player sees one large card: their match number, court number and status (As
 
 | ID | Question | Status |
 |---|---|---|
-| OD-16 | `matchId` in own assignment | Open |
+| OD-16 | `matchId` in own assignment | Decided 2026-11-27: not in the assignment; decided in Match-fit feedback (design D-1) |
+
+## Decision log
+
+- 2026-11-27 — Design drafted ([design.md](design.md)); waiting for Gate 1.
+- 2026-11-27 — Gate 1 (spec) approved by the owner ("duyệt hết như đề xuất"): whole design as recommended (D-1 no `matchId` now, OD-16 moves to Match-fit feedback; D-2 polling rules; D-3 finished = Ready card, no closed state; D-4 copy table in §7). Status `APPROVED`.
+- 2026-11-27 — Plan and test cases written ([implement.md](implement.md): T01–T08, TC-01…TC-12); waiting for Gate 2.
+- 2026-11-27 — Gate 2 (plan) approved by the owner: tasks T01–T08 and test cases TC-01…TC-12 as written, including agent-derived TC-07 edge cases; owner asked to build, test the full flow, review, then commit and push if no issue. Status `IN_PROGRESS`.
+- 2026-11-27 — Build loop finished: backend + frontend built, `scripts/precommit.sh` PIPELINE OK (twice), full-flow script on the running stack E2E OK, fresh-session review APPROVE 90/100, scope and privacy reviews no open high/medium (findings in [review.md](review.md)). AC-01…AC-03 PASS, AC-04 NOT VERIFIED (owner browser check TC-11). Committed and pushed on the owner's request. Status `IN_REVIEW`.

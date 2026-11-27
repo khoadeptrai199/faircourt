@@ -3,6 +3,7 @@ package com.faircourt.gateway.guest;
 import com.faircourt.common.web.ApiException;
 import com.faircourt.common.web.ErrorCode;
 import com.faircourt.common.web.RequestIdFilter;
+import com.faircourt.gateway.player.MyAssignment;
 import java.time.Instant;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
 /**
@@ -42,7 +44,8 @@ public class PlaymatchClient {
 
     private record MemberRequest(UUID userId, String displayName) {}
 
-    private record MyAttendanceAnswer(AttendanceState attendanceState) {}
+    /** What playmatch-service answers to the own-attendance read: the state and the optional own assignment. */
+    public record MyAttendance(AttendanceState attendanceState, MyAssignment assignment) {}
 
     /**
      * Member join: {@code POST /internal/v1/games/{gameId}/member-attendances}. The account id is the one the gateway
@@ -74,9 +77,9 @@ public class PlaymatchClient {
      * (a signed-in account) or {@code attendanceId} (a guest the gateway resolved from the cookie). 404 when it is not
      * this caller's entry in this game.
      */
-    public AttendanceState myAttendance(UUID gameId, UUID userId, UUID attendanceId) {
+    public MyAttendance myAttendance(UUID gameId, UUID userId, UUID attendanceId) {
         try {
-            MyAttendanceAnswer answer = (userId != null
+            MyAttendance answer = (userId != null
                             ? client.get()
                                     .uri("/internal/v1/games/{gameId}/my-attendance?userId={userId}", gameId, userId)
                             : client.get()
@@ -86,14 +89,24 @@ public class PlaymatchClient {
                                             attendanceId))
                     .header(RequestIdFilter.HEADER, RequestIdFilter.currentRequestId())
                     .retrieve()
-                    .body(MyAttendanceAnswer.class);
+                    .body(MyAttendance.class);
             if (answer == null || answer.attendanceState() == null) {
                 throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE);
             }
-            return answer.attendanceState();
+            MyAssignment assignment = answer.assignment();
+            if (assignment != null
+                    && (assignment.matchNo() < 1
+                            || assignment.courtNo() < 1
+                            || !("PLANNED".equals(assignment.matchState())
+                                    || "ACTIVE".equals(assignment.matchState())))) {
+                throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE);
+            }
+            return answer;
         } catch (HttpClientErrorException e) {
             throw mapClientError(e);
-        } catch (RestClientResponseException | ResourceAccessException e) {
+        } catch (RestClientException e) {
+            // Also a body that cannot be read (a broken assignment), not only a failed call: 503, never 500.
+            // RestClientException covers RestClientResponseException and ResourceAccessException.
             throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE);
         }
     }

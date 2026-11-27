@@ -33,4 +33,4 @@ After a finished match, a participant answers one tap: Too easy / About right / 
 
 | ID | Question | Status |
 |---|---|---|
-| OD-16 | Identify the match by `matchId` or `matchNo` | Open |
+| OD-16 | Identify the match by `matchId` or `matchNo` | Open — moved here: My game does not add `matchId` to `/me` (owner 2026-11-27) |

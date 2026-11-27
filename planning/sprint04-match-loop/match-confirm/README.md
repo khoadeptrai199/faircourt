@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Sprint | S04 Match loop |
-| Status | `IN_REVIEW` |
+| Status | `DONE` |
 | Blueprint | §5, §11 (match PLANNED), §12 (application invariants, partial unique indexes), §13 (`POST /host/sessions/{sessionId}/matches`, `409 MATCH_CONFLICT`), §15 (transaction, lock, no partial success), §16 (`/host/sessions/:sessionId/review`, tap-to-swap) |
 | Depends on | F09 |
-| Waiting for | Gate 3: owner reviews the result (browser checks TC-31…TC-34) and commits |
+| Waiting for | — (merged to main, PR #8) |
 | Suggested branch | `feature/match-confirm` |
 | Last updated | 2026-11-27 |
 
@@ -52,3 +52,4 @@ The host swaps players across courts or replaces anyone with another Ready playe
 | 2026-11-26 | Gate 2 (plan) approved by the owner: implement.md T01…T10, TC-01…TC-34, Vitest pinned 5.1.0, `npm test` added to scripts/precommit.sh ("duyệt hết như đề xuất") | Owner |
 | 2026-11-26 | Build loop done: fix round 1 after review (3 medium fixed); flow-reviewer APPROVE 94/100, scope and privacy no open high/medium; `scripts/precommit.sh` PIPELINE OK; `IN_PROGRESS → IN_REVIEW` | Claude |
 | 2026-11-27 | Gate 3 decisions approved by the owner ("duyệt hết như đề xuất"): `PlayerSlotButton` moved to its own file, "Refresh suggestions" disabled while a court saves, body validation in `MatchService` accepted as a deviation. Browser checks TC-31…TC-34 and commit still the owner's | Owner |
+| 2026-11-27 | Owner confirmed DONE ("duyệt hết như đề xuất"); code merged to main in PR #8. Browser visual checks were not recorded as evidence and stay NOT VERIFIED | Owner |

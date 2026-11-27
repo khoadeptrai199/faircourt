@@ -3,6 +3,7 @@ import type {
   CourtMatchState,
   GameState,
   MatchFormat,
+  MyMatchState,
 } from '../api/types'
 import { copy } from '../copy/en'
 
@@ -22,16 +23,15 @@ export const MATCH_FORMAT: Record<MatchFormat, string> = {
   DOUBLES: copy.publicGame.formatDoubles,
 }
 
-// Own attendance state: label + tone for StatusBadge. ASSIGNED and PLAYING share one generic label until the
-// own-assignment feature shows the match details.
+// Own attendance state: label + tone for StatusBadge. ASSIGNED apart from PLAYING (blueprint section 11).
 export const ATTENDANCE_STATUS: Record<
   AttendanceState,
   { label: string; tone: StatusTone }
 > = {
   PENDING: { label: copy.myGame.pending, tone: 'neutral' },
   READY: { label: copy.myGame.ready, tone: 'positive' },
-  ASSIGNED: { label: copy.myGame.inMatch, tone: 'positive' },
-  PLAYING: { label: copy.myGame.inMatch, tone: 'positive' },
+  ASSIGNED: { label: copy.myGame.assigned, tone: 'positive' },
+  PLAYING: { label: copy.myGame.playing, tone: 'positive' },
   RESTING: { label: copy.myGame.resting, tone: 'neutral' },
   LEFT: { label: copy.myGame.left, tone: 'neutral' },
 }
@@ -47,6 +47,15 @@ export const HOST_ATTENDANCE_STATUS: Record<
   PLAYING: { label: copy.hostBoard.statePlaying, tone: 'positive' },
   RESTING: { label: copy.hostBoard.stateResting, tone: 'neutral' },
   LEFT: { label: copy.hostBoard.stateLeft, tone: 'neutral' },
+}
+
+// Own match on the My game page: PLANNED is "Your next match", ACTIVE is "Playing now".
+export const MY_MATCH_STATUS: Record<
+  MyMatchState,
+  { label: string; tone: StatusTone }
+> = {
+  PLANNED: { label: copy.myGame.assigned, tone: 'positive' },
+  ACTIVE: { label: copy.myGame.playing, tone: 'positive' },
 }
 
 // The two match states a court can show.

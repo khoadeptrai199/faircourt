@@ -31,7 +31,7 @@ Right now only `GET /actuator/health`, `GET /api/v1/auth/csrf`, `GET /api/v1/pub
 | `POST /games` | Signed-in account | Create a game; creator becomes host. | Implemented (Create game, 2026-11-26) |
 | `POST /public/games/{publicCode}/guests` | Visitor | Submit name/assessment; create guest `PENDING`, set private guest cookie. | Implemented, backend (Guest check-in, 2026-11-18) |
 | `POST /games/{gameId}/join` | Signed-in player | Join once with member profile; return own attendance. | Implemented (Own attendance status, 2026-11-20; row updated 2026-11-25, details in that feature's design) |
-| `GET /games/{gameId}/me` | Member or scoped guest | Own attendance state, optional own `matchNo`, `courtNo`, `matchState`; no other players. | Implemented for the attendance state (Own attendance status, 2026-11-20); `assignment` is always `null` until the own-assignment feature |
+| `GET /games/{gameId}/me` | Member or scoped guest | Own attendance state, optional own `matchNo`, `courtNo`, `matchState`; no other players. | Implemented (Own attendance status 2026-11-20; own assignment, My game 2026-11-27): `assignment` is `{matchNo, courtNo, matchState}` of the caller's own unreleased match (`matchState` only `PLANNED` or `ACTIVE`), else `null`; no `matchId`; `Cache-Control: no-store`. Internal `GET /internal/v1/games/{gameId}/my-attendance` answers the same shape; the gateway rebuilds it and answers `503` for any other match state or a number below 1 |
 | `GET /host/games/{gameId}/board` | This game's host | Full attendance list, private bands, current matches and courts. | Implemented (Host board, 2026-11-25) |
 | `GET /host/games` | Signed-in account | Games the caller hosts (owner-approved addition, OD-04, 2026-11-25). | Implemented (Host board, 2026-11-25) |
 | `PATCH /host/games/{gameId}/attendance/{attendanceId}` | Host | Approve guest, set Ready/Resting/Left with state validation. | Implemented, Ready and Left only (Attendance management, 2026-11-26) |
@@ -276,7 +276,7 @@ Own assignment — `GET /api/v1/games/{id}/me`:
 {"attendanceState":"ASSIGNED","assignment":{"matchNo":3,"courtNo":2,"matchState":"PLANNED"}}
 ```
 
-`assignment` is `null` while waiting.
+`assignment` is `null` while waiting, and again after the match is finished or cancelled (the player is back to `READY`). `PLAYING` goes with `matchState: "ACTIVE"`.
 
 ## Errors (§13)
 

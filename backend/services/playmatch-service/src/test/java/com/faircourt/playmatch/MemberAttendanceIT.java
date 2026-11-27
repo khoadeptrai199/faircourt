@@ -477,13 +477,13 @@ class MemberAttendanceIT {
         HttpResponse<String> asGuest = mine(gameId.toString(), "?attendanceId=" + guestAttendance);
 
         assertThat(asMember.statusCode()).as(asMember.body()).isEqualTo(200);
-        assertThat(asMember.body()).isEqualTo("{\"attendanceState\":\"READY\"}");
-        JsonAllowlist.assertOnlyFields(asMember.body(), "attendanceState");
+        assertThat(asMember.body()).isEqualTo("{\"attendanceState\":\"READY\",\"assignment\":null}");
+        JsonAllowlist.assertOnlyFields(asMember.body(), "attendanceState", "assignment");
         assertThat(asMember.headers().firstValue("Cache-Control"))
                 .hasValueSatisfying(v -> assertThat(v).contains("no-store"));
         assertThat(asGuest.statusCode()).isEqualTo(200);
-        assertThat(asGuest.body()).isEqualTo("{\"attendanceState\":\"PENDING\"}");
-        JsonAllowlist.assertOnlyFields(asGuest.body(), "attendanceState");
+        assertThat(asGuest.body()).isEqualTo("{\"attendanceState\":\"PENDING\",\"assignment\":null}");
+        JsonAllowlist.assertOnlyFields(asGuest.body(), "attendanceState", "assignment");
     }
 
     @Test

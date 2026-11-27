@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Status | `PLANNED` |
+| Status | `ACTIVE` |
 | Goal | Each player sees only "Your next match: Court X" and its status, refreshed while the page is visible; after a game they can answer Too easy / About right / Too hard; the host can record a private observation and adjust a band |
 | Gate | §17 step 4: "four assigned players each see only their own match/court; a fifth sees no assignment". §17 checklist: "Four players see match number and court number after confirm; public viewers do not" |
 | Blueprint | §4, §6, §12, §13, §16 |
@@ -12,7 +12,7 @@
 
 | ID | Feature | Status |
 |---|---|---|
-| F12 | [My game: own assignment + polling](my-match-assignment/README.md) | `BACKLOG` |
+| F12 | [My game: own assignment + polling](my-match-assignment/README.md) | `IN_REVIEW` |
 | F13 | [Match-fit feedback](match-feedback/README.md) | `BACKLOG` |
 | F14 | [Host skill assessment](host-assessment/README.md) | `BACKLOG` |
 

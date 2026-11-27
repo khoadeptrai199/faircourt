@@ -75,6 +75,8 @@ public final class StubService {
     private final Map<String, String> members = new ConcurrentHashMap<>();
 
     private volatile boolean failingMyAttendance = false;
+    /** JSON of the {@code assignment} value the my-attendance stub adds to its answer; null = no assignment key. */
+    private volatile String myAssignmentJson = null;
 
     private final Map<String, String> guestTokens = new ConcurrentHashMap<>();
     private final AtomicInteger guestTokenCounter = new AtomicInteger();
@@ -142,11 +144,17 @@ public final class StubService {
         resolveFails = false;
         members.clear();
         failingMyAttendance = false;
+        myAssignmentJson = null;
     }
 
     /** Makes the my-attendance stub answer 500, like a playmatch-service that is up but failing. */
     public void myAttendanceFails(boolean fails) {
         this.failingMyAttendance = fails;
+    }
+
+    /** Makes the my-attendance stub add {@code "assignment": <json>} to its answer (null removes the key). */
+    public void myAttendanceAssignment(String json) {
+        this.myAssignmentJson = json;
     }
 
     /** A port on which nothing listens, for the "service is down" case. */
@@ -286,7 +294,8 @@ public final class StubService {
                 status = 404;
                 body = "{\"code\":\"NOT_FOUND\",\"message\":\"Not found.\",\"requestId\":\"from-service\"}";
             } else {
-                body = "{\"attendanceState\":\"" + state + "\"}";
+                body = "{\"attendanceState\":\"" + state + "\""
+                        + (myAssignmentJson == null ? "" : ",\"assignment\":" + myAssignmentJson) + "}";
             }
         } else if (path.endsWith("/conflict")) {
             status = 409;

@@ -5,7 +5,8 @@ import { copy } from '../../copy/en'
 import { ATTENDANCE_STATUS } from '../../lib/status'
 
 // One large card with the caller's own state (blueprint section 16). Status is text + colour via StatusBadge.
-// No court or match yet: the assignment comes with the own-assignment feature.
+// Used for every state without an assignment. ASSIGNED / PLAYING land here only in the defensive case that the
+// answer has no assignment; normally MyAssignmentCard is shown.
 export default function StateCard({ state }: { state: AttendanceState }) {
   const status = ATTENDANCE_STATUS[state]
   const positive = status.tone === 'positive'
@@ -40,6 +41,7 @@ function bodyOf(state: AttendanceState): string | null {
       return copy.myGame.readyBody
     case 'ASSIGNED':
     case 'PLAYING':
+      return copy.myGame.inMatch
     case 'RESTING':
     case 'LEFT':
       return null

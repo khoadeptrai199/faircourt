@@ -223,6 +223,84 @@ class PlayerAccessIT extends GuestTestBase {
     }
 
     @Test
+    void aMemberReadsOwnAssignmentExactlyAsPlaymatchAnsweredAndNothingElse() throws Exception {
+        signIn("host@faircourt.local");
+        join(GAME);
+        String assignment = "{\"matchNo\":3,\"courtNo\":2,\"matchState\":\"PLANNED\"}";
+        STUB.myAttendanceAssignment(assignment);
+
+        HttpResponse<String> response = me(GAME);
+
+        assertThat(response.statusCode()).as(response.body()).isEqualTo(200);
+        assertThat(response.body()).isEqualTo("{\"attendanceState\":\"READY\",\"assignment\":" + assignment + "}");
+        JsonAllowlist.assertOnlyFields(
+                response.body(),
+                "attendanceState",
+                "assignment",
+                "assignment.matchNo",
+                "assignment.courtNo",
+                "assignment.matchState");
+        assertThat(response.headers().firstValue("Cache-Control"))
+                .hasValueSatisfying(v -> assertThat(v).contains("no-store"));
+    }
+
+    @Test
+    void anExtraKeyInsideTheAssignmentIsDroppedAndAFinishedZeroOrUnreadableAssignmentIs503() throws Exception {
+        signIn("host@faircourt.local");
+        join(GAME);
+        STUB.myAttendanceAssignment("{\"matchNo\":3,\"courtNo\":2,\"matchState\":\"ACTIVE\",\"team\":\"A\"}");
+
+        HttpResponse<String> extra = me(GAME);
+        STUB.myAttendanceAssignment("{\"matchNo\":3,\"courtNo\":2,\"matchState\":\"FINISHED\"}");
+        HttpResponse<String> finished = me(GAME);
+        STUB.myAttendanceAssignment("{\"matchNo\":0,\"courtNo\":2,\"matchState\":\"PLANNED\"}");
+        HttpResponse<String> zero = me(GAME);
+        STUB.myAttendanceAssignment("{\"matchNo\":\"x\",\"courtNo\":2,\"matchState\":\"PLANNED\"}");
+        HttpResponse<String> unreadable = me(GAME);
+
+        assertThat(extra.statusCode()).as(extra.body()).isEqualTo(200);
+        assertThat(extra.body())
+                .isEqualTo("{\"attendanceState\":\"READY\",\"assignment\":"
+                        + "{\"matchNo\":3,\"courtNo\":2,\"matchState\":\"ACTIVE\"}}")
+                .doesNotContain("team");
+        for (HttpResponse<String> bad : List.of(finished, zero, unreadable)) {
+            assertThat(bad.statusCode()).as(bad.body()).isEqualTo(503);
+            assertThat(bad.body()).contains("\"code\":\"SERVICE_UNAVAILABLE\"").doesNotContain("assignment");
+        }
+    }
+
+    @Test
+    void aGuestOnlyEverAsksForItsOwnAttendanceAndAnonymousOrUnknownCallersGetNoAssignment() throws Exception {
+        UUID attendanceA = UUID.randomUUID();
+        UUID attendanceB = UUID.randomUUID();
+        STUB.knownGuestToken("a".repeat(43), attendanceA.toString());
+        STUB.knownGuestToken("b".repeat(43), attendanceB.toString());
+        String cookieB = "fc_guest=" + "b".repeat(43);
+        STUB.myAttendanceAssignment("{\"matchNo\":1,\"courtNo\":1,\"matchState\":\"PLANNED\"}");
+
+        HttpResponse<String> asB = meWithCookies(StubService.GUEST_GAME_ID, cookieB);
+        HttpResponse<String> anonymous = me(StubService.GUEST_GAME_ID);
+
+        assertThat(asB.statusCode()).as(asB.body()).isEqualTo(200);
+        StubService.Received call = callsTo("/my-attendance").getFirst();
+        assertThat(call.query()).isEqualTo("attendanceId=" + attendanceB);
+        assertThat(callsTo("/my-attendance")).hasSize(1);
+        assertThat(anonymous.statusCode()).isEqualTo(401);
+        assertThat(anonymous.body()).contains("\"code\":\"UNAUTHENTICATED\"").doesNotContain("assignment");
+    }
+
+    @Test
+    void anAccountWithNoRowInTheGameGets404WithNoAssignmentEvenWhenAMatchExists() throws Exception {
+        signIn(StubService.OTHER_EMAIL_PREFIX + "b@faircourt.local");
+        STUB.myAttendanceAssignment("{\"matchNo\":1,\"courtNo\":1,\"matchState\":\"PLANNED\"}");
+
+        HttpResponse<String> response = me(GAME);
+
+        assertThat(response.statusCode()).isEqualTo(404);
+        assertThat(response.body()).contains("\"code\":\"NOT_FOUND\"").doesNotContain("assignment");
+    }
+
+    @Test
     void aGuestReadsOwnPendingState() throws Exception {
         guestCookie(UUID.randomUUID());
 
