@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Sprint | S04 Match loop |
-| Status | `IN_REVIEW` |
+| Status | `DONE` |
 | Blueprint | §11 (match and attendance transitions, finish counters), §12, §13 (`PATCH /host/matches/{matchId}/start\|finish\|cancel`), §15 |
 | Depends on | F10 |
-| Waiting for | Gate 3: owner reviews the result ([review.md](review.md)), runs TC-20 and TC-21, and commits |
+| Waiting for | — (committed `5f19496`, pushed) |
 | Suggested branch | `feature/match-lifecycle` |
 | Last updated | 2026-11-27 |
 
@@ -43,6 +43,8 @@ The host starts a planned match, finishes an active one, or cancels either. Play
 | OD-07 | `available_since` on cancel | **Decided 2026-11-27: keep** (owner, design D-1) |
 
 ## Decision log
+
+- 2026-11-27 — Gate 3 passed: owner reported TC-20 (visual, court actions) PASS and asked to mark `DONE`. TC-21 (two-tab 409, Compose restart without volume removal) was not reported: stays NOT VERIFIED, accepted by the owner. `scripts/precommit.sh` as one run stays NOT VERIFIED (WSL VM crash). Committed `5f19496`, pushed to `feature/match-lifecycle`. Status `DONE`.
 
 - 2026-11-27 — Gate 1 (spec) approved by the owner: whole design as recommended (D-1 keep `available_since` on cancel = OD-07 cancel part; D-2 Finish and Cancel ask, Start does not; D-3 closed game 409 + buttons hidden; D-4 cancel keeps `started_at`; D-5 repeat → 409; copy table). Status `APPROVED`.
 - 2026-11-27 — Build loop finished: backend and frontend built, fresh-session review 94/100 after one fix round, scope and privacy reviews clean. `scripts/precommit.sh` as one run NOT VERIFIED (WSL VM crash); checks run piece by piece, all PASS. Status `IN_REVIEW`; waiting for Gate 3.
