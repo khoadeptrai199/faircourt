@@ -134,6 +134,14 @@ export type HostAttendanceChange = {
   availableSince: string
 }
 
+// PATCH /api/v1/host/matches/{matchId}/start | finish | cancel: the match after the change.
+export type HostMatchState = {
+  matchId: string
+  matchNo: number
+  courtNo: number
+  state: 'PLANNED' | 'ACTIVE' | 'FINISHED' | 'CANCELLED'
+}
+
 // GET /api/v1/host/games: the games the caller hosts, newest first.
 export type HostedGame = {
   id: string

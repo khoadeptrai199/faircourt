@@ -48,6 +48,13 @@ public class SecurityConfig {
             // Match confirm: same rule; the token is bound to this method and path.
             auth.requestMatchers(HttpMethod.POST, "/api/v1/host/games/*/matches")
                     .permitAll();
+            // Match start / finish / cancel: same rule; the token is bound to this method and path.
+            auth.requestMatchers(HttpMethod.PATCH, "/api/v1/host/matches/*/start")
+                    .permitAll();
+            auth.requestMatchers(HttpMethod.PATCH, "/api/v1/host/matches/*/finish")
+                    .permitAll();
+            auth.requestMatchers(HttpMethod.PATCH, "/api/v1/host/matches/*/cancel")
+                    .permitAll();
         });
     }
 }

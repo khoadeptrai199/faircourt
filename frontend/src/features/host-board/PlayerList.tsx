@@ -18,6 +18,7 @@ export default function PlayerList({
   minSets,
   note,
   gameClosed,
+  busy,
   savingId,
   onChange,
 }: {
@@ -27,6 +28,9 @@ export default function PlayerList({
   minSets: number
   note?: string
   gameClosed: boolean
+  // Any change (attendance or match) is saving: every action button is disabled.
+  busy: boolean
+  // The attendance row being saved, if the saving change is an attendance one.
   savingId: string | null
   onChange: (attendanceId: string, target: AttendanceTarget) => void
 }) {
@@ -63,7 +67,7 @@ export default function PlayerList({
                     name={player.displayName}
                     state={state}
                     gameClosed={gameClosed}
-                    saving={savingId !== null}
+                    saving={busy}
                     busyHere={savingId === player.attendanceId}
                     onChange={(target) => onChange(player.attendanceId, target)}
                   />

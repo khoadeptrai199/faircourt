@@ -185,6 +185,28 @@ class PlaymatchServiceAccessIT {
         assertThat(send("POST", path + "/extra").statusCode()).isEqualTo(401);
     }
 
+    /** Match lifecycle, TC-19: no identity token is 401 JSON; the three routes are open for PATCH only. */
+    @Test
+    void matchLifecycleRoutesAreOpenForPatchOnlyAndAnswerWithoutTokenAs401() throws Exception {
+        for (String action : new String[] {"start", "finish", "cancel"}) {
+            String path = "/api/v1/host/matches/22222222-2222-2222-2222-222222222222/" + action;
+
+            HttpResponse<String> patch = sendWithToken("PATCH", path, null, "");
+
+            assertThat(patch.statusCode()).as(action).isEqualTo(401);
+            assertThat(patch.body()).contains("\"code\":\"UNAUTHENTICATED\"");
+            for (String method : new String[] {"GET", "POST", "PUT", "DELETE"}) {
+                assertThat(send(method, path).statusCode())
+                        .as(method + " " + action)
+                        .isEqualTo(401);
+            }
+            assertThat(send("PATCH", path + "/extra").statusCode()).as(action).isEqualTo(401);
+        }
+        assertThat(send("PATCH", "/api/v1/host/matches/22222222-2222-2222-2222-222222222222/pause")
+                        .statusCode())
+                .isEqualTo(401);
+    }
+
     private static String token(UUID user, String method, String path) {
         return new IdentityToken(System.getenv("INTERNAL_TOKEN_SECRET"), Clock.systemUTC())
                 .issue(user, "playmatch-service", method, path);

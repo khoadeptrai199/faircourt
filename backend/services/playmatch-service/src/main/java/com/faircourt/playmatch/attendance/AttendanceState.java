@@ -1,5 +1,8 @@
 package com.faircourt.playmatch.attendance;
 
+import com.faircourt.playmatch.match.MatchState;
+import java.util.Optional;
+
 /**
  * State of an attendance; constants equal the DB check values (blueprint section 11). The transition table for the
  * host's manual changes lives here (AD-03; Attendance management design 5); the match commands add their own
@@ -32,6 +35,19 @@ public enum AttendanceState {
      */
     public boolean canBeAssigned() {
         return this == READY;
+    }
+
+    /**
+     * State every player of a match must be in while the match is in {@code matchState}: {@code ASSIGNED} for a
+     * planned match, {@code PLAYING} for an active one (blueprint section 11). Empty for a finished or cancelled match
+     * (the caller treats that as a conflict).
+     */
+    public static Optional<AttendanceState> expectedInMatch(MatchState matchState) {
+        return switch (matchState) {
+            case PLANNED -> Optional.of(ASSIGNED);
+            case ACTIVE -> Optional.of(PLAYING);
+            case FINISHED, CANCELLED -> Optional.empty();
+        };
     }
 
     /**

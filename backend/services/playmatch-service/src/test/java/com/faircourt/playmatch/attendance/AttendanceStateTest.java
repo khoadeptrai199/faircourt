@@ -7,6 +7,7 @@ import static com.faircourt.playmatch.attendance.AttendanceState.PLAYING;
 import static com.faircourt.playmatch.attendance.AttendanceState.READY;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.faircourt.playmatch.match.MatchState;
 import java.util.EnumSet;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -44,6 +45,14 @@ class AttendanceStateTest {
         for (AttendanceState state : AttendanceState.values()) {
             assertThat(state.canBeAssigned()).as(state.name()).isEqualTo(state == READY);
         }
+    }
+
+    @Test
+    void playersOfAPlannedMatchAreAssignedAndOfAnActiveMatchPlayingAndOtherMatchesExpectNothing() {
+        assertThat(AttendanceState.expectedInMatch(MatchState.PLANNED)).contains(ASSIGNED);
+        assertThat(AttendanceState.expectedInMatch(MatchState.ACTIVE)).contains(PLAYING);
+        assertThat(AttendanceState.expectedInMatch(MatchState.FINISHED)).isEmpty();
+        assertThat(AttendanceState.expectedInMatch(MatchState.CANCELLED)).isEmpty();
     }
 
     @Test
