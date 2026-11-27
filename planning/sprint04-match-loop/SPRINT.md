@@ -12,8 +12,8 @@
 
 | ID | Feature | Status |
 |---|---|---|
-| F09 | [Match suggestions](match-suggestions/README.md) | `IN_PROGRESS` |
-| F10 | [Match confirm + tap-to-swap](match-confirm/README.md) | `BACKLOG` |
+| F09 | [Match suggestions](match-suggestions/README.md) | `IN_REVIEW` |
+| F10 | [Match confirm + tap-to-swap](match-confirm/README.md) | `IN_REVIEW` |
 | F11 | [Match start / finish / cancel](match-lifecycle/README.md) | `BACKLOG` |
 
 ## Why this order

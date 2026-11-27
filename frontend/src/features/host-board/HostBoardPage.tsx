@@ -218,7 +218,11 @@ function Board({
         }
       })()}
       {game.state === 'CLOSED' && (
-        <p role="status" className="text-base font-bold text-muted">
+        <p
+          id="host-board-closed-note"
+          role="status"
+          className="text-base font-bold text-muted"
+        >
           {t.closedNote}
         </p>
       )}
@@ -270,16 +274,24 @@ function Board({
       </div>
 
       <div className="sticky bottom-0 -mx-4 flex flex-col items-center gap-1 bg-background/95 px-4 py-3 md:mx-0 md:px-0">
-        <Button
-          disabled
-          aria-describedby="suggest-soon"
-          className="min-h-14 w-full text-[17px] md:max-w-sm"
-        >
-          {t.suggest}
-        </Button>
-        <p id="suggest-soon" className="text-sm font-bold text-muted">
-          {copy.common.comingSoon}
-        </p>
+        {game.state === 'CLOSED' ? (
+          <>
+            <Button
+              disabled
+              aria-describedby="host-board-closed-note"
+              className="min-h-14 w-full text-[17px] md:max-w-sm"
+            >
+              {t.suggest}
+            </Button>
+          </>
+        ) : (
+          <Link
+            to={`/host/games/${game.id}/review`}
+            className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl bg-action px-4 text-[17px] font-extrabold text-white hover:bg-action-dark focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-action md:max-w-sm"
+          >
+            {t.suggest}
+          </Link>
+        )}
       </div>
     </>
   )

@@ -3,10 +3,10 @@
 | Field | Value |
 |---|---|
 | Sprint | S04 Match loop |
-| Status | `IN_PROGRESS` |
+| Status | `IN_REVIEW` |
 | Blueprint | §5 (rules v1), §6, §11 ("Suggestion itself writes nothing"), §13 (`POST /host/sessions/{sessionId}/suggestions`, example response), §14 (engine contract), §16 (review route) |
 | Depends on | F07 |
-| Waiting for | Build (after Create game is committed; new branch from main) |
+| Waiting for | Owner: visual check AC-06 (TC-25..28) and commit |
 | Suggested branch | `feature/match-suggestions` |
 | Last updated | 2026-11-26 |
 
@@ -58,3 +58,4 @@ The host taps "Suggest matches" and sees one proposal per free court (teams A/B,
 | 2026-11-26 | Design written (`BACKLOG → WAITING_APPROVAL`); AC-07 (singles), AC-08 (503) added | Claude |
 | 2026-11-26 | Gate 1 (spec) approved by the owner: design.md with all recommendations (D-1 own review page, D-2 `noSuggestionReason`, D-3 singles = adjacent level pairs without repeat-opponent rule, D-4 no extra minimum-sets rule, D-5 ids only, D-6 no pool cap) and the copy table; `WAITING_APPROVAL → APPROVED` | Owner, this conversation |
 | 2026-11-26 | Gate 2 (plan) approved by the owner: implement.md tasks T01–T08 and test cases TC-01…TC-28; `APPROVED → IN_PROGRESS` | Owner, this conversation |
+| 2026-11-26 | Built and reviewed (fresh-session review 86/100, findings fixed); pre-commit pipeline PASS; AC-01…05, 07, 08 PASS, AC-06 NOT VERIFIED (owner visual check); `IN_PROGRESS → IN_REVIEW` | Claude |

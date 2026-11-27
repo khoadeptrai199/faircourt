@@ -11,12 +11,19 @@ import java.util.UUID;
  *
  * @param readyPlayers checked-in READY players who are not in another unfinished match
  * @param freeCourts   court numbers with no PLANNED/ACTIVE match
+ * @param format       singles or doubles (OD-20)
  */
-public record BoardSnapshot(List<ReadyPlayer> readyPlayers, List<Integer> freeCourts) {
+public record BoardSnapshot(List<ReadyPlayer> readyPlayers, List<Integer> freeCourts, MatchFormat format) {
 
     public BoardSnapshot {
         readyPlayers = List.copyOf(readyPlayers);
         freeCourts = List.copyOf(freeCourts);
+        Objects.requireNonNull(format, "format");
+    }
+
+    /** Doubles, the blueprint section 14 default. */
+    public BoardSnapshot(List<ReadyPlayer> readyPlayers, List<Integer> freeCourts) {
+        this(readyPlayers, freeCourts, MatchFormat.DOUBLES);
     }
 
     /**

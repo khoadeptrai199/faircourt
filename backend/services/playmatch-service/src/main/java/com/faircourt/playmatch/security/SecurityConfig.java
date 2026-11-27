@@ -42,6 +42,12 @@ public class SecurityConfig {
             // Host attendance change (Attendance management): same rule; the token is bound to this method and path.
             auth.requestMatchers(HttpMethod.PATCH, "/api/v1/host/games/*/attendance/*")
                     .permitAll();
+            // Match suggestions (read only): same rule; the token is bound to this method and path.
+            auth.requestMatchers(HttpMethod.POST, "/api/v1/host/games/*/suggestions")
+                    .permitAll();
+            // Match confirm: same rule; the token is bound to this method and path.
+            auth.requestMatchers(HttpMethod.POST, "/api/v1/host/games/*/matches")
+                    .permitAll();
         });
     }
 }

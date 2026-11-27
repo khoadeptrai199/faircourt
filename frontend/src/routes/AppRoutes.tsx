@@ -10,6 +10,7 @@ import JoinPage from '../features/join/JoinPage'
 import LoginPage from '../features/login/LoginPage'
 import ForgotPasswordPage from '../features/password-reset/ForgotPasswordPage'
 import ResetPasswordPage from '../features/password-reset/ResetPasswordPage'
+import MatchReviewPage from '../features/match-review/MatchReviewPage'
 import MyGamePage from '../features/my-game/MyGamePage'
 import PublicGamePage from '../features/public-game/PublicGamePage'
 
@@ -23,6 +24,7 @@ export default function AppRoutes() {
       <Route path="/my/games/:gameId" element={<MyGamePage />} />
       <Route path="/host/games/new" element={<CreateGamePage />} />
       <Route path="/host/games/:gameId" element={<HostBoardPage />} />
+      <Route path="/host/games/:gameId/review" element={<MatchReviewPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
